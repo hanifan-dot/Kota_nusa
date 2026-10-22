@@ -38,18 +38,26 @@
 .flight-bar{position:relative;height:10px;background:#e1e6d4;border-radius:6px;margin:0 14px}.flight-bar i{position:absolute;left:0;top:0;height:100%;width:0;background:linear-gradient(90deg,#7ab08c,#315f4e);border-radius:6px}.flight-bar span{position:absolute;top:-15px;left:0;transform:translateX(-50%);font-size:22px;color:#315f4e}
 .landing-shade{background:linear-gradient(90deg,#ebefdd99 0%,#eff0e050 26%,transparent 54%)!important}
 @media(max-width:700px){.landing-shade{background:linear-gradient(180deg,#0e2f3a40 0%,transparent 26%)!important}.hero{background:#f8f6e9ee;border-radius:26px;padding:22px 20px!important;box-shadow:0 18px 50px #0e2f3a40}}
+
+.ktp-canvas{width:100%;height:auto;display:block;border-radius:20px;box-shadow:0 10px 26px #123b3e44}
+.apt-list{display:grid;gap:8px}.apt-unit.mine{background:#e5f3e8;border-color:#a9dbc0}
 </style></head><body><main id="app"><div id="boot"><h1>Kota Nusa.</h1><p>Menyiapkan kota…</p></div></main><script>'use strict';
 /* ======================================================================
    KONFIGURASI KOTA NUSA  —  ISI BAGIAN INI SAJA, JANGAN UBAH KODE LAIN
    ======================================================================
-   1) CHAT ONLINE: tempel alamat Firebase Realtime Database kamu di bawah.
-      Contoh: 'https://kota-nusa-123-default-rtdb.asia-southeast1.firebasedatabase.app'
-      (harus diawali https://). Kosongkan = chat hanya lokal di HP sendiri.
+   1) CHAT ONLINE: sudah JALAN OTOMATIS tanpa akun lewat ntfy.sh (gratis).
+      Pemain tidak perlu menyambungkan apa pun. Opsional (kalau kota makin ramai):
+      isi FIREBASE_DB_URL dengan alamat Firebase Realtime Database,
+      contoh 'https://nama-proyek-default-rtdb.asia-southeast1.firebasedatabase.app'.
+      Kalau FIREBASE_DB_URL terisi, Firebase yang dipakai.
    2) INSTAGRAM: akun yang wajib di-follow pemain baru.
    3) KODE PEMILIK: hash kode rahasia Presiden (lihat catatan di Pengaturan).
    ====================================================================== */
 const NUSA_CONFIG={
- FIREBASE_DB_URL:'',
+ FIREBASE_DB_URL:'https://kotanusa-6ed9c-default-rtdb.asia-southeast1.firebasedatabase.app',
+ NTFY_SERVER:'https://ntfy.sh',
+ NTFY_TOPIC:'kota-nusa-chat-4f7q9kx2',
+ NTFY_AIRPORT_TOPIC:'kota-nusa-bandara-4f7q9kx2',
  CHAT_PATH:'chat/global',
  AIRPORT_PATH:'airport/passengers',
  INSTAGRAM_URL:'https://www.instagram.com/kota_nusa?srtk=MWF2Z2E2N3dubHI5bg==',
@@ -100,9 +108,9 @@ const DEFAULT_CHANNELS = [{ name: 'Nipzy Play', url: 'https://www.youtube.com/@n
 const RANKS = [{ xp: 0, name: 'Warga Baru', bonus: 0 }, { xp: 150, name: 'Magang', bonus: 2 }, { xp: 500, name: 'Terampil', bonus: 4 }, { xp: 1300, name: 'Profesional', bonus: 6 }, { xp: 3000, name: 'Supervisor', bonus: 8 }, { xp: 6500, name: 'Kepala Divisi', bonus: 10 }];
 function career(xp) { const index = RANKS.findLastIndex(r => xp >= r.xp); const current = RANKS[Math.max(0, index)]; return { ...current, index, next: RANKS[index + 1] ?? null }; }
 function initialWorld(now) { return { players: {}, tax: 5, pendingTax: null, treasury: 12000, termDays: 30, mayorUntil: 0, president: null, vice: null, mayor: null, vote: null, projects: [], news: [{ id: 'welcome', title: 'Selamat datang di Kota Nusa', text: 'Sebuah pulau kecil, banyak cerita baru. Mulai dari kos, pilih pekerjaan, dan bangun kota bersama.', author: 'Kantor Nusa', time: now }], events: [], ledger: [], reports: [], youtube: DEFAULT_CHANNELS[0].url, channels: DEFAULT_CHANNELS, created: now }; }
-function makePlayer(name, color, now) { return { id: crypto.randomUUID(), name, color, coins: 250, held: 0, xp: 0, hunger: 100, thirst: 100, health: 100, active: 0, joined: now, lastTick: now, salaryAt: 0, lastAction: 0, jobs: 0, skills: {}, inventory: {}, home: null, decor: 'sage', life: 1, memories: ['Tiba di Nusa · ' + new Date(now).toISOString().slice(0, 10)], friends: [], requests: [], blocks: [], mutedUntil: 0, banned: false, tutorial: 0, job: null, claimTries: 0, claimAt: 0 }; }
+function makePlayer(name, color, now) { return { id: crypto.randomUUID(), name, color, coins: 250, held: 0, xp: 0, hunger: 100, thirst: 100, health: 100, active: 0, joined: now, lastTick: now, salaryAt: 0, lastAction: 0, jobs: 0, skills: {}, inventory: {}, home: null, ig: '', bio: '', apt: null, decor: 'sage', life: 1, memories: ['Tiba di Nusa · ' + new Date(now).toISOString().slice(0, 10)], friends: [], requests: [], blocks: [], mutedUntil: 0, banned: false, tutorial: 0, job: null, claimTries: 0, claimAt: 0 }; }
 function role(w, id) { return w.president === id ? 'president' : w.mayor === id ? 'mayor' : 'citizen'; }
-function publicPlayer(w, p) { return { id: p.id, name: p.name, color: p.color, role: role(w, p.id), home: p.home, houseLevel:p.home===null?0:(p.houseLevel||1), xp: p.xp, life: p.life, jobs: p.jobs, joined: p.joined, decor: p.decor, career: career(p.xp) }; }
+function publicPlayer(w, p) { return { id: p.id, name: p.name, color: p.color, role: role(w, p.id), home: p.home, ig: p.ig||'', bio: p.bio||'', apt: p.apt||null, houseLevel:p.home===null?0:(p.houseLevel||1), xp: p.xp, life: p.life, jobs: p.jobs, joined: p.joined, decor: p.decor, career: career(p.xp) }; }
 function record(w, kind, text, actor, amount = 0, now = Date.now()) { w.ledger.unshift({ id: crypto.randomUUID(), kind, text, actor, amount, time: now }); w.ledger = w.ledger.slice(0, 200); }
 function demand(condition, message) { if (!condition)
     throw new Error(message); }
@@ -298,6 +306,9 @@ async function POST(req) {
                 record(w, 'land', 'Membeli petak ' + (plot + 1), p.id, -cost, now);
                 return { message: 'Petak ' + (plot + 1) + ' sekarang milikmu!' };
             }
+            if(action==='profile'){const ig=String(b.ig??p.ig??'').replace(/^@/,'').trim();demand(ig===''||/^[A-Za-z0-9._]{1,30}$/.test(ig),'Username Instagram hanya huruf, angka, titik, garis bawah.');p.ig=ig;if(b.bio!==undefined)p.bio=cleanBio(b.bio);return {message:'Kartu penduduk diperbarui.'};}
+            if(action==='rentApt'){const t=amount(b.tower,0,7),u=amount(b.unit,0,APT_UNITS-1);demand(!p.apt,'Kamu sudah punya unit apartemen.');const cost=aptCost(u);spend(cost);p.coins-=cost;p.apt={t,u};p.memories.unshift('Pindah ke Apartemen '+(t+1)+' · Lantai '+(u+1));record(w,'house','Tinggal di Apartemen '+(t+1)+' lantai '+(u+1),p.id,-cost,now);return {message:'Selamat tinggal di Apartemen '+(t+1)+', lantai '+(u+1)+'!'};}
+            if(action==='leaveApt'){demand(p.apt,'Kamu tidak sedang tinggal di apartemen.');p.apt=null;return {message:'Kamu pindah keluar dari apartemen.'};}
             if(action==='upgradeHouse'){demand(p.home!==null,'Beli tanah dahulu.');const current=p.houseLevel||1;demand(current<20,'Rumah sudah tingkat maksimum.');demand(b.fromLevel===current,'Tingkat rumah sudah berubah. Buka ulang panel Rumah.');const next=HOUSE_LEVELS[current];spend(next.cost);p.coins-=next.cost;p.houseLevel=next.level;record(w,'house','Upgrade ke '+next.name+' · tingkat '+next.level,p.id,-next.cost,now);return {message:'Rumah menjadi '+next.name+'!'};}
  if (action === 'decorate') {
                 demand(p.home !== null, 'Beli lahan dahulu.');
@@ -1037,9 +1048,9 @@ function createWorld(canvas,places,callbacks={}){
   for(const x of [-11,11]){box(x,-43,6.5,12,.8,'#819496');box(x-3.3,-43,.3,12,1.1,'#d9dbc8',.8);box(x+3.3,-43,.3,12,1.1,'#d9dbc8',.8);}
   const main=[['hall',0,-23,12,9,7,'#f2e5bd','#407ea7','hall'],['market',-25,0,11,9,5,'#edcfa4','#b95538','market'],['jobs',25,0,11,9,7,'#c9dcd0','#648a83','tower'],['home',-25,23,10,9,7,'#e8c1a2','#b57354','house'],['clinic',25,-23,10,9,5,'#e4e9df','#8fada8','clinic'],['cafe',-25,-23,10,8,5,'#eee0b8','#b98056','cafe'],['land',25,23,11,9,5,'#dfd6b5','#7c987e','house'],['airport',-47,-45,17,7,5,'#dce5db','#668c9c','tower']];
   main.forEach(([id,x,z,w,d,h,color,roof,kind])=>buildings.push({id,x,z,w,d,h,color,roof,kind}));
-  for(const x of [-79,79])for(let i=0;i<6;i++)buildings.push({x,z:-70+i*25,w:10,d:11,h:i%2?5:9+i,color:['#dcd2b5','#c4d9d7','#e4bda0'][i%3],roof:['#bc775c','#738fa2','#8da47c'][i%3],kind:i%2?'house':'tower'});
+  for(const x of [-79,79])for(let i=0;i<6;i++)buildings.push({x,z:-70+i*25,w:10,d:11,h:i%2?5:9+i,color:['#dcd2b5','#c4d9d7','#e4bda0'][i%3],roof:['#bc775c','#738fa2','#8da47c'][i%3],kind:i%2?'house':'tower',id:i%2?undefined:'apt:'+((x<0?0:3)+i/2)});
   for(let i=0;i<6;i++)buildings.push({x:-48+(i%2)*13,z:-21+Math.floor(i/2)*22,w:8,d:8,h:4+i%3,color:['#dedcbe','#e2c39f','#d3e0d1'][i%3]});
-  buildings.push({x:43,z:-25,w:9,d:13,h:15,color:'#dce3dc',roof:'#6494ac',kind:'tower'},{x:55,z:-25,w:8,d:13,h:10,color:'#e8c7a4',roof:'#a97764',kind:'tower'});
+  buildings.push({x:43,z:-25,w:9,d:13,h:15,color:'#dce3dc',roof:'#6494ac',kind:'tower',id:'apt:6'},{x:55,z:-25,w:8,d:13,h:10,color:'#e8c7a4',roof:'#a97764',kind:'tower',id:'apt:7'});
   for(let i=0;i<8;i++){const x=-52+i*15,p=projects.find(p=>p.slot===i);tile(x,-71,12,12,'#c0d1a2');if(p){const complete=Date.now()>=p.ready;buildings.push({x,z:-71,w:10,d:9,h:complete?8:3,color:complete?'#e5d7b7':'#bfa079',roof:'#6d918c',kind:'tower',id:'project:'+i});}else{tile(x,-71,10,10,'#a5c292');text('＋',x,-71,.1,14,'#73986b');}}
   for(let i=0;i<LAND_COUNT;i++){const p=plotPosition(i),owner=citizens.find(c=>c.home===i),w=i<24?5.2:6.7,d=i<24?4.2:6.7;tile(p.x,p.z,w+.25,d+.25,'#d5dfb9');tile(p.x,p.z,w,d,owner?'#c4d0a8':'#87b76a');if(owner)buildings.push({...p,w:i<24?4:5.2,d:i<24?3.2:4.8,h:4.5+Math.max(0,(owner.houseLevel||1)-9)*1.2,color:({sage:'#bad1a5',coral:'#e3ad94',blue:'#a8cbd8',sand:'#e4d0a8'})[owner.decor]||'#d6ddba',id:'plot:'+i,houseLevel:owner.houseLevel||1});else {registerHit({...p,id:'plot:'+i},w,d,0);tile(p.x,p.z,.2,1.3,'#dce8c8');tile(p.x,p.z,1.3,.2,'#dce8c8');plotSign(p,w,d,i);}}
   tile(0,0,15,15,'#e9dfc9');tile(0,0,3,15,'#f0e8d4');tile(0,0,15,3,'#f0e8d4');ellipse(0,0,.4,17,9,'#a3b9b1');ellipse(0,0,.8,14,7,'#6eb6c6');box(0,0,.6,.6,3,'#e9e4cc');ellipse(0,0,3,6,3,'#d9e4d6');
@@ -1074,21 +1085,31 @@ function createWorld(canvas,places,callbacks={}){
  function invalidate(){if(!scheduled){scheduled=true;requestAnimationFrame(draw);}}
  function drawOwnerLabels(){
   if(!playing||photo)return;
-  const occupied=[];
+  const occupied=[],byId=new Map();for(const b of buildings)if(b.id)byId.set(b.id,b);
+  const heights=[2,2.2,2.6,2.9,3.2,3.5,3.9,4.2,4.5,4.8,6.5,7,6.3,6.7,6.8,5.8,8.3,6.2,7.2,8.4];
   const owners=citizens.filter(p=>p.home!==null&&p.home!==undefined).sort((a,b)=>(b.id===localPlayerId)-(a.id===localPlayerId));
-  ctx.save();ctx.font='600 11px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.save();ctx.font='600 10px system-ui,sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
+  const pill=(cx,top,text,dot,mine,alpha)=>{
+   const tw=ctx.measureText(text).width,w=Math.min(150,tw+(dot?24:14)),h=17,x=cx-w/2,y=top;
+   if(x<6||x+w>width-6||y<110||y+h>height-90)return;
+   if(occupied.some(r=>x<r.x+r.w+4&&x+w+4>r.x&&y<r.y+r.h+3&&y+h+3>r.y))return;
+   occupied.push({x,y,w,h});
+   ctx.globalAlpha=alpha;ctx.fillStyle=mine?'rgba(18,59,62,.88)':'rgba(255,250,238,.82)';
+   ctx.beginPath();ctx.roundRect(x,y,w,h,8.5);ctx.fill();
+   if(dot){ctx.fillStyle=dot;ctx.beginPath();ctx.arc(x+9,y+h/2,3.2,0,7);ctx.fill();}
+   ctx.fillStyle=mine?'#ffffff':'#21454b';ctx.fillText(text,x+(dot?16:7),y+h/2+.5,w-(dot?22:12));
+   ctx.globalAlpha=1;
+  };
   for(const owner of owners){
-   const mine=owner.id===localPlayerId,b=buildings.find(b=>b.id==='plot:'+owner.home);if(!b||(!mine&&zoom<3.5))continue;
-   const level=owner.houseLevel||1,heights=[2,2.2,2.6,2.9,3.2,3.5,3.9,4.2,4.5,4.8,6.5,7,6.3,6.7,6.8,5.8,8.3,6.2,7.2,8.4];
-   const q=screen(P(b.x,b.z,heights[Math.max(0,Math.min(19,level-1))]+(level===20?6:level>=17?4:2)));
-   let name=String(owner.name||'Warga');if(name.length>18)name=name.slice(0,17)+'…';
-   const label=name+' · Lv '+level,w=Math.min(180,ctx.measureText(label).width+24),h=26,x=q.x-w/2,y=q.y-30;
-   if(x<6||x+w>width-6||y<110||y+h>height-90)continue;
-   if(occupied.some(r=>x<r.x+r.w+8&&x+w+8>r.x&&y<r.y+r.h+8&&y+h+8>r.y))continue;
-   occupied.push({x,y,w,h});ctx.fillStyle=mine?'#123b3e':'#fff9ec';ctx.strokeStyle=mine?'#a9dbc0':'#d0d9cb';ctx.lineWidth=1;
-   ctx.beginPath();ctx.roundRect(x,y,w,h,9);ctx.fill();ctx.stroke();
-   ctx.beginPath();ctx.moveTo(q.x-4,y+h);ctx.lineTo(q.x,y+h+5);ctx.lineTo(q.x+4,y+h);ctx.closePath();ctx.fill();
-   ctx.fillStyle=mine?'#ffffff':'#21454b';ctx.fillText(label,q.x,y+h/2,w-12);
+   const mine=owner.id===localPlayerId,b=byId.get('plot:'+owner.home);if(!b||(!mine&&zoom<1.3))continue;
+   const level=owner.houseLevel||1,q=screen(P(b.x,b.z,heights[Math.max(0,Math.min(19,level-1))]+(level===20?6:level>=17?4:2)));
+   let name=owner.ig?'@'+owner.ig:String(owner.name||'Warga');if(name.length>16)name=name.slice(0,15)+'…';
+   pill(q.x,q.y-24,name,owner.color,mine,mine?.92:Math.min(.86,.45+(zoom-1.3)*.5));
+  }
+  if(zoom>=1.5)for(const [id,b] of byId){
+   if(!id.startsWith('apt:'))continue;
+   const n=Number(id.slice(4)),k=typeof SOCIAL!=='undefined'?SOCIAL.count(n):0,q=screen(P(b.x,b.z,(b.h||10)+3));
+   pill(q.x,q.y-20,'Apartemen '+(n+1)+' · '+k+'/8',null,false,Math.min(.8,.3+(zoom-1.5)*.5));
   }
   ctx.restore();
  }
@@ -1105,7 +1126,7 @@ function createWorld(canvas,places,callbacks={}){
  canvas.addEventListener('wheel',e=>{e.preventDefault();if(!paused)changeZoom(Math.exp(-e.deltaY*.0015),e.clientX,e.clientY);},{passive:false});addEventListener('resize',invalidate);document.addEventListener?.('visibilitychange',invalidate);
  function navigate(x,z){location={x,z,yaw:0,emote:''};selected={x,z};zoom=Math.max(4.2,zoom);scale=Math.min((width-26)/2430,(height-95)/1330)*zoom;const p=P(x,z);panX=-(p.x-ox)*scale;panY=-(p.y-oy)*scale;invalidate();}
  makeScene();invalidate();
- return {debugPaths:()=>({paths:walkPaths,buildings,trees}),housePreview(canvas,level){const savedG=g;g=canvas.getContext('2d');canvas.width=560;canvas.height=400;g.setTransform(1,0,0,1,0,0);g.fillStyle='#e6eddc';g.fillRect(0,0,560,400);const scale=level>16?4.4:level>10?5:6;g.setTransform(scale,0,0,scale,280-ox*scale,320-oy*scale);residence({x:0,z:0,w:5.2,d:4.8,houseLevel:level});g=savedG;},enter(){playing=true;callbacks.mode?.(true);invalidate();},navigate,position:()=>({...location}),stop(){},pause(v){paused=v;pointers.clear();start=null;invalidate();},setStick(){},emote(){},sync(online,people,myId,cityProjects=[]){localPlayerId=myId;const sig=JSON.stringify([myId,people.map(p=>[p.id,p.name,p.home,p.decor,p.houseLevel]),cityProjects.map(p=>[p.id,p.slot,Date.now()>=p.ready])]);if(sig!==signature){signature=sig;citizens=people;projects=cityProjects;makeScene();invalidate();}},home(){zoom=1;panX=panY=0;selected=null;callbacks.mode?.(true);invalidate();},photo(v){photo=v;invalidate();},zoom(d){changeZoom(d<0?1.25:.8);},weather(v){weather=v;makeScene();invalidate();},quality(v){quality=v;invalidate();},respawn(){location={x:-22,z:22,yaw:0,emote:''};selected=null;invalidate();},plotPosition,focusCity(){zoom=1.7;panX=panY=0;selected=null;invalidate();}};
+ return {debugPaths:()=>({paths:walkPaths,buildings,trees}),housePreview(canvas,level){const savedG=g;g=canvas.getContext('2d');canvas.width=560;canvas.height=400;g.setTransform(1,0,0,1,0,0);g.fillStyle='#e6eddc';g.fillRect(0,0,560,400);const scale=level>16?4.4:level>10?5:6;g.setTransform(scale,0,0,scale,280-ox*scale,320-oy*scale);residence({x:0,z:0,w:5.2,d:4.8,houseLevel:level});g=savedG;},enter(){playing=true;callbacks.mode?.(true);invalidate();},navigate,position:()=>({...location}),stop(){},pause(v){paused=v;pointers.clear();start=null;invalidate();},setStick(){},emote(){},sync(online,people,myId,cityProjects=[]){localPlayerId=myId;const sig=JSON.stringify([myId,people.map(p=>[p.id,p.name,p.home,p.decor,p.houseLevel,p.ig]),cityProjects.map(p=>[p.id,p.slot,Date.now()>=p.ready])]);if(sig!==signature){signature=sig;citizens=people;projects=cityProjects;makeScene();invalidate();}},home(){zoom=1;panX=panY=0;selected=null;callbacks.mode?.(true);invalidate();},photo(v){photo=v;invalidate();},zoom(d){changeZoom(d<0?1.25:.8);},weather(v){weather=v;makeScene();invalidate();},quality(v){quality=v;invalidate();},respawn(){location={x:-22,z:22,yaw:0,emote:''};selected=null;invalidate();},plotPosition,focusCity(){zoom=1.7;panX=panY=0;selected=null;invalidate();}};
 }
 
 const paths={arrow:'M5 12h14m-6-6 6 6-6 6',close:'m6 6 12 12M6 18 18 6',home:'m3 10 9-7 9 7v10H3Z M9 20v-7h6v7',map:'m3 5 6-2 6 3 6-2v15l-6 2-6-3-6 2Z M9 3v15M15 6v15',work:'M4 7h16v13H4Z M8 7V4h8v3M4 12h16M10 12v3h4v-3',people:'M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M2 21v-2a6 6 0 0 1 12 0v2 M16 5a3 3 0 0 1 0 6M17 15a5 5 0 0 1 5 5',chat:'M3 4h18v13H9l-6 4Z M7 8h10M7 12h6',hall:'m2 8 10-5 10 5Z M4 10v9M9 10v9M15 10v9M20 10v9M2 21h20',wallet:'M3 6h18v14H3Z M3 6V4h15v2M16 11h5v5h-5ZM18 13h1',sun:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M12 2v2M12 20v2M2 12h2M20 12h2m-3-8-1 1M5 19l-1 1M4 4l1 1m14 14 1 1',moon:'M20 15A8 8 0 0 1 9 4a8 8 0 1 0 11 11Z',rain:'M5 15a5 5 0 1 1 2-9 6 6 0 0 1 11 1 4 4 0 0 1 0 8M8 17l-1 3m5-3-1 3m5-3-1 3',volume:'M3 9h4l5-4v14l-5-4H3Z M16 8a6 6 0 0 1 0 8M19 5a10 10 0 0 1 0 14',mute:'M3 9h4l5-4v14l-5-4H3Z m13 0 5 6m0-6-5 6',fullscreen:'M3 9V3h6m6 0h6v6M3 15v6h6m6 0h6v-6',plus:'M12 5v14M5 12h14',minus:'M5 12h14',compass:'m16 8-3 6-5 2 2-5Z M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20',food:'M4 3v6c0 3 6 3 6 0V3M7 3v18M19 3c-5 4-5 9 0 9v9V3',drop:'M12 2s-7 8-7 13a7 7 0 0 0 14 0c0-5-7-13-7-13Z',heart:'M12 21 3 12a5 5 0 0 1 9-7 5 5 0 0 1 9 7Z',book:'M3 3h8l1 2 1-2h8v17h-8l-1 1-1-1H3Z M12 5v16',cup:'M4 8h13v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4Z M17 9h2a3 3 0 0 1 0 6h-2M7 3v2m4-2v2m4-2v2',scissors:'M5 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6M19 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6M7 16 19 3M17 16 5 3',music:'M9 18V5l11-2v13M9 9l11-2M5 16a3 3 0 1 0 0 6 3 3 0 0 0 0-6M16 14a3 3 0 1 0 0 6 3 3 0 0 0 0-6',camera:'M3 7h4l2-3h6l2 3h4v14H3Z M12 10a4 4 0 1 0 0 8 4 4 0 0 0 0-8',leaf:'M20 3C4 1 1 15 9 19c8 5 13-5 11-16ZM5 22 16 9',bread:'M5 10C-1 3 7 1 12 4c5-3 13-1 7 6v11H5ZM9 10v5m6-5v5',paw:'M12 12c-5 0-9 7-5 9 2 1 3-1 5-1s3 2 5 1c4-2 0-9-5-9ZM5 4a2 3 0 1 0 0 6 2 3 0 0 0 0-6M11 2a2 3 0 1 0 0 6 2 3 0 0 0 0-6M18 4a2 3 0 1 0 0 6 2 3 0 0 0 0-6',wrench:'M21 3l-5 3-3-3 3-2a6 6 0 0 0-7 8L2 17l5 5 8-9a6 6 0 0 0 6-10Z',package:'m3 6 9-4 9 4v13l-9 4-9-4Z M3 6l9 5 9-5M12 11v12M7 4l10 5v5',bus:'M5 3h14v16H5Z M5 11h14M9 3v8M8 19v3m8-3v3M8 15h1m6 0h1',hammer:'m12 3 9 6-4 5-4-3L6 22l-4-3 8-10-2-2Z',fish:'M3 12C8 3 16 4 19 9l4-4v14l-4-4C16 20 8 21 3 12Z M8 10h.1',tower:'M10 3h4l5 19H5ZM8 10h8M6 17h12M10 3l6 14M14 3 8 17',bolt:'m13 2-9 12h7l-1 8 10-13h-8Z',pick:'M3 8c8-9 13-6 19 1L13 7l-2 4ZM12 8 5 22',anchor:'M12 8v14M5 12h14M3 16c0 8 18 8 18 0M3 16v4m18-4v4M12 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6',flame:'M13 2c1 7-8 6-7 13-5-3-4 8 6 8s13-9 7-14c1 7-5 4-4 0 0-2-1-5-2-7Z',mountain:'m2 21 8-16 4 8 3-5 6 13Z M7 11l3 2 3-2',shield:'m12 2 9 4v7c0 5-9 9-9 9S3 18 3 13V6Z m-5 10 4 4 6-7',bell:'M5 16V9a7 7 0 0 1 14 0v7l2 3H3ZM9 22h6',settings:'m9 3 6 0 1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1ZM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8',check:'m5 12 4 4L20 5',gift:'M3 8h18v5H3ZM5 13h14v9H5ZM12 8v14M12 8C0 8 5-4 12 8c7-12 12 0 0 0Z',send:'m2 3 20 9-20 9 4-9Z M6 12h16',person:'M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8M4 22v-3a8 8 0 0 1 16 0v3',plane:'m2 12 8-2V4c0-3 4-3 4 0v6l8 2v3l-8-1v5l3 2v1l-5-1-5 1v-1l3-2v-5l-8 1Z',lock:'M5 10h14v12H5ZM8 10V6a4 4 0 0 1 8 0v4M12 15v3',clock:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20M12 6v6l4 3',play:'m8 4 12 8-12 8Z',logout:'M10 3H3v18h7M8 12h13m-4-4 4 4-4 4'};
@@ -1139,7 +1160,7 @@ function beep(type='click'){
 
 function music(){clearInterval(musicTimer);if(!settings.music)return;let step=0;const notes=[196,246.94,293.66,369.99,293.66,246.94,220,329.63];const play=()=>{if(document.hidden||!settings.music)return;try{audioCtx??=new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=notes[step++%notes.length];o.connect(g);g.connect(audioCtx.destination);const t=audioCtx.currentTime;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.018,t+.2);g.gain.exponentialRampToValueAtTime(.0001,t+2.6);o.start();o.stop(t+2.8);}catch{}};play();musicTimer=setInterval(play,1500);}
 async function request(url,body){return LocalNusa.request(url,body);}
-function absorb(data){if(data.now&&data.now<lastState)return;lastState=data.now??lastState;state={...state,...data,online:data.online??state.online};if(state.me&&world){world.sync(state.online,state.citizens,state.me.id,state.city.projects);updateHud();}for(const e of state.city.events??[])if(!seenEvents.has(e.id)){seenEvents.add(e.id);if(entered){if(e.type==='tip-test')celebrate(e.title,e.text,e.amount,true);else toast(e.title);}}for(const d of data.tips??[])if(!seenEvents.has('tip:'+d.id)){seenEvents.add('tip:'+d.id);if(entered)celebrate(d.test?'TEST · Dukungan kota':'Terima kasih, pendukung kota!',`Dukungan Rp${fmt(d.amount)}${d.test?' · simulasi tanpa pembayaran':''}`,d.amount,!!d.test);} }
+function absorb(data){if(data.now&&data.now<lastState)return;lastState=data.now??lastState;state={...state,...data,online:data.online??state.online};state.citizens=SOCIAL.merge(state.citizens);if(state.me){SOCIAL.start();SOCIAL.sync();}if(state.me&&world){world.sync(state.online,state.citizens,state.me.id,state.city.projects);updateHud();}for(const e of state.city.events??[])if(!seenEvents.has(e.id)){seenEvents.add(e.id);if(entered){if(e.type==='tip-test')celebrate(e.title,e.text,e.amount,true);else toast(e.title);}}for(const d of data.tips??[])if(!seenEvents.has('tip:'+d.id)){seenEvents.add('tip:'+d.id);if(entered)celebrate(d.test?'TEST · Dukungan kota':'Terima kasih, pendukung kota!',`Dukungan Rp${fmt(d.amount)}${d.test?' · simulasi tanpa pembayaran':''}`,d.amount,!!d.test);} }
 async function act(action,body={},quiet=false){if(mutating&&action!=='heartbeat')throw Error('Tunggu proses sebelumnya selesai.');if(state.me?.banned&&action!=='heartbeat')throw Error(state.me.expelled?'Anda diusir dari Kota Nusa.':'Akses kota sedang ditangguhkan.');if(action!=='heartbeat')mutating=true;try{const data=await request('/api/game',{action,...body});absorb(data);if(data.message&&!quiet){toast(data.message);beep('good');}connected=true;$('#offline')?.classList.add('hidden');return data;}catch(e){if(!quiet){toast(e.message,true);beep('bad');}throw e;}finally{if(action!=='heartbeat')mutating=false;}}
 async function poll(){if(polling||document.hidden||mutating)return;polling=true;try{absorb(await request('/api/state'));connected=true;$('#offline')?.classList.add('hidden');if(entered&&state.me)await act('heartbeat',world.position(),true);if(chatOpen)loadChat();}catch(e){if(!e.login){connected=false;$('#offline')?.classList.remove('hidden');}}finally{polling=false;}}
 const badge=(r)=>r==='citizen'?'':`<span class="member-badge">${esc(roleName(r))}</span>`;
@@ -1179,7 +1200,7 @@ function startRound(){const session=state.me?.job;if(!session)return showJobs();
 function showMarket(){panel('Bekal untuk hari ini',`<p class="intro">Belanja bersifat opsional. Lapar dan haus tidak lagi menguras kondisi atau menghalangi pekerjaan. Makanan memberi sedikit pemulihan setelah bekerja.</p><div class="cards">${[{id:'meal',name:'Nasi rumahan',desc:'Santapan hangat · pemulihan +6.',price:10,icon:'food',color:'#c99875'},{id:'water',name:'Air mineral',desc:'Minuman segar · pemulihan +2.',price:4,icon:'drop',color:'#8fb6b7'},{id:'snack',name:'Roti hangat',desc:'Dari Bakery Mentari · pemulihan +3.',price:6,icon:'bread',color:'#ccb079'},{id:'fountain',name:'Air isi ulang',desc:'Air minum publik, gratis.',price:0,icon:'drop',color:'#83a69a'}].map(a=>`<article class="card"><div class="job-art" style="background:${a.color}">${icon(a.icon)}</div><h3>${a.name}</h3><p>${a.desc}</p><button class="btn wide" style="margin-top:15px" data-buy="${a.id}">${a.price?fmt(a.price)+' koin':'Ambil gratis'}</button></article>`).join('')}</div>`,{sub:'PASAR SENJA · DAPUR WARGA'});bindBuy();}
 function bindBuy(){$$('[data-buy]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await act('buy',{item:b.dataset.buy});beep('good');}catch{}finally{b.disabled=false;}});}
 function showClinic(){const p=state.me;panel('Istirahat, pulihkan diri.',`<div class="avatar-preview">${icon('heart')}</div><div class="stats-grid"><div class="stat-box"><span>Kesehatan</span><strong>${Math.round(p.health)}%</strong></div></div><p class="intro">Perawatan mengembalikan kesehatan ke 100%. Istirahat di kos menambah 15% kesehatan tanpa biaya. Kondisi ini hanya berkaitan dengan risiko pekerjaan.</p><button class="btn primary wide" data-buy="care">Perawatan klinik · 15 koin</button><button class="btn wide" style="margin-top:10px" data-buy="rest">Istirahat singkat · gratis</button>`,{narrow:true,sub:'KLINIK SEHAT'});bindBuy();}
-function showHome(){const p=state.me,L=p.home===null?0:(p.houseLevel||1),current=HOUSE_LEVELS[L-1],next=HOUSE_LEVELS[L],available=p.coins-p.held;panel(L?current.name:'Kos Pelangi',`<canvas id="housePortrait" style="width:100%;height:190px;object-fit:contain;border-radius:14px"></canvas><div class="row spread"><span class="tag">${L?'Tingkat '+L+' / 20':'Belum punya tanah'}</span><b>${fmt(available)} koin</b></div><p class="intro">${L?'Petak '+(p.home+1)+' · Upgrade mengubah bangunan di peta.':'Kos gratis tersedia. Beli tanah untuk mendapatkan rumah tingkat 1.'}</p>${next&&L?`<div class="notice"><b>Berikutnya: ${next.name}</b><br>Biaya upgrade: ${fmt(next.cost)} koin<br>${available<next.cost?'Masih perlu '+fmt(next.cost-available)+' koin.':'Tabunganmu cukup untuk peningkatan ini.'}</div><button class="btn primary wide" id="upgradeHouse" ${available<next.cost?'disabled':''}>Naik ke tingkat ${L+1} · ${fmt(next.cost)} koin</button>`:L===20?'<div class="notice">Istana Nusa · tingkat tertinggi tercapai.</div>':'<button class="btn primary wide" data-nav="land">Cari tanah</button>'}<div class="row wrap" style="margin-top:12px"><button class="btn" id="houseLevels">Lihat 20 tahap</button><button class="btn" data-buy="rest">Istirahat gratis</button>${L?'<button class="btn" id="locateHome">Lihat rumah di kota</button>':''}</div><h3 class="section-title">Kenangan</h3>${p.memories.slice(0,8).map(m=>`<div class="list-item">${esc(m)}</div>`).join('')}`,{narrow:true,sub:'RUMAH & TABUNGAN'});world.housePreview($('#housePortrait'),L||1);bindBuy();$('#houseLevels').onclick=()=>showHouseLevels(L||1);if($('#locateHome'))$('#locateHome').onclick=()=>{const pos=world.plotPosition(p.home);closePanel();world.navigate(pos.x,pos.z)};if($('#upgradeHouse'))$('#upgradeHouse').onclick=()=>confirmBox('Tingkatkan rumah?',`${esc(current.name)} → <b>${esc(next.name)}</b><br>Biaya: ${fmt(next.cost)} koin.<br>Sisa: ${fmt(available-next.cost)} koin.`,async()=>{await act('upgradeHouse',{fromLevel:L});beep('good');showHome();},'Bayar & tingkatkan');}
+function showHome(){const p=state.me,L=p.home===null?0:(p.houseLevel||1),current=HOUSE_LEVELS[L-1],next=HOUSE_LEVELS[L],available=p.coins-p.held;panel(L?current.name:'Kos Pelangi',`<canvas id="housePortrait" style="width:100%;height:190px;object-fit:contain;border-radius:14px"></canvas><div class="row spread"><span class="tag">${L?'Tingkat '+L+' / 20':'Belum punya tanah'}</span><b>${fmt(available)} koin</b></div><p class="intro">${L?'Petak '+(p.home+1)+' · Upgrade mengubah bangunan di peta.':'Kos gratis tersedia. Beli tanah untuk mendapatkan rumah tingkat 1.'}</p>${next&&L?`<div class="notice"><b>Berikutnya: ${next.name}</b><br>Biaya upgrade: ${fmt(next.cost)} koin<br>${available<next.cost?'Masih perlu '+fmt(next.cost-available)+' koin.':'Tabunganmu cukup untuk peningkatan ini.'}</div><button class="btn primary wide" id="upgradeHouse" ${available<next.cost?'disabled':''}>Naik ke tingkat ${L+1} · ${fmt(next.cost)} koin</button>`:L===20?'<div class="notice">Istana Nusa · tingkat tertinggi tercapai.</div>':'<button class="btn primary wide" data-nav="land">Cari tanah</button>'}<div class="row wrap" style="margin-top:12px"><button class="btn" id="houseLevels">Lihat 20 tahap</button><button class="btn" data-buy="rest">Istirahat gratis</button>${L?'<button class="btn" id="locateHome">Lihat rumah di kota</button>':''}</div>${aptHomeBlock()}<h3 class="section-title">Kenangan</h3>${p.memories.slice(0,8).map(m=>`<div class="list-item">${esc(m)}</div>`).join('')}`,{narrow:true,sub:'RUMAH & TABUNGAN'});world.housePreview($('#housePortrait'),L||1);bindBuy();$('#homeKtp').onclick=()=>showKTP();$('#homeApt').onclick=()=>showApt(p.apt?p.apt.t:0);$('#houseLevels').onclick=()=>showHouseLevels(L||1);if($('#locateHome'))$('#locateHome').onclick=()=>{const pos=world.plotPosition(p.home);closePanel();world.navigate(pos.x,pos.z)};if($('#upgradeHouse'))$('#upgradeHouse').onclick=()=>confirmBox('Tingkatkan rumah?',`${esc(current.name)} → <b>${esc(next.name)}</b><br>Biaya: ${fmt(next.cost)} koin.<br>Sisa: ${fmt(available-next.cost)} koin.`,async()=>{await act('upgradeHouse',{fromLevel:L});beep('good');showHome();},'Bayar & tingkatkan');}
 function showHouseLevels(chosen=1){const p=state.me,own=p.home===null?0:(p.houseLevel||1),l=HOUSE_LEVELS[chosen-1];panel('20 tahap rumah',`<canvas id="levelPortrait" style="width:100%;height:190px;object-fit:contain;border-radius:14px"></canvas><h3>${l.name}</h3><p class="intro">Tingkat ${chosen}. ${chosen===1?'Termasuk pembelian tanah.':'Biaya dari tingkat sebelumnya: '+fmt(l.cost)+' koin.'}<br>Harus naik satu tingkat setiap pembelian. Koin didapat dari bekerja; rumah tidak menghasilkan koin pasif.</p><div class="cards">${HOUSE_LEVELS.map(v=>`<button class="btn" data-house-stage="${v.level}" style="text-align:left">${v.level}. ${esc(v.name)}<br><small>${v.level===1?'Termasuk tanah':fmt(v.cost)+' koin'} · ${v.level<=own?'Tercapai':'Terkunci'}</small></button>`).join('')}</div><button class="btn primary wide" id="backHouse" style="margin-top:12px">Kembali ke rumah</button>`,{sub:'DARI GUBUK HINGGA ISTANA'});world.housePreview($('#levelPortrait'),chosen);$$('[data-house-stage]').forEach(b=>b.onclick=()=>showHouseLevels(Number(b.dataset.houseStage)));$('#backHouse').onclick=showHome;}
 
 function showLand(district=0,page=0){
@@ -1189,11 +1210,11 @@ function showLand(district=0,page=0){
  $$('[data-district]').forEach(b=>b.onclick=()=>showLand(Number(b.dataset.district)));
  $('#landPrev').onclick=()=>showLand(district,page-1);$('#landNext').onclick=()=>showLand(district,page+1);
  $$('[data-view-plot]').forEach(b=>b.onclick=()=>{const pos=world.plotPosition(Number(b.dataset.viewPlot));closePanel();world.navigate(pos.x,pos.z);});
- $$('[data-plot]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.plot),cost=plotPrice(i);confirmBox('Beli petak '+(i+1)+'?',`Harga tanah dan rumah: <b>${cost} koin</b>.<br>Lokasi: ${districtFor(i).name}.<br>Sisa saldo: ${fmt(state.me.coins-state.me.held-cost)} koin.`,async()=>{await act('buyLand',{plot:i});closePanel();const pos=world.plotPosition(i);world.navigate(pos.x,pos.z);},'Beli rumah');});
+ $$('[data-plot]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.plot),cost=plotPrice(i);confirmBox('Beli petak '+(i+1)+'?',`Harga tanah dan rumah: <b>${cost} koin</b>.<br>Lokasi: ${districtFor(i).name}.<br>Sisa saldo: ${fmt(state.me.coins-state.me.held-cost)} koin.`,async()=>{await SOCIAL.claimPlot(i);await act('buyLand',{plot:i});closePanel();const pos=world.plotPosition(i);world.navigate(pos.x,pos.z);},'Beli rumah');});
 }
-function showWallet(){const p=state.me;panel('Dompet warga',`<div class="eyebrow">SALDO TERSEDIA</div><div class="balance-number">${fmt(p.coins-p.held)} <small style="font:15px system-ui;color:#8c997f">koin</small></div><p class="intro">${p.held?fmt(p.held)+' koin ditahan untuk pembangunan.':'Uang permainan. Tidak dapat diuangkan atau ditukar menjadi saldo DANA.'}</p><h3 class="section-title">${icon('send')} Kirim koin ke warga</h3><label class="field"><span>Penerima</span><select id="transferTo"><option value="">Pilih warga</option>${state.citizens.filter(x=>x.id!==p.id).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label><label class="field"><span>Jumlah koin</span><input class="input" id="transferAmount" type="number" inputmode="numeric" min="1" placeholder="Contoh: 50"></label><button class="btn primary wide" id="transferBtn">Periksa transfer ${icon('arrow')}</button><h3 class="section-title">Riwayat transaksi</h3>${state.ledger.filter(x=>x.actor===p.id).map(x=>`<div class="ledger-row"><div>${esc(x.text)}<span>${niceDate(x.time)}</span></div><strong class="${x.amount<0?'negative':''}">${x.amount>0?'+':''}${fmt(x.amount)}</strong></div>`).join('')||'<div class="empty">Belum ada transaksi.</div>'}`,{sub:'SEMUA TRANSAKSI TERCATAT',narrow:true});$('#transferBtn').onclick=()=>{const to=$('#transferTo').value,n=Number($('#transferAmount').value),target=state.citizens.find(p=>p.id===to);if(!target||!Number.isInteger(n)||n<=0)return toast('Pilih penerima dan jumlah koin yang valid.',true);confirmBox('Kirim koin?',`Penerima: <b>${esc(target.name)}</b><br>Jumlah: <b>${fmt(n)} koin</b><br>Sisa saldo tersedia: ${fmt(state.me.coins-state.me.held-n)} koin.`,async()=>{await act('transfer',{to,amount:n});showWallet();},'Kirim sekarang');};}
+function showWallet(){const p=state.me;panel('Dompet warga',`<div class="eyebrow">SALDO TERSEDIA</div><div class="balance-number">${fmt(p.coins-p.held)} <small style="font:15px system-ui;color:#8c997f">koin</small></div><p class="intro">${p.held?fmt(p.held)+' koin ditahan untuk pembangunan.':'Uang permainan. Tidak dapat diuangkan atau ditukar menjadi saldo DANA.'}</p><h3 class="section-title">${icon('send')} Kirim koin ke warga</h3><label class="field"><span>Penerima</span><select id="transferTo"><option value="">Pilih warga</option>${state.citizens.filter(x=>x.id!==p.id&&!x.remote).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label><label class="field"><span>Jumlah koin</span><input class="input" id="transferAmount" type="number" inputmode="numeric" min="1" placeholder="Contoh: 50"></label><button class="btn primary wide" id="transferBtn">Periksa transfer ${icon('arrow')}</button><h3 class="section-title">Riwayat transaksi</h3>${state.ledger.filter(x=>x.actor===p.id).map(x=>`<div class="ledger-row"><div>${esc(x.text)}<span>${niceDate(x.time)}</span></div><strong class="${x.amount<0?'negative':''}">${x.amount>0?'+':''}${fmt(x.amount)}</strong></div>`).join('')||'<div class="empty">Belum ada transaksi.</div>'}`,{sub:'SEMUA TRANSAKSI TERCATAT',narrow:true});$('#transferBtn').onclick=()=>{const to=$('#transferTo').value,n=Number($('#transferAmount').value),target=state.citizens.find(p=>p.id===to);if(!target||!Number.isInteger(n)||n<=0)return toast('Pilih penerima dan jumlah koin yang valid.',true);confirmBox('Kirim koin?',`Penerima: <b>${esc(target.name)}</b><br>Jumlah: <b>${fmt(n)} koin</b><br>Sisa saldo tersedia: ${fmt(state.me.coins-state.me.held-n)} koin.`,async()=>{await act('transfer',{to,amount:n});showWallet();},'Kirim sekarang');};}
 function showCitizens(friendsOnly=false){const p=state.me;panel('Tetangga & teman',`<div class="chips"><button class="chip ${!friendsOnly?'active':''}" id="allCitizens">Semua warga · ${state.citizens.length}</button><button class="chip ${friendsOnly?'active':''}" id="friendCitizens">Teman · ${p.friends.length}</button></div>${p.requests.length?'<div class="notice">Ada '+p.requests.length+' permintaan pertemanan. Pilih Terima pada kartu warga.</div>':''}${state.citizens.filter(x=>!friendsOnly||p.friends.includes(x.id)).map(c=>`<div class="citizen-card"><div class="citizen-avatar" style="background:${c.color}">${esc(c.name[0])}</div><div class="grow"><h3>${esc(c.name)}${badge(c.role)}</h3><p>${state.online.some(x=>x.id===c.id)?'● Online':'Offline'} · ${c.jobs} tugas · Kehidupan ${c.life}</p></div>${c.id!==p.id?`<button class="btn small" data-citizen="${c.id}">Lihat</button>`:'<span class="tag">Kamu</span>'}</div>`).join('')||'<div class="empty">Belum ada teman. Kenalan dengan warga di kota.</div>'}`,{sub:'KOMUNITAS NUSA'});$('#allCitizens').onclick=()=>showCitizens(false);$('#friendCitizens').onclick=()=>showCitizens(true);$$('[data-citizen]').forEach(b=>b.onclick=()=>showCitizen(b.dataset.citizen));}
-function showCitizen(id){const c=state.citizens.find(x=>x.id===id),p=state.me;if(!c)return;const friend=p.friends.includes(id),blocked=p.blocks.includes(id);panel(esc(c.name),`<div class="avatar-preview" style="color:${c.color}">${icon('person')}</div><div class="row" style="justify-content:center">${badge(c.role)}<span class="tag">Warga sejak ${niceDate(c.joined)}</span></div><div class="stats-grid" style="margin-top:22px"><div class="stat-box"><span>Tugas</span><strong>${c.jobs}</strong></div><div class="stat-box"><span>Pengalaman</span><strong>${c.xp}</strong></div><div class="stat-box"><span>Kehidupan</span><strong>${c.life}</strong></div></div><div class="row wrap"><button class="btn primary grow" id="friendAction">${friend?'Pesan pribadi':p.requests.includes(id)?'Terima teman':'Tambah teman'}</button><button class="btn" id="blockAction">${blocked?'Buka blokir':'Blokir'}</button><button class="btn" id="reportAction">Laporkan</button></div>`,{narrow:true,sub:'KARTU WARGA'});$('#friendAction').onclick=async()=>{if(friend){closePanel();openChat('dm:'+([p.id,id].sort().join(':')));return;}try{await act('friend',{to:id});showCitizen(id);}catch{}};$('#blockAction').onclick=async()=>{try{await act('block',{to:id});showCitizen(id);}catch{}};$('#reportAction').onclick=()=>reportForm(id);}
+function showCitizen(id){const c=state.citizens.find(x=>x.id===id),p=state.me;if(!c)return;if(c.remote){showKTP(id);return;}const friend=p.friends.includes(id),blocked=p.blocks.includes(id);panel(esc(c.name),`<div class="avatar-preview" style="color:${c.color}">${icon('person')}</div><div class="row" style="justify-content:center">${badge(c.role)}<span class="tag">Warga sejak ${niceDate(c.joined)}</span></div><div class="stats-grid" style="margin-top:22px"><div class="stat-box"><span>Tugas</span><strong>${c.jobs}</strong></div><div class="stat-box"><span>Pengalaman</span><strong>${c.xp}</strong></div><div class="stat-box"><span>Kehidupan</span><strong>${c.life}</strong></div></div><div class="row wrap"><button class="btn primary grow" id="friendAction">${friend?'Pesan pribadi':p.requests.includes(id)?'Terima teman':'Tambah teman'}</button><button class="btn" id="blockAction">${blocked?'Buka blokir':'Blokir'}</button><button class="btn" id="reportAction">Laporkan</button></div>`,{narrow:true,sub:'KARTU WARGA'});$('#friendAction').onclick=async()=>{if(friend){closePanel();openChat('dm:'+([p.id,id].sort().join(':')));return;}try{await act('friend',{to:id});showCitizen(id);}catch{}};$('#blockAction').onclick=async()=>{try{await act('block',{to:id});showCitizen(id);}catch{}};$('#reportAction').onclick=()=>reportForm(id);}
 function reportForm(id=''){panel('Sampaikan laporan',`<p class="intro">Jelaskan kejadiannya. Laporan hanya dibaca pengelola.</p><label class="field"><span>Alasan / usulan</span><textarea id="reportText" maxlength="400" placeholder="Ceritakan secara singkat…"></textarea></label><button class="btn primary wide" id="sendReport">Kirim laporan</button>`,{narrow:true});$('#sendReport').onclick=async()=>{try{await act('report',{to:id,text:$('#reportText').value});closePanel();}catch{}};}
 function showNews(){panel('Kabar dari pulau',`${state.city.news.map(n=>`<article class="list-item"><div class="eyebrow" style="font-size:8px;margin-bottom:9px">${esc(n.author)} · ${niceDate(n.time)}</div><h3 style="font:22px Georgia,serif">${esc(n.title)}</h3><p>${esc(n.text)}</p></article>`).join('')}<h3 class="section-title">Acara berlangsung</h3>${state.city.events.filter(e=>e.type==='city').map(e=>`<div class="notice"><b>${esc(e.title)}</b><br>${esc(e.text)}<br>Sampai ${niceDate(e.until)}</div>`).join('')||'<div class="empty">Belum ada acara. Alun-alun tetap terbuka untuk bertemu.</div>'}`,{sub:'KORAN NUSA · CERITA WARGA'});}
 function showMap(){panel('Tempat-tempat di Nusa',`<p class="intro">Pilih layanan atau tempat kerja. Lokasinya langsung ditandai di kota.</p><div class="destination-grid">${catalog.places.map(p=>`<button class="destination-card" data-go="${p.id}">${icon(p.kind==='workplace'?'work':p.kind==='hall'?'hall':p.kind==='land'?'home':'map')}<span><strong>${esc(p.name)}</strong><small>${esc(p.sub)}</small></span>${icon('arrow')}</button>`).join('')}</div>`,{sub:'DIREKTORI KOTA · TEMPAT KERJA & LAYANAN'});$$('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));}
@@ -1201,7 +1222,8 @@ function go(id){return openMapTarget(id);}
 async function openMapTarget(id){beep();
  if(!entered)return join();closePanel();
  if(id.startsWith('project:')){const slot=Number(id.split(':')[1]);world.navigate(-52+slot*15,-71);showVote();return;}
- if(id.startsWith('plot:')){const i=Number(id.split(':')[1]),p=world.plotPosition(i),d=districtFor(i);world.navigate(p.x,p.z);showLand(DISTRICTS.indexOf(d),Math.floor((i-d.start)/24));return;}
+ if(id.startsWith('apt:')){const n=Number(id.slice(4)),pos=APT_POS[n];if(pos)world.navigate(pos[0],pos[1]);showApt(n);return;}
+ if(id.startsWith('plot:')){const i=Number(id.split(':')[1]),p=world.plotPosition(i),d=districtFor(i);world.navigate(p.x,p.z);const own=state.citizens.find(c=>c.home===i);if(own&&own.id!==state.me.id){showKTP(own.id);return;}showLand(DISTRICTS.indexOf(d),Math.floor((i-d.start)/24));return;}
  const p=catalog.places.find(p=>p.id===id);if(!p)return;
  world.navigate(p.x,p.z);
  if(catalog.jobs.some(j=>j.workplace===id)){showWorkplace(id);return;}
@@ -1253,18 +1275,26 @@ async function loadChat(){if(!chatOpen||!entered)return;try{const data=await req
 function chatRules(){panel('Aturan ngobrol', '<p class="intro">Dua pelanggaran pertama mendapat peringatan; pesan ditolak. Pelanggaran berikutnya diberi hukuman sesuai kategorinya.</p><div class="list-item">Ringan → bisu 10 menit</div><div class="list-item">Sedang → bisu 1 jam</div><div class="list-item">Berat → bisu 1 hari</div><div class="list-item">Sangat tidak pantas → bisu 2 hari</div><div class="list-item">Sangat melanggar → ban kota 30 hari</div><div class="notice warn">Lima hukuman dalam 30 hari → diusir dari Kota Nusa. Filter berbasis kata/pola dapat keliru; Presiden dapat meninjau laporan dan memulihkan akses.</div>',{narrow:true});}
 const FB={
  base(){let u=String(NUSA_CONFIG.FIREBASE_DB_URL||'').trim().replace(/\/+$/,'');if(!u)return '';u=u.replace(/^http:\/\//i,'https://');if(!/^https:\/\//i.test(u))u='https://'+u;return u;},
- on(){return !!this.base();},
+ dead:false,
+ on(){return !!this.base()&&!this.dead;},
  url(path,qs=''){return this.base()+'/'+path+'.json'+qs;},
  fail(r){return Error(r.status===401||r.status===403?'Akses ditolak server. Periksa Rules database (lihat petunjuk).':r.status===404?'Alamat database tidak ditemukan. Periksa FIREBASE_DB_URL.':'Server chat error '+r.status);},
  async get(path,qs=''){const r=await fetch(this.url(path,qs),{cache:'no-store'});if(!r.ok)throw this.fail(r);return r.json();},
  async post(path,body){const r=await fetch(this.url(path),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw this.fail(r);return r.json();},
  async put(path,body){const r=await fetch(this.url(path),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw this.fail(r);return r.json();}
 };
-let chatPoll=0;
+const NET={
+ mode(){return FB.on()?'firebase':(NUSA_CONFIG.NTFY_TOPIC?'ntfy':'local');},
+ server(){return String(NUSA_CONFIG.NTFY_SERVER||'https://ntfy.sh').replace(/\/+$/,'');},
+ async ntfyPost(topic,obj){const r=await fetch(this.server()+'/'+encodeURIComponent(topic),{method:'POST',body:JSON.stringify(obj)});if(!r.ok)throw Error(r.status===429?'Terlalu banyak pesan. Tunggu sebentar lalu coba lagi.':'Gagal kirim ('+r.status+')');return r.json().catch(()=>({}));},
+ parseEvt(raw){try{const e=typeof raw==='string'?JSON.parse(raw):raw;if(e.event&&e.event!=='message')return null;let o;try{o=JSON.parse(e.message);}catch{return null;}if(!o||typeof o!=='object')return null;return {...o,k:e.id,t:(e.time||0)*1000};}catch{return null;}},
+ async ntfyHistory(topic,since='all'){const r=await fetch(this.server()+'/'+encodeURIComponent(topic)+'/json?poll=1&since='+since,{cache:'no-store'});if(!r.ok)throw Error('Server chat error '+r.status);const txt=await r.text();return txt.split('\n').filter(Boolean).map(l=>this.parseEvt(l)).filter(Boolean);}
+};
+let chatPoll=0,chatES=null;
 function openChat(){
  if(!entered)return join();
- const online=FB.on(),me=()=>state.me;
- panel('Chat warga',`${online?'<div class="chat-status" id="chatStatus"><i></i><span>Menghubungkan…</span></div>':'<div class="notice warn">Chat online belum diaktifkan, jadi pesan hanya tersimpan di HP ini. Pemilik game perlu mengisi <b>FIREBASE_DB_URL</b> di bagian KONFIGURASI kode.</div>'}<div class="row spread" style="margin:8px 0"><span class="tag">Peringatan: ${me().chatWarnings||0}/2</span><button class="btn small" id="chatRules">Aturan</button></div><div class="chat-wrap"><div id="localMessages" class="chat-messages chat-big" aria-live="polite"></div><button class="chat-jump hidden" id="chatJump" type="button">↓ Pesan baru</button></div><form id="localChatForm" class="chat-compose"><input class="input" id="localChatInput" maxlength="220" placeholder="Tulis pesan sopan…" autocomplete="off" enterkeyhint="send"><button class="btn primary" id="localChatSend">Kirim</button></form><p id="chatFeedback" role="status"></p>`,{narrow:true,sub:online?'CHAT WARGA · REAL-TIME':'CHAT · MODE LOKAL'});
+ const mode=NET.mode(),online=mode!=='local',me=()=>state.me;
+ panel('Chat warga',`${online?'<div class="chat-status" id="chatStatus"><i></i><span>Menghubungkan…</span></div>':'<div class="notice warn">Chat online dimatikan oleh pemilik game, jadi pesan hanya tersimpan di HP ini.</div>'}<div class="row spread" style="margin:8px 0"><span class="tag">Peringatan: ${me().chatWarnings||0}/2</span><button class="btn small" id="chatRules">Aturan</button></div><div class="chat-wrap"><div id="localMessages" class="chat-messages chat-big" aria-live="polite"></div><button class="chat-jump hidden" id="chatJump" type="button">↓ Pesan baru</button></div><form id="localChatForm" class="chat-compose"><input class="input" id="localChatInput" maxlength="220" placeholder="Tulis pesan sopan…" autocomplete="off" enterkeyhint="send"><button class="btn primary" id="localChatSend">Kirim</button></form><p id="chatFeedback" role="status"></p>`,{narrow:true,sub:online?'CHAT WARGA · REAL-TIME':'CHAT · MODE LOKAL'});
  $('#chatRules').onclick=chatRules;
  const box=$('#localMessages'),jump=$('#chatJump'),status=$('#chatStatus');let lastKey='',items=[],first=true,stopped=false;
  const setStatus=(ok,text)=>{if(!status)return;status.classList.toggle('bad',!ok);status.querySelector('span').textContent=text;};
@@ -1276,18 +1306,29 @@ function openChat(){
  jump.onclick=toBottom;
  const pull=async(force)=>{if(stopped)return;
   try{let list;
-   if(online){const data=await FB.get(NUSA_CONFIG.CHAT_PATH,'?orderBy=%22%24key%22&limitToLast=60');list=Object.entries(data||{}).sort((x,y)=>x[0]<y[0]?-1:1).map(([k,v])=>({k,...v,mine:v.u===me().id}));setStatus(true,'Tersambung · pesan masuk otomatis');}
+   if(mode==='firebase'){const data=await FB.get(NUSA_CONFIG.CHAT_PATH,'?orderBy=%22%24key%22&limitToLast=60');list=Object.entries(data||{}).sort((x,y)=>x[0]<y[0]?-1:1).map(([k,v])=>({k,...v,mine:v.u===me().id}));setStatus(true,'Tersambung · pesan masuk otomatis');}
    else{const d=await request('/api/chat');list=(d.messages||[]).map(m=>({k:m.id,n:m.name,m:m.message,t:m.created,mine:true}));}
    const key=list.at(-1)?.k||'';if(key!==lastKey||force||first){const prev=lastKey;lastKey=key;items=list;render(force||(list.at(-1)?.mine&&key!==prev));}
   }catch(e){if(online)setStatus(false,e.message||'Terputus, mencoba lagi…');}};
- clearInterval(chatPoll);pull(true);
- if(online)chatPoll=setInterval(()=>{if(!box.isConnected){stopped=true;clearInterval(chatPoll);return;}if(!document.hidden)pull(false);},1500);
- const vis=()=>{if(box.isConnected&&!document.hidden)pull(false);};document.addEventListener('visibilitychange',vis);
+ clearInterval(chatPoll);if(chatES){chatES.close();chatES=null;}
+ if(mode==='ntfy'){
+  const seen=new Map();let timer=0;
+  const flush=()=>{timer=0;if(!box.isConnected){chatES&&chatES.close();chatES=null;return;}items=[...seen.values()].sort((a,b)=>a.t-b.t||(a.k<b.k?-1:1)).slice(-60).map(m=>({...m,mine:m.u===me().id}));const key=items.at(-1)?.k||'';const wasMine=items.at(-1)?.mine&&key!==lastKey;lastKey=key;render(wasMine);};
+  const add=m=>{if(!m||seen.has(m.k)||typeof m.m!=='string'||typeof m.n!=='string')return;m.n=String(m.n).slice(0,24);m.m=String(m.m).slice(0,220);seen.set(m.k,m);if(!timer)timer=setTimeout(flush,80);};
+  try{chatES=new EventSource(NET.server()+'/'+encodeURIComponent(NUSA_CONFIG.NTFY_TOPIC)+'/sse?since=6h');
+   chatES.onopen=()=>setStatus(true,'Tersambung · pesan masuk otomatis');
+   chatES.onerror=()=>setStatus(false,'Menyambung ulang…');
+   chatES.onmessage=e=>add(NET.parseEvt(e.data));}catch(e){setStatus(false,'Browser ini tidak mendukung chat online.');}
+  render(true);
+ }else pull(true);
+ if(mode==='firebase')chatPoll=setInterval(()=>{if(!box.isConnected){stopped=true;clearInterval(chatPoll);return;}if(!document.hidden)pull(false);},1500);
+ const vis=()=>{if(mode!=='ntfy'&&box.isConnected&&!document.hidden)pull(false);};document.addEventListener('visibilitychange',vis);
  $('#localChatForm').onsubmit=async e=>{e.preventDefault();const input=$('#localChatInput'),btn=$('#localChatSend'),text=input.value.trim();if(!text)return;btn.disabled=true;
   try{const d=await request('/api/chat',{message:text});absorb(d);
    if(d.rejected){$('#chatFeedback').textContent=d.feedback||'Pesan ditolak filter.';beep('bad');if(d.me?.banned)showCityBan(d.me);return;}
-   if(online){await FB.post(NUSA_CONFIG.CHAT_PATH,{n:me().name,u:me().id,c:me().color,m:text,r:me().role==='president'?'p':'',t:{'.sv':'timestamp'}});}
-   input.value='';$('#chatFeedback').textContent='';await pull(true);beep('good');
+   if(mode==='firebase'){await FB.post(NUSA_CONFIG.CHAT_PATH,{n:me().name,u:me().id,c:me().color,m:text,r:me().role==='president'?'p':'',t:{'.sv':'timestamp'}});}
+   else if(mode==='ntfy'){await NET.ntfyPost(NUSA_CONFIG.NTFY_TOPIC,{n:me().name,u:me().id,c:me().color,m:text,r:me().role==='president'?'p':''});}
+   input.value='';$('#chatFeedback').textContent='';if(mode!=='ntfy')await pull(true);beep('good');
   }catch(err){$('#chatFeedback').textContent=err.message;beep('bad');}
   finally{if(btn.isConnected){btn.disabled=false;input.focus();}}};
 }
@@ -1337,6 +1378,7 @@ function checkinScreen(){
  $('#igVisit').onclick=()=>{visited=true;markVisited(url);setTimeout(upd,50);};name.oninput=upd;done.onchange=upd;upd();
  go.onclick=async()=>{const ig=name.value.trim().replace(/^@/,'');go.disabled=true;st.classList.remove('ready');st.textContent='Mencatat namamu di daftar penumpang…';
   const now=Date.now(),f={ig,flight:'NS-'+(100+Math.floor(Math.random()*900)),boarded:now,eta:now+NUSA_CONFIG.FLIGHT_MINUTES*60000,landed:false};
+  if(NET.mode()==='ntfy'){try{await NET.ntfyPost(NUSA_CONFIG.NTFY_AIRPORT_TOPIC,{ig,flight:f.flight,eta:f.eta});}catch(e){}}
   if(FB.on()){try{await FB.put(NUSA_CONFIG.AIRPORT_PATH+'/'+encodeURIComponent(ig.toLowerCase()),{ig,flight:f.flight,eta:f.eta,t:{'.sv':'timestamp'}});}catch(e){}}
   await new Promise(r=>setTimeout(r,1200));flightSave(f);beep('good');flightScreen(f);};
 }
@@ -1358,15 +1400,191 @@ function flightScreen(f){
 async function airportBoard(){
  let rows=[],err='';
  if(FB.on()){try{const d=await FB.get(NUSA_CONFIG.AIRPORT_PATH,'?orderBy=%22%24key%22&limitToLast=100');rows=Object.values(d||{}).sort((a,b)=>(b.t||0)-(a.t||0));}catch(e){err=e.message;}}
+ else if(NET.mode()==='ntfy'){try{const list=await NET.ntfyHistory(NUSA_CONFIG.NTFY_AIRPORT_TOPIC,'all');const seen=new Map();for(const x of list){if(x.ig)seen.set(String(x.ig).toLowerCase(),x);}rows=[...seen.values()].sort((a,b)=>(b.t||0)-(a.t||0)).slice(0,100);}catch(e){err=e.message;}}
  const f=flightLoad();
- panel('Papan kedatangan',`<p class="intro">Penumpang yang terbang ke Kota Nusa. ${ownerOK()?'Pemilik: cocokkan username di bawah dengan daftar pengikut Instagram @'+NUSA_CONFIG.INSTAGRAM_USER+'.':''}</p>${f?.ig?`<div class="notice">Tiketmu: <b>@${esc(f.ig)}</b> · ${f.landed?'sudah mendarat':'terbang, tiba '+new Date(f.eta).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+' WIB'}</div>`:''}${!FB.on()?'<div class="notice warn">Daftar penumpang online belum aktif (FIREBASE_DB_URL kosong).</div>':''}${err?`<div class="notice bad">${esc(err)}</div>`:''}${rows.length?rows.map(r=>`<div class="list-item row spread"><span><b>@${esc(r.ig)}</b> · ${esc(r.flight||'')}</span><span class="tag ${r.eta<=Date.now()?'':'dark'}">${r.eta<=Date.now()?'Mendarat':'Terbang'}</span></div>`).join(''):'<div class="empty">Belum ada penumpang tercatat.</div>'}`,{narrow:true,sub:'BANDARA NUSA'});
+ panel('Papan kedatangan',`<p class="intro">Penumpang yang terbang ke Kota Nusa. ${ownerOK()?'Pemilik: cocokkan username di bawah dengan daftar pengikut Instagram @'+NUSA_CONFIG.INSTAGRAM_USER+'.':''}</p>${f?.ig?`<div class="notice">Tiketmu: <b>@${esc(f.ig)}</b> · ${f.landed?'sudah mendarat':'terbang, tiba '+new Date(f.eta).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+' WIB'}</div>`:''}${NET.mode()==='local'?'<div class="notice warn">Daftar penumpang online dimatikan.</div>':''}${err?`<div class="notice bad">${esc(err)}</div>`:''}${rows.length?rows.map(r=>`<div class="list-item row spread"><span><b>@${esc(r.ig)}</b> · ${esc(r.flight||'')}</span><span class="tag ${r.eta<=Date.now()?'':'dark'}">${r.eta<=Date.now()?'Mendarat':'Terbang'}</span></div>`).join(''):'<div class="empty">Belum ada penumpang tercatat.</div>'}`,{narrow:true,sub:'BANDARA NUSA'});
+}
+
+// ===== SOSIAL: rumah terlihat semua HP, apartemen, KTP =====
+const APT_POS=[[-79,-70],[-79,-20],[-79,30],[79,-70],[79,-20],[79,30],[43,-25],[55,-25]];
+const APT_UNITS=8;
+function aptCost(u){return 150+u*25;}
+function cleanBio(t){return String(t||'').replace(/https?:\/\/\S+|www\.\S+/gi,'').replace(/[<>]/g,'').replace(/\s+/g,' ').trim().slice(0,90);}
+function nikOf(id){let h=2166136261;const out=[];for(let k=0;k<3;k++){for(const ch of String(id)+k){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)>>>0;}out.push(String(h%10000).padStart(4,'0'));}return 'NUSA '+out.join(' ');}
+const SOCIAL={
+ houses:{},apt:{},sig:'',lastRemote:'',timer:0,denied:false,started:false,busy:false,igTried:false,
+ on(){return FB.on()&&!this.denied;},
+ async probe(){
+  if(!FB.base())return;
+  const bad=e=>/ditolak|tidak ditemukan/.test(e&&e.message||'');
+  try{await FB.get('chat/global','?orderBy=%22%24key%22&limitToFirst=1');}catch(e){if(bad(e)){FB.dead=true;console.warn('Firebase: chat ditolak, pakai ntfy.');}}
+  try{await FB.get('houses','?orderBy=%22%24key%22&limitToFirst=1');}catch(e){if(bad(e)){this.denied=true;console.warn('Firebase: Rules houses belum dipasang.');}}
+ },
+ start(){
+  if(this.started)return;this.started=true;
+  this.probe().then(()=>{
+   if(!this.on())return;
+   this.pull();
+   this.timer=setInterval(()=>{if(!document.hidden)this.pull();},6000);
+   document.addEventListener('visibilitychange',()=>{if(!document.hidden)this.pull();});
+  });
+ },
+ async pull(){
+  if(!this.on())return;
+  try{
+   const [h,a]=await Promise.all([FB.get('houses'),FB.get('apt')]);
+   this.houses=h&&typeof h==='object'?h:{};this.apt=a&&typeof a==='object'?a:{};
+   const s=JSON.stringify([this.houses,this.apt]);
+   if(s!==this.lastRemote){this.lastRemote=s;if(state.me)absorb({});}
+   this.sync();
+  }catch(e){}
+ },
+ merge(list){
+  const me=state.me&&state.me.id,local=(list||[]).filter(c=>!c.remote),ids=new Set(local.map(c=>c.id)),used=new Set(local.filter(c=>c.home!==null&&c.home!==undefined).map(c=>c.home));
+  const rem=[];
+  for(const [k,v] of Object.entries(this.houses||{})){
+   if(!v||!v.id||v.free||v.id===me||ids.has(v.id))continue;
+   const plot=Number(k);if(!(plot>=0&&plot<240)||used.has(plot))continue;
+   rem.push({id:v.id,name:String(v.n||'Warga').slice(0,24),ig:String(v.ig||'').slice(0,30),color:/^#[0-9a-f]{6}$/i.test(v.c)?v.c:'#569d91',role:'citizen',home:plot,houseLevel:Math.max(1,Math.min(20,Number(v.lv)||1)),decor:['sage','coral','blue','sand'].includes(v.dc)?v.dc:'sage',xp:0,jobs:0,life:1,joined:Number(v.j)||0,career:{name:'Warga'},remote:true});
+   used.add(plot);
+  }
+  return local.concat(rem);
+ },
+ houseRec(p){return {id:p.id,n:p.name,ig:p.ig||'',c:p.color,lv:p.houseLevel||1,dc:p.decor||'sage',j:p.joined||0,t:{'.sv':'timestamp'}};},
+ ktpRec(p){return {n:p.name,ig:p.ig||'',bio:p.bio||'',c:p.color,rk:p.career&&p.career.name||'Warga',j:p.joined||0,h:p.home===undefined?null:p.home,a:p.apt||null,l:p.life||1,t:{'.sv':'timestamp'}};},
+ async sync(){
+  const p=state.me;if(!p||!this.on()||this.busy)return;
+  if(!p.ig&&!this.igTried){const f=typeof flightLoad==='function'?flightLoad():null;if(f&&f.ig){this.igTried=true;act('profile',{ig:f.ig}).catch(()=>{this.igTried=false;});return;}}
+  const sig=JSON.stringify([p.id,p.name,p.color,p.ig||'',p.bio||'',p.home,p.houseLevel||0,p.decor,p.apt||null,p.career&&p.career.name||'',p.life]);
+  if(sig===this.sig)return;
+  this.busy=true;
+  try{
+   await FB.put('ktp/'+p.id,this.ktpRec(p));
+   if(p.home!==null&&p.home!==undefined){
+    const cur=await FB.get('houses/'+p.home);
+    if(!cur||!cur.id||cur.free||cur.id===p.id)await FB.put('houses/'+p.home,this.houseRec(p));else this.conflict=true;
+   }else{
+    for(const [k,v] of Object.entries(this.houses||{}))if(v&&v.id===p.id&&!v.free)await FB.put('houses/'+k,{id:p.id,free:true});
+   }
+   if(p.apt){const k=p.apt.t+'_'+p.apt.u,cur=await FB.get('apt/'+k);if(!cur||!cur.id||cur.free||cur.id===p.id)await FB.put('apt/'+k,{id:p.id,n:p.name,ig:p.ig||'',c:p.color});}
+   this.sig=sig;
+  }catch(e){}finally{this.busy=false;}
+ },
+ async claimPlot(i){
+  if(!this.on())return;
+  const me=state.me,fail=()=>{const e=Error('Petak ini baru saja dibeli warga lain. Pilih petak lain.');toast(e.message,true);return e;};
+  let cur;
+  try{cur=await FB.get('houses/'+i);}catch(e){if(/ditolak|tidak ditemukan/.test(e.message))this.denied=true;else toast('Server belum terhubung. Rumahmu baru tampil di HP lain nanti.',true);return;}
+  if(cur&&cur.id&&!cur.free&&cur.id!==me.id){this.pull();throw fail();}
+  try{await FB.put('houses/'+i,this.houseRec({...me,houseLevel:1,joined:me.joined}));}
+  catch(e){let again=null;try{again=await FB.get('houses/'+i);}catch{}if(again&&again.id&&!again.free&&again.id!==me.id){this.pull();throw fail();}this.denied=true;}
+ },
+ async claimApt(t,u){
+  if(!this.on())return;
+  const me=state.me,k=t+'_'+u,fail=()=>{const e=Error('Unit ini baru saja diambil warga lain.');toast(e.message,true);return e;};
+  let cur;try{cur=await FB.get('apt/'+k);}catch(e){return;}
+  if(cur&&cur.id&&!cur.free&&cur.id!==me.id){this.pull();throw fail();}
+  try{await FB.put('apt/'+k,{id:me.id,n:me.name,ig:me.ig||'',c:me.color});}
+  catch(e){let again=null;try{again=await FB.get('apt/'+k);}catch{}if(again&&again.id&&!again.free&&again.id!==me.id){this.pull();throw fail();}}
+ },
+ async releaseApt(t,u){if(!this.on())return;try{await FB.put('apt/'+t+'_'+u,{id:state.me.id,free:true});}catch(e){}},
+ tenant(t,u){
+  const me=state.me,r=(this.apt||{})[t+'_'+u];
+  if(me&&me.apt&&me.apt.t===t&&me.apt.u===u)return {id:me.id,n:me.name,ig:me.ig,mine:true};
+  if(r&&r.id&&!r.free&&(!me||r.id!==me.id))return {id:r.id,n:r.n,ig:r.ig};
+  return null;
+ },
+ count(t){let n=0;for(let u=0;u<APT_UNITS;u++)if(this.tenant(t,u))n++;return n;}
+};
+function aptHomeBlock(){const p=state.me;return `<div class="row wrap" style="margin-top:10px"><button class="btn" id="homeKtp">🪪 Kartu Penduduk (KTP)</button><button class="btn" id="homeApt">🏢 Apartemen</button></div>${p.apt?`<div class="notice" style="margin-top:10px">🏢 Kamu tinggal di Apartemen ${p.apt.t+1}, lantai ${p.apt.u+1}.</div>`:''}`;}
+function showApt(t=0){
+  if(!state.me)return;
+  const me=state.me;t=Math.max(0,Math.min(APT_POS.length-1,Number(t)||0));
+  const avail=me.coins-me.held,online=SOCIAL.on();
+  const rows=Array.from({length:APT_UNITS},(_,k)=>{const u=APT_UNITS-1-k,ten=SOCIAL.tenant(t,u),cost=aptCost(u);
+   const who=ten?(ten.mine?'Unitmu':esc(ten.ig?'@'+ten.ig:ten.n)):'Kosong · '+cost+' koin';
+   const btn=ten?(ten.mine?'<button class="btn small" data-apt-leave="'+u+'">Pindah keluar</button>':'<button class="btn small" data-apt-ktp="'+esc(ten.id)+'">Lihat KTP</button>'):`<button class="btn small primary" data-apt-rent="${u}" ${me.apt||avail<cost?'disabled':''}>Tinggal</button>`;
+   return `<div class="list-item apt-unit ${ten&&ten.mine?'mine':''}"><div class="row spread"><div><b>Lantai ${u+1}</b><small style="display:block;opacity:.75">${who}</small></div>${btn}</div></div>`;}).join('');
+  panel('Apartemen Nusa '+(t+1),`<p class="intro">Gedung tinggi bisa ditinggali. Satu warga satu unit. Makin tinggi lantainya, makin mahal.</p>${online?'':'<div class="notice warn">Mode HP sendiri: penghuni dari HP lain belum terlihat.</div>'}<div class="chips">${APT_POS.map((_,i)=>`<button class="chip ${i===t?'active':''}" data-apt-tower="${i}">Apt ${i+1} · ${SOCIAL.count(i)}/${APT_UNITS}</button>`).join('')}</div><div class="row spread" style="margin:10px 0"><span class="tag">${fmt(avail)} koin</span><button class="btn small" id="aptLocate">Lihat di peta</button></div>${me.apt?`<div class="notice">Kamu sudah tinggal di Apartemen ${me.apt.t+1} lantai ${me.apt.u+1}. Pindah keluar dulu kalau mau pilih unit lain.</div>`:''}<div class="apt-list">${rows}</div>`,{narrow:true,sub:'APARTEMEN KOTA NUSA'});
+  $$('[data-apt-tower]').forEach(b=>b.onclick=()=>showApt(Number(b.dataset.aptTower)));
+  $('#aptLocate').onclick=()=>{const pos=APT_POS[t];closePanel();world.navigate(pos[0],pos[1]);};
+  $$('[data-apt-ktp]').forEach(b=>b.onclick=()=>showKTP(b.dataset.aptKtp));
+  $$('[data-apt-rent]').forEach(b=>b.onclick=()=>{const u=Number(b.dataset.aptRent),cost=aptCost(u);
+   confirmBox('Tinggal di sini?',`Apartemen ${t+1}, lantai ${u+1}.<br>Harga: <b>${cost} koin</b>.<br>Sisa saldo: ${fmt(avail-cost)} koin.`,async()=>{
+    try{await SOCIAL.claimApt(t,u);await act('rentApt',{tower:t,unit:u,cost});showApt(t);}catch(e){if(e&&e.message)toast(e.message,true);throw e;}},'Pindah ke sini');});
+  $$('[data-apt-leave]').forEach(b=>b.onclick=()=>{const u=Number(b.dataset.aptLeave);confirmBox('Pindah keluar?','Unit dilepas dan bisa dipakai warga lain. Uang tidak dikembalikan.',async()=>{await SOCIAL.releaseApt(t,u);await act('leaveApt');showApt(t);},'Pindah keluar');});
+}
+function ktpData(c,mine){
+  const home=c.home===undefined?c.h:c.home,apt=c.apt!==undefined?c.apt:c.a;
+  let addr='Kos Pelangi';
+  if(home!==null&&home!==undefined){const d=typeof districtFor==='function'?districtFor(home):null;addr='Petak '+(home+1)+(d?' · '+d.name:'');}
+  else if(apt)addr='Apartemen '+(apt.t+1)+' · Lantai '+(apt.u+1);
+  const role=c.role==='president'?'Presiden':c.role==='mayor'?'Wali Kota':(c.career&&c.career.name)||c.rk||'Warga';
+  return {id:c.id,name:c.name||c.n||'Warga',ig:c.ig||'',bio:c.bio||'',color:c.color||c.c||'#569d91',role,joined:c.joined||c.j||0,addr,life:c.life||c.l||1};
+}
+function drawKTP(cv,d){
+  const c=cv.getContext('2d'),W=720,H=450;
+  const rr=(x,y,w,h,r)=>{c.beginPath();c.roundRect?c.roundRect(x,y,w,h,r):c.rect(x,y,w,h);};
+  c.clearRect(0,0,W,H);
+  const g=c.createLinearGradient(0,0,W,H);g.addColorStop(0,'#123b3e');g.addColorStop(.6,'#1d5f5c');g.addColorStop(1,'#2f7f78');
+  c.save();rr(0,0,W,H,28);c.clip();c.fillStyle=g;c.fillRect(0,0,W,H);
+  c.strokeStyle='rgba(169,219,192,.13)';c.lineWidth=2;
+  for(let k=0;k<7;k++){c.beginPath();for(let x=0;x<=W;x+=12){const y=150+k*38+Math.sin(x/46+k)*9;x?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();}
+  c.fillStyle='#fff9ec';c.fillRect(0,0,W,76);
+  c.fillStyle='#569d91';c.beginPath();c.arc(48,38,22,0,7);c.fill();
+  c.fillStyle='#fff9ec';c.font='800 24px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('N',48,39);
+  c.textAlign='left';c.fillStyle='#123b3e';c.font='800 26px system-ui,sans-serif';c.fillText('KOTA NUSA',84,30);
+  c.fillStyle='#5f8a80';c.font='700 11px system-ui,sans-serif';c.fillText('KARTU PENDUDUK  ·  SEBUAH KEHIDUPAN BARU',84,55);
+  c.fillStyle='#e3ad94';c.beginPath();c.arc(W-44,38,10,0,7);c.fill();c.fillStyle='#a9dbc0';c.beginPath();c.arc(W-66,38,10,0,7);c.fill();c.fillStyle='#6494ac';c.beginPath();c.arc(W-88,38,10,0,7);c.fill();
+  // foto
+  c.fillStyle=d.color;rr(36,100,156,190,18);c.fill();
+  c.fillStyle='rgba(255,249,236,.9)';c.beginPath();c.arc(114,166,30,0,7);c.fill();
+  c.beginPath();c.moveTo(56,290);c.quadraticCurveTo(114,196,172,290);c.closePath();c.fill();
+  c.strokeStyle='rgba(255,249,236,.55)';c.lineWidth=3;rr(36,100,156,190,18);c.stroke();
+  // barcode
+  const nik=nikOf(d.id);let h=7;c.fillStyle='rgba(255,249,236,.85)';
+  for(let x=36;x<192;){h=(h*31+nik.charCodeAt(Math.floor((x-36)/6)%nik.length)+x)>>>0;const w=1+h%3;c.fillRect(x,304,w,26);x+=w+1+(h>>3)%2;}
+  const L=(t,x,y)=>{c.fillStyle='#a9dbc0';c.font='700 12px system-ui,sans-serif';c.textAlign='left';c.fillText(t,x,y);};
+  const V=(t,x,y,size,maxW,wt)=>{c.fillStyle='#fff9ec';c.font=(wt||'700')+' '+size+'px system-ui,sans-serif';c.textAlign='left';c.fillText(t,x,y,maxW);};
+  L('NIK NUSA',224,108);V(nik,224,136,30,456,'800');
+  L('NAMA',224,162);V(d.name,224,190,30,456,'800');
+  L('INSTAGRAM',224,216);V(d.ig?'@'+d.ig:'—',224,242,23,210,'700');
+  L('STATUS',444,216);V(d.role,444,242,23,240,'700');
+  L('TEMPAT TINGGAL',224,268);V(d.addr,224,294,21,456,'600');
+  L('WARGA SEJAK',224,316);V(d.joined?new Date(d.joined).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}):'—',224,340,20,200,'600');
+  // deskripsi
+  c.fillStyle='rgba(255,249,236,.12)';rr(36,346,648,74,14);c.fill();
+  L('DESKRIPSI',54,366);
+  const words=(d.bio||'Warga baru Kota Nusa.').split(' '),lines=[''];
+  c.font='italic 600 17px system-ui,sans-serif';
+  for(const w of words){const t=(lines.at(-1)+' '+w).trim();if(c.measureText(t).width>610&&lines.at(-1)){if(lines.length>=2){lines[1]=lines[1].replace(/.{0,2}$/,'…');break;}lines.push(w);}else lines[lines.length-1]=t;}
+  c.fillStyle='#fff9ec';c.textAlign='left';lines.forEach((t,i)=>c.fillText(t,54,390+i*22,616));
+  c.fillStyle='#e3ad94';c.fillRect(0,H-12,W,12);c.fillStyle='#a9dbc0';c.fillRect(0,H-12,W*.4,12);c.fillStyle='#6494ac';c.fillRect(W*.4,H-12,W*.2,12);
+  c.restore();
+}
+async function showKTP(id){
+  const me=state.me;if(!me)return;
+  const mine=!id||id===me.id;
+  let src=mine?me:(state.citizens.find(x=>x.id===id)||{id,name:'Warga'});
+  panel(mine?'Kartu Penduduk-ku':'Kartu '+esc(src.name||'Warga'),`<canvas id="ktpCanvas" width="720" height="450" class="ktp-canvas"></canvas>${mine?`<label class="field" style="margin-top:14px"><span>Username Instagram</span><input class="input" id="ktpIg" maxlength="30" placeholder="contoh: lala" value="${esc(me.ig||'')}"></label><label class="field"><span>Deskripsi dirimu (maks 90 huruf)</span><textarea class="input" id="ktpBio" maxlength="90" rows="2" placeholder="Contoh: Suka kopi sore dan jalan di pantai.">${esc(me.bio||'')}</textarea></label><p class="form-error" id="ktpErr"></p><div class="row wrap"><button class="btn primary grow" id="ktpSave">Simpan kartu</button><button class="btn" id="ktpImg">Simpan gambar</button></div>`:`<div class="row wrap" style="margin-top:14px"><button class="btn primary grow" id="ktpImg">Simpan gambar</button>${src.home!==undefined&&src.home!==null?'<button class="btn" id="ktpLoc">Lihat rumahnya</button>':''}</div>`}`,{narrow:true,sub:'KARTU PENDUDUK KOTA NUSA'});
+  const cv=$('#ktpCanvas'),redraw=()=>drawKTP(cv,ktpData(mine?state.me:src,mine));
+  redraw();
+  if(mine){
+   const liveRedraw=()=>{const t={...state.me,ig:$('#ktpIg').value.trim().replace(/^@/,''),bio:cleanBio($('#ktpBio').value)};drawKTP(cv,ktpData(t,true));};
+   $('#ktpIg').oninput=liveRedraw;$('#ktpBio').oninput=liveRedraw;
+   $('#ktpSave').onclick=async()=>{const b=$('#ktpSave');b.disabled=true;$('#ktpErr').textContent='';try{await act('profile',{ig:$('#ktpIg').value,bio:$('#ktpBio').value});toast('Kartu penduduk disimpan.');redraw();}catch(e){$('#ktpErr').textContent=e.message||'Gagal menyimpan.';}finally{if(b.isConnected)b.disabled=false;}};
+  }else if(SOCIAL.on()){
+   FB.get('ktp/'+id).then(r=>{if(!r||!$('#ktpCanvas'))return;src={...src,name:r.n||src.name,ig:r.ig||src.ig,bio:r.bio||'',color:r.c||src.color,career:{name:r.rk||'Warga'},joined:r.j||src.joined,home:r.h===undefined?src.home:r.h,apt:r.a||null,life:r.l||1};redraw();}).catch(()=>{});
+  }
+  $('#ktpImg').onclick=()=>{cv.toBlob(async blob=>{if(!blob)return;const name='ktp-kota-nusa.png';try{const f=new File([blob],name,{type:'image/png'});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'KTP Kota Nusa'});return;}}catch(e){if(e&&e.name==='AbortError')return;}const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);},'image/png');};
+  if($('#ktpLoc'))$('#ktpLoc').onclick=()=>{const pos=world.plotPosition(src.home);closePanel();world.navigate(pos.x,pos.z);};
 }
 
 function showCityBan(p){world?.pause(true);panel(p.expelled?'Anda diusir dari Kota Nusa':'Akses kota ditangguhkan',`<p class="intro">${p.expelled?'Pelanggaran berulang melewati batas kota.':'Ban berlaku hingga '+niceDate(p.bannedUntil)+' WIB.'}</p><p>Hubungi pengelola untuk peninjauan. Riwayat pelanggaran tersimpan.</p>`,{narrow:true,sub:'MODERASI KOTA'});const close=$('[data-close]');if(close)close.remove();}
 
-const nav={cityOffice:showCityOffice,career:showCareer,jobs:showJobs,market:showMarket,clinic:showClinic,home:showHome,land:showLand,wallet:showWallet,people:showCitizens,news:showNews,map:showMap,vote:showVote,guide:showGuide,settings:showSettings,owner:showGovernment,support:showSupport,chat:openChat};
+const nav={cityOffice:showCityOffice,career:showCareer,jobs:showJobs,market:showMarket,clinic:showClinic,home:showHome,land:showLand,wallet:showWallet,people:showCitizens,news:showNews,map:showMap,vote:showVote,guide:showGuide,settings:showSettings,owner:showGovernment,support:showSupport,chat:openChat,ktp:()=>showKTP(),apt:()=>showApt(0)};
 async function bootstrap(){
- try{catalog=CATALOG;$('#app').innerHTML=`<canvas id="world" aria-label="Peta Kota Nusa 2D isometrik, geser dan ketuk bangunan"></canvas><div id="labels">${catalog.places.map(p=>`<button class="place-label" id="label-${p.id}" data-place="${p.id}">${p.name}</button>`).join('')}</div><section id="landing"><div class="landing-shade"></div><header class="topbar"><div class="brand"><div class="brand-mark">N</div><div><strong>Kota Nusa.</strong><small>SEBUAH KEHIDUPAN BARU</small></div></div><div class="topbar-links"><button class="quiet-btn" data-nav="guide">${icon('book')} Panduan warga</button><button class="quiet-btn icon-only" id="landingSound" aria-label="Aktifkan suara">${icon(settings.sound?'volume':'mute')}</button></div></header><div class="hero"><div class="eyebrow"><span class="status-dot"></span> PULAU KECIL, CERITA BESAR</div><h1>Tempat baru.<br><em>Ceritamu sendiri.</em></h1><p>Punya rumah. Temukan pekerjaanmu.<br>Kenalan dengan tetangga, dan bangun<br>kota yang tumbuh bersama kalian.</p><div class="hero-actions"><button class="btn primary" id="joinBtn">Mulai kehidupan ${icon('arrow')}</button><button class="btn" data-nav="guide">Kenali Nusa ${icon('book')}</button></div><div class="entry-landing-note">${icon('plane')} Follow @kota_nusa di Instagram, lalu terbang ke Nusa</div><div class="hero-note"><button class="quiet-btn" id="landingBackup">Cadangkan</button><label class="quiet-btn">Impor progres<input type="file" id="landingRestore" accept=".json,application/json" hidden></label></div><div class="hero-note">${icon('lock')} TrebEdit · Offline · Progres di HP ini</div></div><div class="landing-bottom"><div class="feature-stamps"><div class="feature-stamp"><strong>39</strong><span>Pilihan profesi</span></div><div class="feature-stamp"><strong>30</strong><span>Rencana bangunan</span></div><div class="feature-stamp"><strong>1 kota</strong><span>Tumbuh bersama</span></div></div><div class="postcard"><span>SALAM DARI PESISIR</span><strong>Rumah bagi ceritamu.</strong><p>Kota jernih · Edisi TrebEdit</p></div></div></section><section class="hud hidden" id="hud"><header class="hud-top"><div class="identity-chip"><div class="brand-mark">N</div><div><h3 id="hudName">Warga Nusa</h3><small id="hudRole">Kehidupan pertama</small></div></div><div class="hud-status"><div class="status-pill">${icon('sun')}<div id="cityClock">Sore di Nusa</div></div><button class="status-pill" data-nav="wallet">${icon('wallet')}<div><span id="coins">250</span><small>Koin tersedia</small></div></button><button class="status-pill" data-nav="people">${icon('people')}<div><span id="onlineCount">0 warga online</span><small>Simpanan lokal</small></div></button></div></header><button class="xp-chip" data-nav="career">${icon('shield')}<span id="xpLabel">0 EXP</span>${icon('arrow')}</button><div class="right-tools"><button class="round-btn" data-nav="news" aria-label="Kabar kota">${icon('bell')}</button><button class="round-btn" id="cameraHome" aria-label="Pusatkan kamera">${icon('compass')}</button><button class="round-btn" id="zoomIn" aria-label="Perbesar">${icon('plus')}</button><button class="round-btn" id="zoomOut" aria-label="Perkecil">${icon('minus')}</button><button class="round-btn" id="fullscreen" aria-label="Layar penuh">${icon('fullscreen')}</button><button class="round-btn" data-nav="settings" aria-label="Pengaturan">${icon('settings')}</button></div><div class="scene-caption"><span class="status-dot"></span> KOTA NUSA · TREBEDIT</div><nav class="dock"><button data-nav="map">${icon('map')}<span>Peta</span></button><button data-nav="jobs">${icon('work')}<span>Kerja</span></button><button data-nav="home">${icon('home')}<span>Rumah</span></button><button data-nav="chat">${icon('chat')}<span>Chat</span></button><button data-nav="cityOffice" id="cityOfficeNav" class="hidden">${icon('hall')}<span>Balai Kota</span></button><div class="dock-divider"></div><button data-nav="support">${icon('heart')}<span>Dukung</span></button><button data-nav="owner" class="hidden" id="ownerNav">${icon('shield')}<span>Presiden</span></button></nav><div class="help-hint">Geser peta · cubit untuk zoom · ketuk bangunan</div></section><div id="chat" class="chat-panel hidden"></div><div class="modal-backdrop hidden" id="modal"></div><div class="toast-stack" id="toasts" aria-live="polite"></div><div class="offline-banner hidden" id="offline">Koneksi terputus. Transaksi belum bisa disimpan; sedang mencoba kembali…</div>`;
+ try{catalog=CATALOG;$('#app').innerHTML=`<canvas id="world" aria-label="Peta Kota Nusa 2D isometrik, geser dan ketuk bangunan"></canvas><div id="labels">${catalog.places.map(p=>`<button class="place-label" id="label-${p.id}" data-place="${p.id}">${p.name}</button>`).join('')}</div><section id="landing"><div class="landing-shade"></div><header class="topbar"><div class="brand"><div class="brand-mark">N</div><div><strong>Kota Nusa.</strong><small>SEBUAH KEHIDUPAN BARU</small></div></div><div class="topbar-links"><button class="quiet-btn" data-nav="guide">${icon('book')} Panduan warga</button><button class="quiet-btn icon-only" id="landingSound" aria-label="Aktifkan suara">${icon(settings.sound?'volume':'mute')}</button></div></header><div class="hero"><div class="eyebrow"><span class="status-dot"></span> PULAU KECIL, CERITA BESAR</div><h1>Tempat baru.<br><em>Ceritamu sendiri.</em></h1><p>Punya rumah. Temukan pekerjaanmu.<br>Kenalan dengan tetangga, dan bangun<br>kota yang tumbuh bersama kalian.</p><div class="hero-actions"><button class="btn primary" id="joinBtn">Mulai kehidupan ${icon('arrow')}</button><button class="btn" data-nav="guide">Kenali Nusa ${icon('book')}</button></div><div class="entry-landing-note">${icon('plane')} Follow @kota_nusa di Instagram, lalu terbang ke Nusa</div><div class="hero-note"><button class="quiet-btn" id="landingBackup">Cadangkan</button><label class="quiet-btn">Impor progres<input type="file" id="landingRestore" accept=".json,application/json" hidden></label></div><div class="hero-note">${icon('lock')} TrebEdit · Offline · Progres di HP ini</div></div><div class="landing-bottom"><div class="feature-stamps"><div class="feature-stamp"><strong>39</strong><span>Pilihan profesi</span></div><div class="feature-stamp"><strong>30</strong><span>Rencana bangunan</span></div><div class="feature-stamp"><strong>1 kota</strong><span>Tumbuh bersama</span></div></div><div class="postcard"><span>SALAM DARI PESISIR</span><strong>Rumah bagi ceritamu.</strong><p>Kota jernih · Edisi TrebEdit</p></div></div></section><section class="hud hidden" id="hud"><header class="hud-top"><div class="identity-chip"><div class="brand-mark">N</div><div><h3 id="hudName">Warga Nusa</h3><small id="hudRole">Kehidupan pertama</small></div></div><div class="hud-status"><div class="status-pill">${icon('sun')}<div id="cityClock">Sore di Nusa</div></div><button class="status-pill" data-nav="wallet">${icon('wallet')}<div><span id="coins">250</span><small>Koin tersedia</small></div></button><button class="status-pill" data-nav="people">${icon('people')}<div><span id="onlineCount">0 warga online</span><small>Simpanan lokal</small></div></button></div></header><button class="xp-chip" data-nav="career">${icon('shield')}<span id="xpLabel">0 EXP</span>${icon('arrow')}</button><div class="right-tools"><button class="round-btn" data-nav="news" aria-label="Kabar kota">${icon('bell')}</button><button class="round-btn" id="cameraHome" aria-label="Pusatkan kamera">${icon('compass')}</button><button class="round-btn" id="zoomIn" aria-label="Perbesar">${icon('plus')}</button><button class="round-btn" id="zoomOut" aria-label="Perkecil">${icon('minus')}</button><button class="round-btn" id="fullscreen" aria-label="Layar penuh">${icon('fullscreen')}</button><button class="round-btn" data-nav="settings" aria-label="Pengaturan">${icon('settings')}</button></div><div class="scene-caption"><span class="status-dot"></span> KOTA NUSA · TREBEDIT</div><nav class="dock"><button data-nav="map">${icon('map')}<span>Peta</span></button><button data-nav="jobs">${icon('work')}<span>Kerja</span></button><button data-nav="home">${icon('home')}<span>Rumah</span></button><button data-nav="chat">${icon('chat')}<span>Chat</span></button><button data-nav="ktp">${icon('person')}<span>KTP</span></button><button data-nav="cityOffice" id="cityOfficeNav" class="hidden">${icon('hall')}<span>Balai Kota</span></button><div class="dock-divider"></div><button data-nav="support">${icon('heart')}<span>Dukung</span></button><button data-nav="owner" class="hidden" id="ownerNav">${icon('shield')}<span>Presiden</span></button></nav><div class="help-hint">Geser peta · cubit untuk zoom · ketuk bangunan</div></section><div id="chat" class="chat-panel hidden"></div><div class="modal-backdrop hidden" id="modal"></div><div class="toast-stack" id="toasts" aria-live="polite"></div><div class="offline-banner hidden" id="offline">Koneksi terputus. Transaksi belum bisa disimpan; sedang mencoba kembali…</div>`;
  $('#hud').insertAdjacentHTML('beforeend',`<div class="city-controls"><button id="governmentAccess" data-nav="owner">${icon('shield')}<span>Pemerintahan</span>${icon('arrow')}</button><div class="camera-actions"><button id="cameraMode">${icon('map')}<span>Seluruh kota</span></button><button id="photoMode" aria-label="Mode foto tanpa panel">${icon('camera')}</button></div></div>`);$('#app').insertAdjacentHTML('beforeend','<button class="btn photo-exit hidden" id="photoExit">Selesai mode foto</button>');
  const photoMode=value=>{$('#app').classList.toggle('photo-mode',value);$('#photoExit').classList.toggle('hidden',!value);world.photo(value);if(value){chatOpen=false;$('#chat').classList.add('hidden');closePanel();}};$('#photoMode').onclick=()=>photoMode(true);$('#photoExit').onclick=()=>photoMode(false);$('#cameraMode').onclick=()=>world.home();addEventListener('keydown',e=>{if(e.key==='Escape')photoMode(false);});
  world=createWorld($('#world'),catalog.places,{toast,pick:openMapTarget,mode(){$('#cameraMode span').textContent='Seluruh kota';$('.scene-caption').textContent='KOTA NUSA · TREBEDIT';},project(labels){for(const p of labels){const el=$('#label-'+p.id);el.style.left=p.sx+'px';el.style.top=p.sy+'px';el.style.opacity=p.visible?'1':'0';el.style.pointerEvents=p.visible?'auto':'none';}}});world.quality(settings.quality);world.weather(settings.weather);
