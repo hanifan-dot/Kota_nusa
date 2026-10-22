@@ -42,6 +42,37 @@
 .ktp-canvas{width:100%;height:auto;display:block;border-radius:20px;box-shadow:0 10px 26px #123b3e44}
 .apt-list{display:grid;gap:8px}.apt-unit.mine{background:#e5f3e8;border-color:#a9dbc0}
 </style></head><body><main id="app"><div id="boot"><h1>Kota Nusa.</h1><p>Menyiapkan kota…</p></div></main><script>'use strict';
+// ===== Deteksi browser dalam Instagram/Facebook (progres sering hilang di sana) =====
+(function(){
+ const ua=navigator.userAgent||'';
+ const inApp=/Instagram|FBAN|FBAV|FB_IAB|Line\/|TikTok|musical_ly/i.test(ua);
+ if(!inApp)return;
+ const android=/Android/i.test(ua),ios=/iPhone|iPad|iPod/i.test(ua);
+ let skipped=false;try{skipped=sessionStorage.getItem('nusa-inapp-skip')==='1';}catch(e){}
+ if(skipped)return;
+ const url=location.href.split('#')[0];
+ const intent='intent://'+location.host+location.pathname+location.search+'#Intent;scheme=https;package=com.android.chrome;end';
+ const show=()=>{
+  const d=document.createElement('div');d.id='inappGate';
+  d.setAttribute('style','position:fixed;inset:0;z-index:2147483000;background:#0f3a3d;color:#fff9ec;display:flex;align-items:center;justify-content:center;padding:22px;font-family:system-ui,sans-serif;overflow:auto');
+  d.innerHTML='<div style="max-width:420px;width:100%;text-align:center"><div style="width:64px;height:64px;border-radius:32px;background:#569d91;margin:0 auto 14px;font:800 34px/64px system-ui">N</div>'
+   +'<h2 style="margin:0 0 8px;font-size:24px">Buka di '+(ios?'Safari':'Chrome')+' dulu ya</h2>'
+   +'<p style="margin:0 0 16px;line-height:1.5;color:#cfe6dc">Kamu membuka game dari dalam Instagram. Di sini progres gampang <b>ke-reset</b> dan rumahmu bisa hilang. Di '+(ios?'Safari':'Chrome')+' semuanya aman tersimpan.</p>'
+   +(android?'<button id="inappChrome" style="width:100%;padding:15px;border:0;border-radius:14px;background:#f3c63f;color:#123b3e;font:800 17px system-ui;margin-bottom:10px">Buka di Chrome sekarang</button>':'')
+   +'<button id="inappCopy" style="width:100%;padding:14px;border:2px solid #a9dbc0;border-radius:14px;background:transparent;color:#fff9ec;font:700 16px system-ui;margin-bottom:10px">Salin link</button>'
+   +'<div style="text-align:left;background:#ffffff14;border-radius:14px;padding:14px 16px;font-size:14px;line-height:1.6;margin-bottom:12px"><b>Kalau tombol tidak jalan:</b><br>1. Ketuk titik tiga <b>⋮</b> (pojok kanan atas)<br>2. Pilih <b>'+(ios?'Buka di Safari':'Buka di Chrome')+'</b> / "Open in browser"<br>3. Atau tempel link yang disalin ke '+(ios?'Safari':'Chrome')+'</div>'
+   +'<button id="inappSkip" style="background:none;border:0;color:#9fc3b6;font:14px system-ui;text-decoration:underline;padding:8px">Tetap lanjut di sini (progres bisa hilang)</button><p id="inappMsg" style="min-height:18px;margin:6px 0 0;color:#a9dbc0;font-size:13px"></p></div>';
+  document.body.appendChild(d);
+  const msg=t=>{const m=d.querySelector('#inappMsg');if(m)m.textContent=t;};
+  const copy=async()=>{try{await navigator.clipboard.writeText(url);msg('Link disalin. Tempel di '+(ios?'Safari':'Chrome')+'.');}catch(e){const t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();try{document.execCommand('copy');msg('Link disalin. Tempel di '+(ios?'Safari':'Chrome')+'.');}catch(_){msg(url);}t.remove();}};
+  d.querySelector('#inappCopy').onclick=copy;
+  const c=d.querySelector('#inappChrome');if(c)c.onclick=()=>{location.href=intent;setTimeout(()=>msg('Kalau tidak pindah, pakai titik tiga ⋮ lalu "Buka di Chrome".'),1800);};
+  d.querySelector('#inappSkip').onclick=()=>{try{sessionStorage.setItem('nusa-inapp-skip','1');}catch(e){}d.remove();};
+  if(android)setTimeout(()=>{try{location.href=intent;}catch(e){}},700);
+ };
+ if(document.body)show();else document.addEventListener('DOMContentLoaded',show);
+})();
+
 /* ======================================================================
    KONFIGURASI KOTA NUSA  —  ISI BAGIAN INI SAJA, JANGAN UBAH KODE LAIN
    ======================================================================
@@ -1109,7 +1140,7 @@ function createWorld(canvas,places,callbacks={}){
   if(zoom>=1.5)for(const [id,b] of byId){
    if(!id.startsWith('apt:'))continue;
    const n=Number(id.slice(4)),k=typeof SOCIAL!=='undefined'?SOCIAL.count(n):0,q=screen(P(b.x,b.z,(b.h||10)+3));
-   pill(q.x,q.y-20,'Apartemen '+(n+1)+' · '+k+'/8',null,false,Math.min(.8,.3+(zoom-1.5)*.5));
+   pill(q.x,q.y-20,'Apt '+(n+1)+' · '+k+'/8',null,false,Math.min(.8,.3+(zoom-1.5)*.5));
   }
   ctx.restore();
  }
