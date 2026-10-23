@@ -312,7 +312,7 @@ const ORCHARD_TREES={
  pisang:{name:'Pisang',emoji:'🍌',seed:90,grow:180000,harvest:54,cycles:8,desc:'Mulai murah dan paling cepat berbuah.'}
 };
 // V2.6: 20 larger lots in a dedicated western district. Indices 0-9 are preserved for existing owners.
-const ORCHARD_MAP_SLOTS=Array.from({length:20},(_,i)=>({x:-212+(i%4)*30,z:-105+Math.floor(i/4)*43,w:24,d:31}));
+const ORCHARD_MAP_SLOTS=Array.from({length:20},(_,i)=>({x:-228+(i%4)*32,z:-112+Math.floor(i/4)*45,w:26,d:33}));
 
 const LocalNusa=(()=>{const catalog={"jobs":[{"id":"library","name":"Pustakawan","icon":"book","group":"Layanan","mechanic":"shelf","risk":0,"pay":40,"desc":"Baca label dan susun buku mengikuti kode rak.","color":"#81b5a3","workplace":"library"},{"id":"cashier","name":"Kasir","icon":"wallet","group":"Layanan","mechanic":"cash","risk":0,"pay":45,"desc":"Pindai belanja dan hitung kembalian dengan tepat.","color":"#e4b971","workplace":"market"},{"id":"barista","name":"Barista","icon":"cup","group":"Kuliner","mechanic":"recipe","risk":0,"pay":50,"desc":"Racik minuman sesuai pesanan, satu bahan setiap langkah.","color":"#d4a586","workplace":"cafe"},{"id":"tailor","name":"Penjahit","icon":"scissors","group":"Kriya","mechanic":"trace","risk":0,"pay":50,"desc":"Ikuti pola jahitan tanpa keluar dari jalurnya.","color":"#b6a2ca","workplace":"tailor"},{"id":"barber","name":"Penata rambut","icon":"scissors","group":"Layanan","mechanic":"trim","risk":0,"pay":55,"desc":"Rapikan helai yang ditandai tanpa memotong bagian lain.","color":"#98b7cf","workplace":"barber"},{"id":"musician","name":"Musisi","icon":"music","group":"Kreatif","mechanic":"rhythm","risk":0,"pay":55,"desc":"Tangkap nada saat melewati garis irama.","color":"#ca9aaf","workplace":"studio"},{"id":"photo","name":"Fotografer","icon":"camera","group":"Kreatif","mechanic":"photo","risk":0,"pay":60,"desc":"Bingkai objek bergerak lalu potret di saat yang tepat.","color":"#82afa5","workplace":"studio"},{"id":"garden","name":"Tukang kebun","icon":"leaf","group":"Alam","mechanic":"water","risk":1,"pay":60,"desc":"Isi air setiap tanaman sampai tanda, jangan berlebihan.","color":"#84b587","workplace":"garden"},{"id":"bakery","name":"Pembuat roti","icon":"bread","group":"Kuliner","mechanic":"oven","risk":1,"pay":65,"desc":"Kelola beberapa loyang dan angkat sebelum gosong.","color":"#dbb775","workplace":"bakery"},{"id":"chef","name":"Koki","icon":"cup","group":"Kuliner","mechanic":"cook","risk":1,"pay":70,"desc":"Potong bahan lalu jaga panas masakan sampai matang.","color":"#de9977","workplace":"restaurant"},{"id":"farm","name":"Petani","icon":"leaf","group":"Alam","mechanic":"harvest","risk":1,"pay":70,"desc":"Panen tanaman matang, hindari bibit muda.","color":"#91b971","workplace":"farm"},{"id":"ranch","name":"Peternak","icon":"paw","group":"Alam","mechanic":"herd","risk":2,"pay":80,"desc":"Arahkan hewan melalui pintu kandang yang cocok.","color":"#b7b17f","workplace":"ranch"},{"id":"mechanic","name":"Mekanik","icon":"wrench","group":"Teknik","mechanic":"repair","risk":2,"pay":85,"desc":"Temukan bagian rusak lalu pasang komponen yang tepat.","color":"#94b7ba","workplace":"mechanic"},{"id":"courier","name":"Kurir sepeda","icon":"package","group":"Transportasi","mechanic":"route","risk":2,"pay":85,"desc":"Antar paket melewati rute tanpa menabrak rintangan.","color":"#d8a66b","workplace":"courier"},{"id":"bus","name":"Sopir bus","icon":"bus","group":"Transportasi","mechanic":"drive","risk":2,"pay":90,"desc":"Atur gas dan rem agar berhenti tepat di halte.","color":"#81a9c1","workplace":"bus"},{"id":"wood","name":"Pengrajin kayu","icon":"hammer","group":"Kriya","mechanic":"measure","risk":2,"pay":90,"desc":"Ukur dan potong papan sesuai panjang pesanan.","color":"#bf9f80","workplace":"wood"},{"id":"builder","name":"Pekerja konstruksi","icon":"hammer","group":"Teknik","mechanic":"stack","risk":3,"pay":110,"desc":"Tempatkan balok bergerak tepat di atas penyangga.","color":"#dfb371","workplace":"builder"},{"id":"fisher","name":"Nelayan laut","icon":"fish","group":"Alam","mechanic":"fish","risk":3,"pay":115,"desc":"Jaga ketegangan tali saat ikan menarik balik.","color":"#7dabbf","workplace":"pier"},{"id":"tower","name":"Teknisi menara","icon":"tower","group":"Teknik","mechanic":"climb","risk":3,"pay":130,"desc":"Pilih pegangan kokoh dan jaga keseimbangan di ketinggian.","color":"#a2aac4","workplace":"tower"},{"id":"electric","name":"Teknisi listrik","icon":"bolt","group":"Teknik","mechanic":"circuit","risk":3,"pay":135,"desc":"Matikan daya dan putar jalur agar rangkaian tersambung.","color":"#d4bd72","workplace":"electric"},{"id":"miner","name":"Penambang","icon":"pick","group":"Ekspedisi","mechanic":"mine","risk":4,"pay":150,"desc":"Baca petunjuk batuan, pasang penyangga, lalu gali.","color":"#9c9cab","workplace":"miner"},{"id":"diver","name":"Penyelam teknis","icon":"anchor","group":"Ekspedisi","mechanic":"dive","risk":4,"pay":160,"desc":"Navigasi arus, ambil komponen, dan awasi oksigen.","color":"#6aaeba","workplace":"pier"},{"id":"fire","name":"Pemadam kebakaran","icon":"flame","group":"Penyelamatan","mechanic":"fire","risk":4,"pay":175,"desc":"Padamkan titik api sebelum air habis dan buka akses aman.","color":"#d98c76","workplace":"fire"},{"id":"sar","name":"SAR pegunungan","icon":"mountain","group":"Penyelamatan","mechanic":"rope","risk":5,"pay":190,"desc":"Pasang jangkar dan bawa tandu melalui jalur aman.","color":"#91a48a","workplace":"sar"},{"id":"rescue","name":"Penyelamat bencana","icon":"shield","group":"Penyelamatan","mechanic":"rescue","risk":5,"pay":210,"desc":"Baca peta reruntuhan dan buka jalur evakuasi korban.","color":"#c7a17e","workplace":"rescue"}],"buildings":[["Klinik",1800,"Kesehatan"],["Rumah sakit",6200,"Kesehatan"],["Apotek",2200,"Kesehatan"],["Pos pemadam",4500,"Keselamatan"],["Pusat SAR",5800,"Keselamatan"],["Pasar",3500,"Perdagangan"],["Minimarket",2100,"Perdagangan"],["Pujasera",3200,"Kuliner"],["Kafe",2400,"Kuliner"],["Toko roti",2600,"Kuliner"],["Halte",1200,"Transportasi"],["Terminal bus",4800,"Transportasi"],["Dermaga",3900,"Transportasi"],["Stasiun",7500,"Transportasi"],["Garasi umum",2900,"Transportasi"],["Perpustakaan",2800,"Pendidikan"],["Pusat pelatihan",3800,"Pendidikan"],["Museum",5200,"Budaya"],["Galeri seni",3300,"Budaya"],["Teater",5400,"Budaya"],["Taman kota",1500,"Rekreasi"],["Lapangan olahraga",2500,"Rekreasi"],["Kolam renang",4200,"Rekreasi"],["Taman bermain",2300,"Rekreasi"],["Gedung festival",6500,"Rekreasi"],["Kantor pos",2000,"Layanan"],["Pusat daur ulang",3600,"Layanan"],["Bengkel umum",3100,"Produksi"],["Rumah kaca",3400,"Produksi"],["Pengolahan air",5100,"Layanan"]],"places":[{"id":"hall","name":"Balai Nusa","sub":"Pemerintahan & voting","x":0,"z":-20,"kind":"hall"},{"id":"market","name":"Shopmarket Senja","sub":"Kasir · belanja warga","x":-22,"z":0,"kind":"market"},{"id":"jobs","name":"Bursa Karya","sub":"25 pilihan pekerjaan","x":22,"z":0,"kind":"jobs"},{"id":"home","name":"Kos Pelangi","sub":"Rumah pertamamu","x":-22,"z":22,"kind":"home"},{"id":"clinic","name":"Klinik Sehat","sub":"Perawatan & pemulihan","x":22,"z":-20,"kind":"clinic"},{"id":"cafe","name":"Kopi Tepi Laut","sub":"Meja ngobrol & pertemanan","x":-22,"z":-20,"kind":"cafe"},{"id":"land","name":"Kantor Pertanahan","sub":"Pilih lahan & bangun rumah","x":22,"z":22,"kind":"land"},{"id":"pier","name":"Dermaga Biru","sub":"Pemandangan pesisir","x":0,"z":43,"kind":"pier"},{"id":"airport","name":"Bandara Nusa","sub":"Gerbang cerita baru","x":-45,"z":-40,"kind":"airport"},{"id":"library","name":"Perpustakaan Nusa","x":-48,"z":-21,"kind":"workplace","style":"library","sub":"Pustakawan"},{"id":"bakery","name":"Bakery Mentari","x":-48,"z":1,"kind":"workplace","style":"bakery","sub":"Pembuat roti"},{"id":"tailor","name":"Atelier Benang","x":-35,"z":1,"kind":"workplace","style":"shop","sub":"Penjahit"},{"id":"barber","name":"Barbershop Sudut","x":-35,"z":23,"kind":"workplace","style":"shop","sub":"Penata rambut"},{"id":"studio","name":"Studio Nada & Foto","x":-48,"z":23,"kind":"workplace","style":"studio","sub":"Musisi · Fotografer"},{"id":"garden","name":"Taman Kota","x":0,"z":23,"kind":"workplace","style":"park","sub":"Tukang kebun"},{"id":"restaurant","name":"Restoran Rasa","x":-35,"z":-21,"kind":"workplace","style":"restaurant","sub":"Koki"},{"id":"farm","name":"Kebun & Rumah Kaca","x":-79,"z":-70,"kind":"workplace","style":"farm","sub":"Petani"},{"id":"ranch","name":"Peternakan Hijau","x":-79,"z":-45,"kind":"workplace","style":"ranch","sub":"Peternak"},{"id":"mechanic","name":"Bengkel Roda","x":79,"z":5,"kind":"workplace","style":"garage","sub":"Mekanik"},{"id":"courier","name":"Kantor Pos Nusa","x":79,"z":30,"kind":"workplace","style":"post","sub":"Kurir sepeda"},{"id":"bus","name":"Terminal Kota","x":79,"z":55,"kind":"workplace","style":"terminal","sub":"Sopir bus"},{"id":"wood","name":"Workshop Kayu","x":-79,"z":5,"kind":"workplace","style":"workshop","sub":"Pengrajin kayu"},{"id":"builder","name":"Proyek Konstruksi","x":43,"z":-25,"kind":"workplace","style":"construction","sub":"Pekerja konstruksi"},{"id":"tower","name":"Menara Telekomunikasi","x":55,"z":-25,"kind":"workplace","style":"utility","sub":"Teknisi menara"},{"id":"electric","name":"Gardu & Kantor Listrik","x":79,"z":-20,"kind":"workplace","style":"utility","sub":"Teknisi listrik"},{"id":"miner","name":"Pos Tambang Bukit","x":-79,"z":30,"kind":"workplace","style":"mine","sub":"Penambang"},{"id":"fire","name":"Pos Pemadam","x":-54,"z":47,"kind":"workplace","style":"fire","sub":"Pemadam kebakaran"},{"id":"sar","name":"Pusat SAR","x":-44,"z":47,"kind":"workplace","style":"rescue","sub":"SAR pegunungan"},{"id":"rescue","name":"Pos Siaga Bencana","x":-34,"z":47,"kind":"workplace","style":"rescue","sub":"Penyelamat bencana"}],"housing":{"count":240,"districts":[{"name":"Pusat Kota","start":0,"count":24},{"name":"Taman Utara","start":24,"count":72},{"name":"Pesisir Timur","start":96,"count":72},{"name":"Kebun Selatan","start":168,"count":72}]}};
 catalog.jobs.push(...NEW_JOBS);
@@ -531,9 +531,29 @@ function orchardAction(w,p,b,now){
   record(w,'orchard','Panen manual '+count+' pohon oleh '+p.name,p.id,earned,now);
   return {message:'Panen sukses! '+count+' pohon · +'+earned+' koin. 2 truk dan 4 pekerja mengangkut hasil.'};
  }
- if(op==='clear'){
-  const index=amount(Number(b.plot),0,ORCHARD_MAX-1);demand(f.plots[index]!==null,'Petak sudah kosong.');
-  f.plots[index]=null;return {message:'Pohon ditebang, petak bisa ditanam lagi.'};
+ if(op==='clear'||op==='clearBatch'){
+  const occupied=f.plots.map((plot,i)=>plot?i:-1).filter(i=>i>=0);
+  demand(occupied.length>0,'Tidak ada pohon untuk ditebang.');
+  let picks=[];
+  if(op==='clear'){
+   const index=amount(Number(b.plot),0,ORCHARD_MAX-1);demand(f.plots[index]!==null,'Petak sudah kosong.');
+   picks=[index];
+  }else{
+   const qty=amount(Number(b.qty),1,Math.max(1,occupied.length));
+   const mode=String(b.mode||'latest');
+   picks=(mode==='oldest'?occupied.slice(0,qty):occupied.slice(-qty)).sort((a,b)=>a-b);
+  }
+  let reward=0;
+  for(const index of picks){
+   const plot=f.plots[index];if(!plot)continue;
+   const spec=ORCHARD_TREES[plot.type];
+   const salvage=plot.type==='emas'?120:Math.max(8,Math.floor((spec?.seed||0)*0.18));
+   reward+=salvage;
+   f.plots[index]=null;
+  }
+  p.coins+=reward;
+  v2Memory(w,p,'Menebang '+picks.length+' pohon di kebun (+ '+reward+' koin)',now);
+  return {message:picks.length+' pohon ditebang. Petak kembali kosong · +'+reward+' koin kayu/hasil tebang.'};
  }
  throw Error('Aksi kebun tidak dikenal.');
 }
@@ -985,7 +1005,7 @@ function snapshot(){
  }
  persist();return {...view(W,uid),online:[],tips:[]};
 }
-return {premiumCanPlant(){const p=W.players[uid];if(!p)return {ok:false,message:'Karakter belum masuk.'};const f=orchardState(p);if(!f)return {ok:false,message:'Kamu belum punya lahan kebun.'};if(!f.plots.some(t=>!t))return {ok:false,message:'Kebun penuh, kosongkan satu petak dahulu.'};return {ok:true};},premiumPlant(){
+return {premiumCanPlant(){const p=W.players[uid];if(!p)return {ok:false,message:'Karakter belum masuk.'};const f=orchardState(p);if(!f)return {ok:false,message:'Kamu belum punya lahan kebun.'};if(!f.plots.some(t=>!t))return {ok:false,message:'Kebun penuh. Buka Shop Kebun lalu pakai menu Tebang Pohon dahulu.'};return {ok:true};},premiumPlant(){
  const p=W.players[uid];if(!p)return {ok:false,message:'Karakter belum masuk.'};
  const farm=orchardState(p);if(!farm)return {ok:false,message:'Beli kebun dahulu.'};
  const slot=farm.plots.findIndex(t=>!t);if(slot<0)return {ok:false,message:'Semua petak kebun penuh.'};
@@ -1342,9 +1362,13 @@ function createWorld(canvas,places,callbacks={}){
   if(kind==='emas'){
    palm(x,z,s*.85,1);
    const pp=P(x,z,4.8*s);
+   const tw=((Date.now()/260)+x*2+z*3)%6.283;
    g.save();g.fillStyle='#f0ce67';g.strokeStyle='#f9edb8';g.lineWidth=1.4;
    for(let i=0;i<6;i++){const a=i*6.283/6;g.beginPath();g.ellipse(pp.x+Math.cos(a)*4*s,pp.y+Math.sin(a)*2.5*s,4*s,1.35*s,a*.25,0,7);g.fill();g.stroke();}
-   if(fruit){g.shadowBlur=10;g.shadowColor='#f3d05f';g.beginPath();g.arc(pp.x,pp.y+3,3*s,0,7);g.fill();}
+   g.shadowBlur=12;g.shadowColor='#f3d05f';
+   g.fillStyle='rgba(255,225,130,.22)';g.beginPath();g.ellipse(pp.x,pp.y+1,11*s,7*s,0,0,7);g.fill();
+   for(let k=0;k<3;k++){const a=tw+k*2.1,sx=pp.x+Math.cos(a)*7*s,sy=pp.y+Math.sin(a*.9)*4*s;g.strokeStyle='#fff5bf';g.lineWidth=1.1;g.beginPath();g.moveTo(sx-1.9,sy);g.lineTo(sx+1.9,sy);g.moveTo(sx,sy-1.9);g.lineTo(sx,sy+1.9);g.stroke();}
+   if(fruit){g.fillStyle='#f7d463';g.beginPath();g.arc(pp.x,pp.y+3,3*s,0,7);g.fill();}
    g.restore();return;
   }
 
@@ -1521,19 +1545,25 @@ function createWorld(canvas,places,callbacks={}){
    const q=P(x,z,12);g.fillStyle='#143d42c9';g.fillRect(q.x-23,q.y-9,46,13);g.font='9px system-ui';g.textAlign='center';g.fillStyle='#fff';g.fillText(Math.floor(progress*100)+'% selesai',q.x,q.y);
   }
  }
+ function orchardTruckRoute(slot,progress,lane=0){
+  const serviceZ=slot.z+slot.d/2+2.6+lane*2.8;
+  const bridgeZ=slot.z<-25?-48:slot.z<20?-3:42;
+  const startX=slot.x+2,endX=-72;
+  if(progress<.35){const u=progress/.35;return {x:startX+(-132-startX)*u,z:serviceZ};}
+  if(progress<.58){const u=(progress-.35)/.23;return {x:-132,z:serviceZ+(bridgeZ-serviceZ)*u};}
+  if(progress<.8){const u=(progress-.58)/.22;return {x:-132+(endX+8)*u,z:bridgeZ};}
+  const u=(progress-.8)/.2;return {x:endX+(18*u),z:bridgeZ};
+ }
  function orchardHaul(t){
-  // Lightweight temporary 2-truck/4-worker animation. No physics or heavyweight sprites.
   const now=Date.now();
   for(const citizen of citizens){
    const farm=citizen.orchard,slot=ORCHARD_MAP_SLOTS[farm?.lot];
    if(!slot||!farm?.lastHarvest)continue;
    const elapsed=(now-farm.lastHarvest)/1000;if(elapsed<0||elapsed>22)continue;
    const phase=elapsed/22,smooth=u=>u*u*(3-2*u);
-   const serviceZ=slot.z+slot.d/2+2.4;
-   // Two vehicles take turns carrying harvest to the city on the service avenue.
    for(let n=0;n<2;n++){
     const progress=smooth(Math.max(0,Math.min(1,(phase-.12*n)*1.16)));
-    const x=slot.x+Math.max(0,-114-slot.x)*progress,z=serviceZ+n*3.3;
+    const pos=orchardTruckRoute(slot,progress,n),x=pos.x,z=pos.z;
     const bob=Math.sin(t*9+n*1.6)*.07;
     box(x,z,5.6,2.7,1.45,n?'#5e9eaa':'#dfac43',.3+bob);
     box(x+1.75,z,1.8,2.9,2.1,'#f5e4b9',.35+bob);
@@ -1541,7 +1571,6 @@ function createWorld(canvas,places,callbacks={}){
     const a=P(x-1.6,z+1.35,.3),b=P(x+1.7,z+1.35,.3);
     g.fillStyle='#2a3440';g.beginPath();g.arc(a.x,a.y,2.5,0,7);g.arc(b.x,b.y,2.5,0,7);g.fill();
    }
-   // All four crew members travel between individual trees and loading depot with crates.
    for(let j=0;j<4;j++){
     const cycle=(elapsed*.25+j*.21)%1,v=cycle<.5?cycle*2:(1-cycle)*2;
     const col=j%2,row=Math.floor(j/2),px=slot.x-6+col*6+v*7,pz=slot.z-4+row*6+v*6;
@@ -1562,6 +1591,9 @@ function createWorld(canvas,places,callbacks={}){
   for(let x=-114;x<=155;x+=8)for(let z=-157;z<150;z+=9){if((Math.round(x+z)%3)===0)tile(x,z,.7,.7,'#94b782');}
   for(const z of [-58,-10,11,34,60])roadX(z);for(const x of [-65,-11,11,65])roadZ(x);
   for(const x of [-65,-11,11,65])for(const z of [-58,-10,11,34,60])for(let i=-2;i<=2;i++){tile(x+i*.8,z+4,.4,1.8,'#f6f0dc',.09);tile(x+4,z+i*.8,1.8,.4,'#f6f0dc',.09);}
+  // Kanal tipis untuk memisahkan kebun barat dari kota utama, dengan beberapa jembatan pendek.
+  tile(-118,-8,8,250,'#dce0c8');tile(-118,-8,5.2,246,'#42a8ca',.07);tile(-120.1,-8,.18,246,'#93d6e2',.2);tile(-115.9,-8,.18,246,'#5eaabc',.2);
+  for(const bz of [-48,-3,42]){tile(-118,bz,14,9,'#dac59e',.45);tile(-118,bz,10,5.8,'#61584d',.5);for(let i=-4;i<=4;i+=2)tile(-118+i,bz+3.9,.18,1.5,'#f2edd8',.7);}
   tile(15,-43,98,11,'#dce0c8');tile(15,-43,98,8,'#38a9cd',.08);tile(15,-44.8,98,.25,'#a6d7dc',.1);tile(15,-41.3,98,.2,'#5da8bb',.1);
   for(const x of [-11,11]){box(x,-43,6.5,12,.8,'#819496');box(x-3.3,-43,.3,12,1.1,'#d9dbc8',.8);box(x+3.3,-43,.3,12,1.1,'#d9dbc8',.8);}
   const main=[['hall',0,-23,12,9,7,'#f2e5bd','#407ea7','hall'],['market',-25,0,11,9,5,'#edcfa4','#b95538','market'],['jobs',25,0,11,9,7,'#c9dcd0','#648a83','tower'],['home',-25,23,10,9,7,'#e8c1a2','#b57354','house'],['clinic',25,-23,10,9,5,'#e4e9df','#8fada8','clinic'],['cafe',-25,-23,10,8,5,'#eee0b8','#b98056','cafe'],['land',25,23,11,9,5,'#dfd6b5','#7c987e','house'],['airport',-47,-45,17,7,5,'#dce5db','#668c9c','tower']];
@@ -2302,10 +2334,12 @@ function showNusaPlus(section='hub'){
   }
   const occupied=farm.plots.filter(Boolean).length,ready=farm.plots.filter(t=>t&&now>=t.nextAt).length;
   const next=farm.plots.filter(t=>t&&t.nextAt>now).map(t=>t.nextAt).sort((a,b)=>a-b)[0];
-  v2Shell('Shop Kebun '+esc(state.me.name),`<div class="orchard-intro"><span>🌱</span><strong>Kawasan Barat · Lahan ${Number(myLot)+1}</strong><small>Tumbuhan terlihat di map, bukan gambar petak dalam menu. Panen dengan tombol di atas tanah saat buah matang.</small></div><div class="v2-stats">${v2Stat('Pohon hidup',occupied+'/20')}${v2Stat('Siap panen',ready+' pohon')}${v2Stat('Koin hasil panen',fmt(farm.earned||0))}</div><h3 class="section-title">Toko Bibit</h3><label class="field"><span>Jenis pohon</span><select class="input" id="farmSeedType">${types.map(([id,t])=>`<option value="${id}">${t.name} · ${fmt(t.seed)} koin/bibit</option>`).join('')}</select></label><label class="field"><span>Jumlah bibit (1–${20-occupied})</span><input class="input" id="farmSeedQty" type="number" inputmode="numeric" min="1" max="${Math.max(1,20-occupied)}" value="${Math.min(10,Math.max(1,20-occupied))}"></label><div class="notice" id="farmCostPreview"></div><button class="btn primary wide" id="farmPlantBatch" ${occupied>=20?'disabled':''}>Beli Bibit & Tanam Otomatis</button><div class="v2-actions" style="margin-top:12px"><button class="btn" id="farmGoMap">Lihat Kebunku di Peta</button>${ready?'<button class="btn primary" id="farmHarvestNow">Panen Sekarang</button>':''}</div><div class="notice">${ready?'🍎 '+ready+' pohon matang. Tekan PANEN di atas lahan untuk melihat 2 truk dan 4 pekerja.':next?'Pohon berikutnya matang sekitar '+Math.ceil((next-now)/60000)+' menit lagi.':'Kebun masih kosong. Belilah bibit.'}</div>`,section);
+  v2Shell('Shop Kebun '+esc(state.me.name),`<div class="orchard-intro"><span>🌱</span><strong>Kawasan Barat · Lahan ${Number(myLot)+1}</strong><small>Kebun kini dipisah kanal kecil dari kota dan dihubungkan jembatan. Panen akan mengirim truk lewat jalur keluar menuju kota.</small></div><div class="v2-stats">${v2Stat('Pohon hidup',occupied+'/20')}${v2Stat('Siap panen',ready+' pohon')}${v2Stat('Koin hasil panen',fmt(farm.earned||0))}</div><h3 class="section-title">Toko Bibit</h3><label class="field"><span>Jenis pohon</span><select class="input" id="farmSeedType">${types.map(([id,t])=>`<option value="${id}">${t.name} · ${fmt(t.seed)} koin/bibit</option>`).join('')}</select></label><label class="field"><span>Jumlah bibit (1–${20-occupied})</span><input class="input" id="farmSeedQty" type="number" inputmode="numeric" min="1" max="${Math.max(1,20-occupied)}" value="${Math.min(10,Math.max(1,20-occupied))}"></label><div class="notice" id="farmCostPreview"></div><button class="btn primary wide" id="farmPlantBatch" ${occupied>=20?'disabled':''}>Beli Bibit & Tanam Otomatis</button><h3 class="section-title" style="margin-top:16px">Tebang Pohon Sendiri</h3><label class="field"><span>Jumlah tebang (1–${Math.max(1,occupied)})</span><input class="input" id="farmClearQty" type="number" inputmode="numeric" min="1" max="${Math.max(1,occupied)}" value="${occupied?Math.min(5,occupied):1}"></label><div class="notice">Tebang pohon untuk membuka petak baru. Kamu akan dapat sedikit uang kayu/hasil tebang.</div><div class="v2-actions"><button class="btn" id="farmClearLatest" ${occupied?'':'disabled'}>Tebang Pohon Terbaru</button><button class="btn" id="farmClearOldest" ${occupied?'':'disabled'}>Tebang Pohon Terlama</button></div><div class="v2-actions" style="margin-top:12px"><button class="btn" id="farmGoMap">Lihat Kebunku di Peta</button>${ready?'<button class="btn primary" id="farmHarvestNow">Panen Sekarang</button>':''}</div><div class="notice">${ready?'🍎 '+ready+' pohon matang. Tekan PANEN di atas lahan untuk melihat 2 truk dan 4 pekerja keluar lewat jembatan kebun.':next?'Pohon berikutnya matang sekitar '+Math.ceil((next-now)/60000)+' menit lagi.':'Kebun masih kosong. Belilah bibit.'}</div>`,section);
   const preview=()=>{const t=ORCHARD_TREES[$('#farmSeedType').value],n=Number($('#farmSeedQty').value);$('#farmCostPreview').textContent=t&&Number.isInteger(n)&&n>=1&&n<=20-occupied?`Total ${fmt(t.seed*n)} koin · ${n} pohon akan tumbuh di map`:'Pilih jumlah 1 hingga '+(20-occupied);};
   $('#farmSeedType').onchange=preview;$('#farmSeedQty').oninput=preview;preview();
   $('#farmPlantBatch').onclick=async()=>{try{await act('orchard',{op:'plantBatch',type:$('#farmSeedType').value,qty:Number($('#farmSeedQty').value)});showNusaPlus('orchard')}catch(e){toast(e.message,true)}};
+  if($('#farmClearLatest'))$('#farmClearLatest').onclick=async()=>{try{await act('orchard',{op:'clearBatch',qty:Number($('#farmClearQty').value),mode:'latest'});showNusaPlus('orchard')}catch(e){toast(e.message,true)}};
+  if($('#farmClearOldest'))$('#farmClearOldest').onclick=async()=>{try{await act('orchard',{op:'clearBatch',qty:Number($('#farmClearQty').value),mode:'oldest'});showNusaPlus('orchard')}catch(e){toast(e.message,true)}};
   $('#farmGoMap').onclick=()=>{closePanel();const slot=ORCHARD_MAP_SLOTS[myLot];if(slot)world.navigate(slot.x,slot.z);};
   if($('#farmHarvestNow'))$('#farmHarvestNow').onclick=async()=>{try{await act('orchard',{op:'harvest'});harvestSound();showNusaPlus('orchard')}catch(e){toast(e.message,true)}};
   const cloudConnect=document.createElement('button');cloudConnect.className='btn wide';cloudConnect.style.marginTop='12px';cloudConnect.textContent='☁️ Sambungkan Lahan Lama ke HP Lain';
