@@ -284,6 +284,121 @@ html body #hud .city-controls{gap:6px!important}
 #hud .right-tools #nusaNewsBell .nusa-news-badge[hidden]{display:none!important}
 @media(max-width:600px){#hud .right-tools{width:84px!important}}
 </style>
+
+<!-- Kota Nusa V2.34: modal foreground protection; visual-only, zero Firebase edits -->
+<style id="nusa-v234-hide-dermaga-on-dialog">
+/* The fishing shortcut is appended to document.body, outside #app, with its own stacking context.
+   Hide only the floating shortcut while a full dialog is visible; never hide the modal submit controls. */
+body:has(#modal:not(.hidden)) > #nusaFishingJump,
+body:has(#chat:not(.hidden)) > #nusaFishingJump,
+body:has(#nusaTrader) > #nusaFishingJump {
+  display: none !important;
+  pointer-events: none !important;
+}
+/* Keep modal input/submit controls within its card and clear of the mobile screen edge. */
+@media (max-width:600px) {
+  #modal:not(.hidden) .panel .chat-compose { position: relative; z-index: 1; }
+  #modal:not(.hidden) .panel .chat-compose > input { min-width: 0; flex:1 1 0%; }
+  #modal:not(.hidden) .panel .chat-compose > button { flex:0 0 auto; }
+}
+</style>
+<!-- KOTA NUSA V2.35 — ONLY HUD / RESPONSIVE STYLE; no world or database change -->
+<style id="nusa-v235-hud-rapi">
+/* Group controls as one consistent HUD: preserve city map, camera, users and Firebase. */
+#hud .identity-chip,#hud .xp-chip,#hud .status-pill,#hud .city-controls button,#hud .right-tools .round-btn{
+  box-shadow:0 5px 18px rgba(15,47,63,.16)!important;
+}
+#hud .identity-chip{border:1px solid rgba(228,189,119,.75)!important;min-width:0!important}
+#hud .xp-chip{min-height:37px;justify-content:space-between;gap:9px;border:1px solid #e1e8df!important}
+#hud .city-controls #governmentAccess{justify-content:flex-start}
+#hud .city-controls #governmentAccess svg:last-child{margin-left:auto}
+#hud .city-controls .camera-actions{display:flex;gap:7px}
+#hud .city-controls .camera-actions #cameraMode{flex:1;min-width:0!important;max-width:none!important}
+#hud .city-controls .camera-actions #photoMode{flex:none;width:42px;justify-content:center;padding:0!important}
+#hud .dock{box-shadow:0 12px 35px rgba(12,43,58,.30)!important}
+#hud .dock button{transition:background .15s ease,transform .15s ease}
+#hud .dock button:active{transform:scale(.97)}
+/* Keep only essential HUD floating controls visible when a modal is open. */
+body:has(#modal:not(.hidden)) #nusaPremiumFloat,
+body:has(#chat:not(.hidden)) #nusaPremiumFloat,
+body:has(#modal:not(.hidden)) #nusaGoogleWelcome,
+body:has(#chat:not(.hidden)) #nusaGoogleWelcome,
+body:has(#modal:not(.hidden)) > #nusaFishingJump,
+body:has(#chat:not(.hidden)) > #nusaFishingJump{display:none!important;pointer-events:none!important}
+@media(max-width:650px){
+ /* Row 1: identity and balance. Do not touch the world canvas or zoom. */
+ #hud .hud-top{top:max(12px,env(safe-area-inset-top))!important;left:14px!important;right:14px!important;gap:8px!important;align-items:flex-start!important}
+ #hud .identity-chip{width:min(49vw,197px)!important;max-width:49vw!important;min-height:65px!important;padding:9px 12px!important;border-radius:16px!important;flex:none!important}
+ #hud .identity-chip h3{font:700 16px/1.3 system-ui,sans-serif!important;letter-spacing:-.35px!important}
+ #hud .identity-chip small{font:500 10px/1.3 system-ui,sans-serif!important;margin-top:3px!important;max-width:100%!important}
+ #hud .hud-status{margin-left:auto!important;min-width:0!important;align-items:flex-start!important}
+ #hud .hud-status>button[data-nav="wallet"]{min-height:65px!important;min-width:0!important;width:auto!important;max-width:43vw!important;padding:9px 11px!important;border-radius:16px!important;gap:7px!important;justify-content:flex-start!important}
+ #hud .hud-status>button[data-nav="wallet"] span{font-size:14px!important;line-height:1.3!important;white-space:nowrap!important}
+ #hud .hud-status>button[data-nav="wallet"] small{font-size:9px!important;line-height:1.25!important}
+ #hud .hud-status>button[data-nav="wallet"] svg{width:19px!important;height:19px!important}
+ /* Row 2: EXP, online status and announcements/settings. */
+ #hud .xp-chip{top:92px!important;left:14px!important;max-width:113px!important;min-height:41px!important;padding:9px 11px!important;font-size:11px!important;border-radius:16px!important;background:#fffef4f5!important}
+ #hud .xp-chip svg{width:15px!important;height:15px!important}
+ #hud .hud-top #nusaActiveChip{position:absolute!important;left:50%!important;top:80px!important;transform:translateX(-50%)!important;min-width:98px!important;max-width:124px!important;height:34px!important;white-space:nowrap!important;padding:7px 10px!important;border-radius:99px!important;opacity:1!important;background:#173f50ef!important;color:#f9f1d8!important;font:750 10px system-ui!important;box-shadow:0 5px 16px #11314436!important;z-index:11!important}
+ #hud .right-tools{position:absolute!important;top:92px!important;right:14px!important;left:auto!important;width:94px!important;display:grid!important;grid-template-columns:repeat(2,42px)!important;grid-auto-rows:42px!important;justify-content:end!important;align-items:center!important;gap:8px!important;z-index:13!important}
+ #hud .right-tools>button{min-height:42px!important;width:42px!important;height:42px!important;border-radius:50%!important;padding:0!important}
+ #hud .right-tools>#nusaNewsBell{position:relative!important;display:grid!important;grid-column:1!important;grid-row:1!important;top:auto!important;right:auto!important;left:auto!important;align-self:center!important;justify-self:center!important;order:1!important}
+ #hud .right-tools>#nusaNotifySettingsButton{position:relative!important;display:grid!important;grid-column:2!important;grid-row:1!important;top:auto!important;right:auto!important;left:auto!important;align-self:center!important;justify-self:center!important;order:2!important}
+ #hud .right-tools>#nusaToolToggle{display:grid!important;grid-column:2!important;grid-row:2!important;justify-self:center!important;align-self:center!important;order:3!important}
+ #hud .right-tools>button:not(#nusaNewsBell):not(#nusaNotifySettingsButton):not(#nusaToolToggle){display:none!important}
+ #hud .right-tools.open>button:not(#nusaNewsBell):not(#nusaNotifySettingsButton):not(#nusaToolToggle){display:grid!important;position:relative!important;order:4!important}
+ #hud:has(.right-tools.open) #nusaPremiumFloat{display:none!important}
+ #hud:has(.right-tools.open)~#nusaGoogleWelcome{display:none!important}
+ /* Row 3 left: government + two small map controls. */
+ #hud .city-controls{position:absolute!important;left:14px!important;top:151px!important;width:min(205px,53vw)!important;max-width:53vw!important;gap:8px!important;z-index:11!important}
+ #hud .city-controls button{min-height:43px!important;border-radius:14px!important;padding:9px 11px!important;font-size:11px!important;gap:8px!important}
+ #hud .city-controls #governmentAccess{width:100%!important;font-size:11px!important;line-height:1.2!important}
+ #hud .city-controls .camera-actions #photoMode{width:43px!important}
+ #hud .city-controls .camera-actions #cameraMode{font-size:10px!important}
+ /* Right action column: Shop with small Google sign-in prompt beneath it. */
+ html body #hud #nusaPremiumFloat{position:absolute!important;right:14px!important;top:200px!important;width:59px!important;height:65px!important;border-radius:19px!important;gap:1px!important;animation:none!important;box-shadow:0 6px 18px #092c4877,inset 0 1px 0 #fff5!important}
+ html body #hud #nusaPremiumFloat .nusa-bag-icon svg{width:26px!important;height:26px!important}
+ html body #hud #nusaPremiumFloat small{font-size:10px!important;letter-spacing:1.2px!important}
+ html body #nusaGoogleWelcome{right:15px!important;top:278px!important;width:53px!important;height:52px!important;min-height:0!important;padding:0!important;border-radius:16px!important;justify-content:center!important;animation:none!important}
+ html body #nusaGoogleWelcome .ngw-g{width:37px!important;height:37px!important}
+ #nusaNotifySettingsPanel{right:12px!important;top:147px!important;max-height:calc(100dvh - 168px)!important;overflow-y:auto!important}
+ #nusaAccountMenu{top:84px!important;left:14px!important}
+ /* Bottom navigation, consistent sizing and safe edge clearance. */
+ #hud .dock{position:absolute!important;left:50%!important;bottom:max(12px,env(safe-area-inset-bottom))!important;transform:translateX(-50%)!important;width:calc(100% - 24px)!important;max-width:520px!important;padding:7px 6px!important;gap:2px!important;justify-content:space-around!important;min-height:73px!important;border-radius:21px!important}
+ #hud .dock button{flex:1 1 0!important;width:auto!important;min-width:0!important;max-width:none!important;min-height:58px!important;padding:5px 2px!important;gap:6px!important;border-radius:14px!important}
+ #hud .dock button svg{height:22px!important;width:22px!important}
+ #hud .dock button span{font-size:9px!important;line-height:1.1!important;white-space:nowrap!important}
+ #hud .dock #ownerNav{min-width:0!important;max-width:65px!important}
+ #hud .dock .dock-divider{display:none!important}
+ html body #nusaFishingJump{right:14px!important;bottom:max(109px,calc(env(safe-area-inset-bottom) + 104px))!important;font-size:10px!important;padding:8px 12px!important;max-width:calc(100vw - 28px)!important;border-radius:14px!important}
+ /* Dialogue content always has its own tappable submit area. */
+ #modal:not(.hidden) .panel{max-height:calc(100dvh - 24px)!important}
+ #modal:not(.hidden) .panel-body{overscroll-behavior:contain!important}
+ #modal:not(.hidden) .chat-compose{position:relative!important;z-index:2!important;display:flex!important;gap:8px!important}
+ #modal:not(.hidden) .chat-compose input{min-width:0!important;flex:1 1 0!important}
+ #modal:not(.hidden) .chat-compose button{flex:0 0 auto!important;min-width:65px!important}
+}
+@media(max-width:355px){
+ #hud .hud-top{left:10px!important;right:10px!important}
+ #hud .identity-chip{padding:9px!important;max-width:48vw!important}
+ #hud .hud-status>button[data-nav="wallet"]{padding:8px!important}
+ #hud .xp-chip{left:10px!important;max-width:94px!important;padding:8px!important;font-size:10px!important}
+ #hud .hud-top #nusaActiveChip{top:81px!important;font-size:9px!important;min-width:84px!important;max-width:107px!important;padding:6px!important}
+ #hud .right-tools{right:10px!important;width:84px!important;grid-template-columns:repeat(2,38px)!important;grid-auto-rows:38px!important;gap:7px!important}
+ #hud .right-tools>button{width:38px!important;height:38px!important;min-height:38px!important}
+ #hud .city-controls{left:10px!important;top:145px!important;width:52vw!important;max-width:52vw!important}
+ #hud .city-controls button{font-size:10px!important;padding:8px!important;min-height:39px!important}
+ html body #hud #nusaPremiumFloat{right:10px!important;top:191px!important;width:54px!important;height:61px!important}
+ html body #nusaGoogleWelcome{right:10px!important;top:262px!important}
+ #hud .dock{width:calc(100% - 14px)!important;padding:6px 3px!important}
+ #hud .dock button{padding:5px 1px!important}
+ #hud .dock button span{font-size:8px!important}
+}
+@media(min-width:651px){
+ #hud .right-tools #nusaNewsBell{display:grid!important}
+ #hud .right-tools #nusaNotifySettingsButton{display:grid!important}
+}
+</style>
 </head><body><main id="app"><div id="boot"><h1>Kota Nusa.</h1><p>Menyiapkan kota…</p></div></main><script>'use strict';
 // ===== Deteksi browser dalam Instagram/Facebook (progres sering hilang di sana) =====
 (function(){
