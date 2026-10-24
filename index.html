@@ -672,6 +672,12 @@ function nusaFishState(p){
  if(!Number.isInteger(f.commonStreak)||f.commonStreak<0)f.commonStreak=0;
  return f;
 }
+function nusaFishSellPrice(fish){
+ const fixed={common:12,uncommon:28,rare:75,epic:180,legendary:520,mythic:1600,mistis:7200,cosmic:28000};
+ const byTier=fixed[String(fish?.tier||'')]||0;
+ const byScore=Math.max(6,Math.floor((Number(fish?.score)||0)*0.32));
+ return Math.max(byTier,byScore);
+}
 function nusaFishingAction(w,p,b,now,spend){
  const f=nusaFishState(p),op=String(b.op||'status');
  if(op==='status')return {fishing:structuredClone(f)};
@@ -709,6 +715,33 @@ function nusaFishingAction(w,p,b,now,spend){
   return {message:'Umpan dipasang.',fishingCast:true};
  }
  if(op==='fail'){if(f.pendingCast&&!f.pendingCast.used){f.pendingCast.used=true;f.pendingCast=null;}return {message:'Ikan lolos. Coba lagi.'};}
+ if(op==='sellSelected'){
+  const ids=Array.isArray(b.ids)?b.ids.map(x=>String(x)).filter(Boolean).slice(0,240):[];
+  demand(ids.length>0,'Pilih ikan yang mau dijual dulu.');
+  const chosen=new Set(ids),keep=[];let sold=0,gain=0;
+  for(const fish of f.fish){if(chosen.has(String(fish.id))){sold++;gain+=nusaFishSellPrice(fish);}else keep.push(fish)}
+  demand(sold>0,'Ikan pilihan tidak ditemukan di koleksi.');
+  f.fish=keep;p.coins+=gain;
+  record(w,'fishing','Jual '+sold+' ikan hasil pancing',p.id,gain,now);
+  return {message:sold+' ikan terjual. +'+gain+' koin.',gain,sold,fishing:structuredClone(f)};
+ }
+ if(op==='sellTier'){
+  const tier=String(b.tier||'');
+  demand(NUSA_FISH_TIERS.some(x=>x.id===tier),'Tier ikan tidak valid.');
+  const keep=[];let sold=0,gain=0;
+  for(const fish of f.fish){if(fish.tier===tier){sold++;gain+=nusaFishSellPrice(fish);}else keep.push(fish)}
+  demand(sold>0,'Belum ada ikan '+tier+' untuk dijual.');
+  f.fish=keep;p.coins+=gain;
+  record(w,'fishing','Jual semua ikan '+tier,p.id,gain,now);
+  return {message:'Semua ikan '+tier+' terjual ('+sold+' ekor). +'+gain+' koin.',gain,sold,fishing:structuredClone(f)};
+ }
+ if(op==='sellAll'){
+  demand(f.fish.length>0,'Belum ada ikan untuk dijual.');
+  const sold=f.fish.length,gain=f.fish.reduce((n,fish)=>n+nusaFishSellPrice(fish),0);
+  f.fish=[];p.coins+=gain;
+  record(w,'fishing','Jual seluruh koleksi ikan',p.id,gain,now);
+  return {message:'Seluruh koleksi ikan terjual. +'+gain+' koin.',gain,sold,fishing:structuredClone(f)};
+ }
  if(op==='barterComplete'){
   const tradeId=String(b.tradeId||'').slice(0,90);
   demand(/^[a-zA-Z0-9_-]{8,90}$/.test(tradeId),'ID barter tidak sah.');
@@ -4083,7 +4116,7 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
 
 </script>
 <style id="nusaFishingStyles">
-#nusaFishingOverlay{position:fixed;inset:0;z-index:25000;display:flex;align-items:center;justify-content:center;background:#071d32;color:#f6f6ea;font:500 14px system-ui,-apple-system,sans-serif;overscroll-behavior:contain;touch-action:pan-y}
+#nusaFishingOverlay{position:fixed;inset:0;z-index:25000;display:flex;align-items:center;justify-content:center;background:#071d32;color:#f6f6ea;font:500 14px system-ui,-apple-system,sans-serif;overscroll-behavior:contain;touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #nusaFishingOverlay *{box-sizing:border-box}#nusaFishingOverlay [hidden]{display:none!important}#nusaFishingOverlay button{cursor:pointer;font:inherit}#nusaFishingOverlay button:disabled{opacity:.5;cursor:not-allowed}
 #nusaFishingOverlay .nf-shell{position:relative;width:min(100%,560px);height:100dvh;max-height:100dvh;background:linear-gradient(180deg,#0a395d,#164768 34%,#0a3047);display:flex;flex-direction:column;overflow:hidden}
 #nusaFishingOverlay .nf-top{position:relative;z-index:3;background:linear-gradient(115deg,#153e5f,#102840);padding:calc(12px + env(safe-area-inset-top,0px)) 14px 10px;display:flex;align-items:center;gap:9px;border-bottom:1px solid #f1c97970}
@@ -4096,7 +4129,7 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
 #nusaFishingOverlay .nf-body{display:flex;flex-direction:column;overflow-y:auto;overscroll-behavior:contain;min-height:0;flex:1;background:linear-gradient(180deg,#1e7293,#0d3c66)}
 #nusaFishingOverlay .nf-pane{display:none;flex-direction:column;min-height:100%;padding:12px;gap:10px}#nusaFishingOverlay .nf-pane.active{display:flex}
 #nusaFishingOverlay .nf-illustration{position:relative;flex:1;min-height:280px;max-height:52vh;border-radius:20px;overflow:hidden;border:2px solid #e8d08e8a;background:#0a4967}
-#nusaFishingOverlay #nfCanvas{position:absolute;width:100%;height:100%;display:block;touch-action:none}
+#nusaFishingOverlay #nfCanvas{position:absolute;width:100%;height:100%;display:block;touch-action:none;-webkit-user-select:none;user-select:none}
 #nusaFishingOverlay .nf-fisher{position:absolute;left:8px;top:8px;background:#0b3145cf;border:1px solid #e4d38c60;padding:8px 10px;border-radius:12px;font-size:11px;max-width:71%;pointer-events:none}
 #nusaFishingOverlay .nf-fisher b{color:#ffe09a}
 #nusaFishingOverlay .nf-fight{padding:10px 12px;background:#0d2c43;flex-shrink:0;border-radius:15px;border:1px solid #c7d0ae70}
@@ -4105,7 +4138,7 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
 #nusaFishingOverlay .nf-progress{height:7px;background:#244762;border-radius:7px;overflow:hidden;margin-top:9px}#nusaFishingOverlay .nf-progress>i{display:block;height:100%;background:linear-gradient(90deg,#7edcdf,#ffd076);width:0;transition:width .06s}
 #nusaFishingOverlay .nf-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex-shrink:0}
 #nusaFishingOverlay .nf-action{border-radius:15px;padding:16px 10px;min-height:57px;border:2px solid #aee5ff;background:linear-gradient(145deg,#43b7f2,#087fbd);color:#fff;font-weight:900!important;box-shadow:0 5px 0 #073b63}
-#nusaFishingOverlay .nf-action.reel{background:linear-gradient(145deg,#ffdf83,#d99328);color:#273238;border-color:#ffefaf;box-shadow:0 5px 0 #765023;touch-action:none}
+#nusaFishingOverlay .nf-action.reel{background:linear-gradient(145deg,#ffdf83,#d99328);color:#273238;border-color:#ffefaf;box-shadow:0 5px 0 #765023;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #nusaFishingOverlay .nf-status{text-align:center;background:#0a2a43c8;border:1px solid #71a7ac78;padding:9px;border-radius:11px;font-size:12px;color:#d4eeee}
 #nusaFishingOverlay .nf-box{background:#10304ddc;border:1px solid #e0c37570;border-radius:16px;padding:14px;display:grid;gap:10px}
 #nusaFishingOverlay .nf-box h3{font:700 18px Georgia,serif;color:#ffe4a4;margin:0}
@@ -4278,8 +4311,8 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
  function draw(ts){if(disposed||!overlay)return;const dt=Math.min(.055,(ts-last)/1000||.016);last=ts;if(pane==='play')oceanFrame(ts);
   if(phase==='fight'){
    fishMove+=dt;
-   const pull=hold?(.095+(RODS[F.rod]?.[2]||1)*.048+(auraActive()?.092:0)):0;
-   tension=Math.max(0,Math.min(1.07,tension+dt*(hold?(.15+fishFactor*.035)*(auraActive()?.84:1):-(.21+fishFactor*.02))));
+   const pull=hold?(.095+(RODS[F.rod]?.[2]||1)*.048+(auraActive()?.13:0)):0;
+   tension=Math.max(0,Math.min(1.07,tension+dt*(hold?(.15+fishFactor*.035)*(auraActive()?.72:1):-(.21+fishFactor*.02))));
    if(hold)progress+=dt*pull;
    else progress=Math.max(0,progress-dt*.01);
    if(tension>=1){failCast('Senarnya putus! Lepaskan Tarik sesekali agar tidak terlalu tegang.');}
@@ -4293,7 +4326,7 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
   if((F.baits[F.bait]||0)<=0){showMessage('Umpan habis. Buka tab Kedai Ikan!');switchTab('shop');return}
   phase='casting';renderControls();sfx('cast');showMessage('Melempar kail ke laut…');
   try{await act('nusaFishing',{op:'useBait'},true);await sync();phase='waiting';renderControls();sfx('splash');showMessage('Pelampung mengapung. Perhatikan gerakannya!');
-   const delay=1600+Math.random()*2200*(auraActive()?.72:1);
+   const delay=1600+Math.random()*2200*(auraActive()?.70:1);
    biteTimeout=setTimeout(()=>{if(phase==='waiting'){phase='bite';renderControls();sfx('bite');showMessage('IKAN MENGGIGIT! Tekan TARIK sekarang!');castTimeout=setTimeout(()=>{if(phase==='bite')failCast('Terlambat! Ikannya kabur.');},2300);}},delay);
   }catch(e){resetPhase();showMessage('Gagal melempar: '+e.message)}
  }
@@ -4309,7 +4342,7 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
   node.querySelector('#nfBackFishing').onclick=()=>{node.remove();body.querySelector('.nf-illustration').hidden=false;body.querySelector('.nf-fight').hidden=false;body.querySelector('.nf-controls').hidden=false;reward=null;resetPhase();showMessage('Selamat! Ikan masuk ke Koleksi Ikan.');};
  }
  function renderStats(){const row=$('#nfWallet');if(row)row.textContent=fmt(state?.me?.coins-(state?.me?.held||0))+' koin';}
- function drawShop(){const box=$('#nfShop');if(!box)return;renderStats();box.innerHTML=`<div class="nf-box"><h3>🎣 Kedai Pancing Pak Tua</h3><div class="nf-caption" style="color:#ffe3a0;font-weight:900">🪙 Saldo: ${fmt(state?.me?.coins-(state?.me?.held||0))} koin Kota Nusa</div><div class="nf-caption">Pancing lebih kuat mempercepat progres tarik dan mempermudah menjaga ketegangan. Pancing biasa dan umpan dibayar memakai koin game. Gamepass Aura memakai QRIS Rp5.000.</div><div class="nf-card ${auraActive()?'nf-aura':''}"><span class="nf-emoji">✨</span><div><b>Pancing Aura · Gamepass</b><small>${hasAura()?'Sudah dimiliki. Aktifkan untuk kilau emas-biru, tarikan jauh lebih kuat dan kendali tegangan yang lebih baik.':'Kilau emas-biru, bonus kecepatan tarik dan sedikit peluang non-Cosmic. Harga Rp5.000 via QRIS DANA Bisnis; verifikasi manual Presiden.'} Berlaku sampai event berakhir.</small></div><button id="nfAuraQris" ${hasAura()||ttl()<=0?'disabled':''}>${hasAura()?'✓ Dimiliki':ttl()<=0?'Event Berakhir':'Beli Rp5.000'}</button>${hasAura()?`<button id="nfAuraEquip" class="${auraActive()?'owned':''}" aria-pressed="${auraActive()}">${auraActive()?'⚡ Dipakai · Lepas':'✨ Pakai Aura'}</button>`:''}</div>${RODS.map((r,i)=>`<div class="nf-card"><span class="nf-emoji">${['🎋','🪵','🎣','🪝','⚓','🌊','🔱','👑'][i]}</span><div><b>${safe(r[0])}</b><small>Kekuatan ×${r[2]} · ${i===0?'Gratis':fmt(r[1])+' koin'}</small></div><button class="${F.rods.includes(i)?'owned':''}" data-rod="${i}" ${F.rod===i?'disabled':''}>${F.rod===i?'Dipakai':F.rods.includes(i)?'Pakai':'Beli'}</button></div>`).join('')}</div><div class="nf-box"><h3>🪱 Umpan Ikan · 10 Jenis</h3><div class="nf-caption">Sekarang ada 37 spesies ikan dengan variasi nama. Umpan lebih mahal sedikit memperbesar peluang Rare–Mistis; setelah 5 Common berturut-turut kamu minimal dapat Uncommon. Cosmic tetap 0,0012% per tangkapan berhasil.</div>${BAITS.map((b,i)=>`<div class="nf-card"><span class="nf-emoji">${['🪱','🦐','🐟','🦑','🦐','🪲','🦪','🌊','✨','🌌'][i]}</span><div><b>${safe(b[0])}</b><small>${fmt(b[1]*5)} koin/5 · Stok: ${F.baits[i]||0} ${F.bait===i?'· Dipakai':''}</small></div><button data-bait="${i}">Beli ×5</button>${(F.baits[i]||0)>0&&F.bait!==i?`<button class="owned" data-equip-bait="${i}">Pakai</button>`:''}</div>`).join('')}</div>`;
+ function drawShop(){const box=$('#nfShop');if(!box)return;renderStats();box.innerHTML=`<div class="nf-box"><h3>🎣 Kedai Pancing Pak Tua</h3><div class="nf-caption" style="color:#ffe3a0;font-weight:900">🪙 Saldo: ${fmt(state?.me?.coins-(state?.me?.held||0))} koin Kota Nusa</div><div class="nf-caption">Pancing lebih kuat mempercepat progres tarik dan mempermudah menjaga ketegangan. Pancing biasa dan umpan dibayar memakai koin game. Gamepass Aura memakai QRIS Rp5.000.</div><div class="nf-card ${auraActive()?'nf-aura':''}"><span class="nf-emoji">✨</span><div><b>Pancing Aura · Gamepass</b><small>${hasAura()?'Sudah dimiliki. Aktifkan untuk kilau emas-biru, tarikan jauh lebih kuat dan kendali tegangan yang lebih baik.':'Kilau emas-biru, buff 30% untuk tarikan, waktu sambaran lebih cepat, dan sedikit peluang non-Cosmic. Harga Rp5.000 via QRIS DANA Bisnis; verifikasi manual Presiden.'} Berlaku sampai event berakhir.</small></div><button id="nfAuraQris" ${hasAura()||ttl()<=0?'disabled':''}>${hasAura()?'✓ Dimiliki':ttl()<=0?'Event Berakhir':'Beli Rp5.000'}</button>${hasAura()?`<button id="nfAuraEquip" class="${auraActive()?'owned':''}" aria-pressed="${auraActive()}">${auraActive()?'⚡ Dipakai · Lepas':'✨ Pakai Aura'}</button>`:''}</div>${RODS.map((r,i)=>`<div class="nf-card"><span class="nf-emoji">${['🎋','🪵','🎣','🪝','⚓','🌊','🔱','👑'][i]}</span><div><b>${safe(r[0])}</b><small>Kekuatan ×${r[2]} · ${i===0?'Gratis':fmt(r[1])+' koin'}</small></div><button class="${F.rods.includes(i)?'owned':''}" data-rod="${i}" ${F.rod===i?'disabled':''}>${F.rod===i?'Dipakai':F.rods.includes(i)?'Pakai':'Beli'}</button></div>`).join('')}</div><div class="nf-box"><h3>🪱 Umpan Ikan · 10 Jenis</h3><div class="nf-caption">Sekarang ada 37 spesies ikan dengan variasi nama. Umpan lebih mahal sedikit memperbesar peluang Rare–Mistis; setelah 5 Common berturut-turut kamu minimal dapat Uncommon. Cosmic tetap 0,0012% per tangkapan berhasil.</div>${BAITS.map((b,i)=>`<div class="nf-card"><span class="nf-emoji">${['🪱','🦐','🐟','🦑','🦐','🪲','🦪','🌊','✨','🌌'][i]}</span><div><b>${safe(b[0])}</b><small>${fmt(b[1]*5)} koin/5 · Stok: ${F.baits[i]||0} ${F.bait===i?'· Dipakai':''}</small></div><button data-bait="${i}">Beli ×5</button>${(F.baits[i]||0)>0&&F.bait!==i?`<button class="owned" data-equip-bait="${i}">Pakai</button>`:''}</div>`).join('')}</div>`;
   const equip=box.querySelector('#nfAuraEquip');if(equip)equip.onclick=()=>saveAuraEquip(!auraActive());
   const qris=box.querySelector('#nfAuraQris');if(qris)qris.onclick=()=>{
    if(ttl()<=0){showMessage('Event telah berakhir. Pembelian Gamepass ditutup.');return}
@@ -4319,7 +4352,7 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
   };
   box.querySelectorAll('button[data-op],button[data-rod],button[data-bait],button[data-equip-bait]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{const op=b.dataset.op||('rod'in b.dataset?'rod':'bait'in b.dataset?'bait':'selectBait');const id=Number(b.dataset.rod??b.dataset.bait??b.dataset.equipBait??0);const actual=op==='rod'&&F.rods.includes(id)?'equip':op;await act('nusaFishing',{op:actual,id,packs:1},true);await sync();sfx('buy');drawShop();renderControls()}catch(e){showMessage(e.message);b.disabled=false;alert('Tidak berhasil: '+e.message)}});
  }
- function drawBag(){const box=$('#nfBag');if(!box)return;box.innerHTML=`<div class="nf-box"><h3>🐠 Koleksi Ikan</h3><div class="nf-caption">${fmt(F.total)} ikan tertangkap · ${fmt(F.score)} poin · ${new Set((F.fish||[]).map(f=>f.name)).size} spesies berbeda di koleksi saat ini. Simpan cadangan progres agar tangkapan aman.</div><div class="nf-collection">${FS.map((s,i)=>{const a=F.fish.filter(f=>f.tier===s[0]);return `<div class="nf-fish-card" style="--t:${s[3]}">${fishSVG(i,120)}<strong>${safe(s[1])}</strong><small>${s[2]} · ${a.length} ekor</small></div>`}).join('')}</div></div><div class="nf-box"><h3>📦 Hasil Tangkapan Terakhir</h3>${F.fish.slice(0,30).map(f=>`<div class="nf-card"><span style="width:62px;flex:0 0 62px">${fishSVG(Math.max(0,FS.findIndex(x=>x[0]===f.tier)),62,f.name)}</span><div><b>${safe(f.name)}</b><small>${safe(f.rarity)} · +${fmt(f.score)} poin</small></div></div>`).join('')||'<div class="nf-caption">Belum ada ikan. Ayo mulai mancing!</div>'}</div>`}
+ function drawBag(){const box=$('#nfBag');if(!box)return;box.innerHTML=`<div class="nf-box"><h3>🐠 Koleksi Ikan</h3><div class="nf-caption">${fmt(F.total)} ikan tertangkap · ${fmt(F.score)} poin · ${new Set((F.fish||[]).map(f=>f.name)).size} spesies berbeda. Jual ikan detail sekarang ada di Rumah Barter Ikan agar UI tidak sempit.</div><div class="nf-collection">${FS.map((s,i)=>{const a=F.fish.filter(f=>f.tier===s[0]);const totalSell=a.reduce((n,f)=>n+nusaFishSellPrice(f),0);return `<div class="nf-fish-card" style="--t:${s[3]}">${fishSVG(i,120)}<strong>${safe(s[2])}</strong><small>${safe(s[1])} · ${a.length} ekor</small><small>Nilai jual ${fmt(totalSell)} koin</small></div>`}).join('')}</div></div><div class="nf-box"><h3>📦 Tangkapan Terbaru</h3>${F.fish.slice(0,24).map(f=>`<div class="nf-card"><span style="width:62px;flex:0 0 62px">${fishSVG(Math.max(0,FS.findIndex(x=>x[0]===f.tier)),62,f.name)}</span><div><b>${safe(f.name)}</b><small>${safe(f.rarity)} · +${fmt(f.score)} poin · jual ${fmt(nusaFishSellPrice(f))} koin</small></div></div>`).join('')||'<div class="nf-caption">Belum ada ikan. Ayo mulai mancing!</div>'}</div>`}
  async function loadLeaderboard(){const box=$('#nfRanks');if(!box)return;box.innerHTML='<div class="nf-box">Menghubungkan leaderboard warga…</div>';
   try{const result=await window.NusaFishingCloud?.fetch();if(!overlay||pane!=='ranks')return;
    if(!result?.connected){box.innerHTML='<div class="nf-box"><h3>🏆 Leaderboard</h3><div class="nf-caption">Peringkat online belum tersambung. Game dan koleksi lokal tetap dapat dimainkan. Pasang Rules leaderboard lalu hubungkan Google untuk ikut peringkat.</div><div class="nf-rank"><span>1.</span><b>Koleksi kamu di HP ini</b><i>'+fmt(F.score)+' poin</i></div></div>';return}
@@ -4331,13 +4364,13 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
  async function open(){if(overlay)return;const expired=ttl()<=0;
   overlay=document.createElement('div');overlay.id='nusaFishingOverlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
   overlay.innerHTML=`<div class="nf-shell"><header class="nf-top"><div class="nf-title"><small>🎣 EVENT PESISIR TIMUR · 7 HARI</small><b>Bantu Pak Tua Mancing!</b></div><div class="nf-time" id="nfCountdown">${countdown()}</div><button class="nf-close" aria-label="Tutup event" id="nfExit">×</button></header><nav class="nf-tabs">${[['play','🎮 Mancing'],['shop','🏪 Kedai'],['bag','🐠 Ikan'],['ranks','🏆 Peringkat']].map(([id,t],i)=>`<button class="nf-tab ${i===0?'active':''}" data-tab="${id}">${t}</button>`).join('')}</nav><section class="nf-body"><div class="nf-pane active" id="nfPlay"><div class="nf-status" style="font-size:11px">Pak Tua: “Tolong bantu aku mencari ikan misterius di pesisir!”</div><div class="nf-illustration"><canvas id="nfCanvas"></canvas><div class="nf-fisher" aria-hidden="true"><b>🎣 Pak Tua</b><br>“${expired?'Aduh, event sudah berakhir. Terima kasih sudah membantu!':'Tolong, ikan langka di laut sulit sekali kupancing!'}”</div></div><div class="nf-aura-chip" id="nfAuraChip" hidden>⚡ PANCING AURA AKTIF</div><div class="nf-fight" id="nfFight" hidden><div>🧵 Tegangan senar <span style="float:right;font-size:10px">Jangan sampai merah!</span></div><div class="nf-meter"><span class="nf-needle" id="nfNeedle"></span></div><div class="nf-progress"><i id="nfProgress"></i></div></div><div class="nf-controls"><button id="nfCast" class="nf-action">🎣 Lempar Kail</button><button id="nfReel" class="nf-action reel">Tarik Ikan</button></div><div class="nf-status" id="nfStatus">${expired?'Event berakhir. Akses mancing tidak bisa dibuka.':'Lempar kail, tunggu ikan, lalu tahan Tarik untuk menangkapnya.'}</div><div class="nf-card"><span class="nf-emoji">🪝</span><div><b id="nfRod">Pancing Bambu</b><small id="nfBait">Cacing Pesisir ×12</small></div><button id="nfGoShop">Kedai</button></div></div><div class="nf-pane" id="nfShop"></div><div class="nf-pane" id="nfBag"></div><div class="nf-pane" id="nfRanks"></div></section><div style="text-align:center;font-size:9px;padding:7px;background:#0a243c;color:#aac9cf">Kota Nusa · Game lokal + leaderboard Firebase opsional · Pancing Aura Rp5.000 via QRIS · verifikasi manual Presiden.</div></div>`;
-  document.body.append(overlay);oceanSound(true);try{world?.pause(true)}catch(e){};document.documentElement.style.overflow='hidden';$('#nfExit').onclick=closeAsk;overlay.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));$('#nfGoShop').onclick=()=>switchTab('shop');$('#nfCast').onclick=cast;$('#nfReel').addEventListener('pointerdown',e=>{e.preventDefault();startReel()});$('#nfReel').addEventListener('pointerup',()=>hold=false);$('#nfReel').addEventListener('pointerleave',()=>hold=false);$('#nfReel').addEventListener('pointercancel',()=>hold=false);$('#nfReel').addEventListener('click',()=>{if(phase==='bite')startReel()});
+  document.body.append(overlay);overlay.oncontextmenu=e=>e.preventDefault();oceanSound(true);try{world?.pause(true)}catch(e){};document.documentElement.style.overflow='hidden';$('#nfExit').onclick=closeAsk;overlay.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));$('#nfGoShop').onclick=()=>switchTab('shop');$('#nfCast').onclick=cast;$('#nfReel').addEventListener('pointerdown',e=>{e.preventDefault();startReel()});$('#nfReel').addEventListener('pointerup',()=>hold=false);$('#nfReel').addEventListener('pointerleave',()=>hold=false);$('#nfReel').addEventListener('pointercancel',()=>hold=false);$('#nfReel').addEventListener('click',()=>{if(phase==='bite')startReel()});
   document.addEventListener('keydown',eventKeyHandler);
   secTimer=setInterval(()=>{const t=$('#nfCountdown');if(t)t.textContent=countdown();if(ttl()<=0&&phase!=='idle'&&phase!=='reward')failCast('Event telah berakhir.');if(ttl()<=0&&$('#nfCast'))$('#nfCast').disabled=true;},1000);
   await sync();if(!overlay)return;refreshAuraState();window.NusaPremiumOrders?.refreshOwned?.().catch(()=>{});renderControls();renderStats();if(expired){$('#nfCast').disabled=true;$('#nfReel').disabled=true;}playCanvas();
  }
  function eventKeyHandler(e){if(!overlay){document.removeEventListener('keydown',eventKeyHandler);return}if(e.key==='Escape'){e.stopPropagation();closeAsk()}if(e.key===' '&&phase==='fight'){e.preventDefault();hold=!hold}}
- window.NusaFishBridge={sync:()=>act('nusaFishing',{op:'status'},true),settle:b=>act('nusaFishing',{op:'barterComplete',...b},true),adminKit:()=>act('nusaFishing',{op:'adminKit'},true),getFish:()=>Array.isArray(state?.me?.nusaFishing?.fish)?state.me.nusaFishing.fish:[],owner:()=>state?.me?.role==='owner'||state?.me?.role==='president'||state?.me?.isOwner,getName:()=>String(state?.me?.name||'Warga').slice(0,24)};
+ window.NusaFishBridge={sync:()=>act('nusaFishing',{op:'status'},true),action:b=>act('nusaFishing',b,true),settle:b=>act('nusaFishing',{op:'barterComplete',...b},true),adminKit:()=>act('nusaFishing',{op:'adminKit'},true),getFish:()=>Array.isArray(state?.me?.nusaFishing?.fish)?state.me.nusaFishing.fish:[],owner:()=>state?.me?.role==='owner'||state?.me?.role==='president'||state?.me?.isOwner,getName:()=>String(state?.me?.name||'Warga').slice(0,24)};
  window.NusaFishing={open,showDock(){try{world?.navigate(156,60)}catch(e){}open()},updatePremium:refreshAuraState,equipAura:on=>saveAuraEquip(!!on),countdown,deadline:END};
  if(!document.getElementById('nusaFishingJump')){
   const jump=document.createElement('button');jump.id='nusaFishingJump';jump.textContent='🎣 Dermaga';jump.title='Arahkan peta ke event mancing';
@@ -4364,7 +4397,7 @@ window.NusaFishingCloud={
 #nusaTrader *{box-sizing:border-box}#nusaTrader button,#nusaTrader input,#nusaTrader select{font:inherit}#nusaTrader .nt-shell{width:min(600px,100%);max-height:calc(100dvh - 22px);display:flex;flex-direction:column;border:2px solid #f3c983;border-radius:24px;background:linear-gradient(155deg,#193958,#0c263e 60%,#091c2c);overflow:hidden;box-shadow:0 15px 90px #0009}
 #nusaTrader .nt-head{display:flex;justify-content:space-between;align-items:center;padding:17px 18px 12px;border-bottom:1px solid #f4d09e33;gap:10px}#nusaTrader .nt-head b{font-family:Georgia,serif;font-size:23px;color:#ffe4a5}#nusaTrader .nt-head small{display:block;font-size:10px;color:#a4ccda;letter-spacing:1px}#nusaTrader .nt-close{background:#ffffff11;border:1px solid #ffffff33;color:white;border-radius:50%;width:40px;height:40px;font-size:26px}
 #nusaTrader .nt-tabs{display:flex;gap:4px;padding:8px;background:#081d31;overflow:auto}#nusaTrader .nt-tabs button{border:1px solid #a9c1d244;background:#ffffff12;color:#c7d8e2;min-width:max-content;flex:1;border-radius:12px;padding:9px 8px;font-size:12px;font-weight:700}#nusaTrader .nt-tabs button.on{background:#e6b75f;color:#192c39}
-#nusaTrader .nt-body{overflow:auto;padding:14px;min-height:160px;overscroll-behavior:contain}#nusaTrader .nt-card{padding:13px;margin-bottom:10px;border:1px solid #d7b97866;background:#ffffff0b;border-radius:14px;display:grid;gap:8px}#nusaTrader .nt-card b{font-size:14px;color:#ffe3a6}#nusaTrader .nt-card p,#nusaTrader .nt-note{font-size:12px;color:#b6ceda;line-height:1.6;margin:0}#nusaTrader .nt-card small{color:#a7c1ce;font-size:11px}#nusaTrader .nt-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}#nusaTrader select,#nusaTrader input{width:100%;background:#f8f4e9;color:#173348;border:1px solid #d4b574;padding:12px;border-radius:11px;font-size:14px;min-height:44px}#nusaTrader label{display:grid;gap:7px;font-size:12px;color:#f6d69d}#nusaTrader .nt-btn{border:1px solid #e5c17c;background:linear-gradient(#f5d47e,#dca649);color:#153344;border-radius:11px;font-weight:800;padding:11px 13px;min-height:43px}#nusaTrader .nt-btn.secondary{background:#123a55;color:#e9d8af}#nusaTrader .nt-btn:disabled{opacity:.4}#nusaTrader .nt-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}#nusaTrader .nt-status{padding:10px 15px;background:#061b2c;color:#f5d599;font-size:11px;line-height:1.5}#nusaTrader .nt-chip{font-size:11px;padding:5px 8px;border:1px solid #cba76c88;border-radius:10px;color:#ffe1a7}#nusaTrader .nt-fish{display:flex;gap:9px;align-items:center;min-height:52px}#nusaTrader .nt-fish svg{width:60px;height:43px}#nusaTrader .nt-empty{padding:20px;text-align:center;color:#c5d7e0;font-size:13px}#nusaTrader .nt-warn{background:#58412255;border:1px solid #d0a85a7a;padding:10px;border-radius:12px;font-size:11px;line-height:1.6;color:#ffe8bc}
+#nusaTrader .nt-body{overflow:auto;padding:14px;min-height:160px;overscroll-behavior:contain}#nusaTrader .nt-card{padding:13px;margin-bottom:10px;border:1px solid #d7b97866;background:#ffffff0b;border-radius:14px;display:grid;gap:8px}#nusaTrader .nt-card b{font-size:14px;color:#ffe3a6}#nusaTrader .nt-card p,#nusaTrader .nt-note{font-size:12px;color:#b6ceda;line-height:1.6;margin:0}#nusaTrader .nt-card small{color:#a7c1ce;font-size:11px}#nusaTrader .nt-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}#nusaTrader select,#nusaTrader input{width:100%;background:#f8f4e9;color:#173348;border:1px solid #d4b574;padding:12px;border-radius:11px;font-size:14px;min-height:44px}#nusaTrader label{display:grid;gap:7px;font-size:12px;color:#f6d69d}#nusaTrader .nt-btn{border:1px solid #e5c17c;background:linear-gradient(#f5d47e,#dca649);color:#153344;border-radius:11px;font-weight:800;padding:11px 13px;min-height:43px}#nusaTrader .nt-btn.secondary{background:#123a55;color:#e9d8af}#nusaTrader .nt-btn.pick{min-width:46px;padding:9px 10px;background:#173d55;color:#dbeaf0;border-color:#7ba1b5}#nusaTrader .nt-btn.pick.on{background:#1d7b4e;color:#f3fff7;border-color:#8be4a7}#nusaTrader .nt-btn:disabled{opacity:.4}#nusaTrader .nt-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}#nusaTrader .nt-status{padding:10px 15px;background:#061b2c;color:#f5d599;font-size:11px;line-height:1.5}#nusaTrader .nt-chip{font-size:11px;padding:5px 8px;border:1px solid #cba76c88;border-radius:10px;color:#ffe1a7}#nusaTrader .nt-fish{display:flex;gap:9px;align-items:center;min-height:52px}#nusaTrader .nt-fish svg{width:60px;height:43px}#nusaTrader .nt-empty{padding:20px;text-align:center;color:#c5d7e0;font-size:13px}#nusaTrader .nt-warn{background:#58412255;border:1px solid #d0a85a7a;padding:10px;border-radius:12px;font-size:11px;line-height:1.6;color:#ffe8bc}#nusaTrader .nt-tier-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}#nusaTrader .nt-tier{border:1px solid #d7b97866;background:#08243c;border-radius:14px;padding:10px;display:grid;gap:8px}#nusaTrader .nt-tier strong{font-size:13px;color:#fff0c2}#nusaTrader .nt-tier em{font-style:normal;font-size:11px;color:#9cd7df}#nusaTrader .nt-tier .nt-mini{display:flex;gap:6px;flex-wrap:wrap}#nusaTrader .nt-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px}#nusaTrader .nt-toolbar .wide{grid-column:1/-1}#nusaTrader .nt-fish-row{display:flex;align-items:center;gap:10px;border:1px solid #d7b97844;background:#ffffff08;border-radius:13px;padding:10px;margin-bottom:8px}#nusaTrader .nt-fish-row .grow{flex:1;min-width:0}#nusaTrader .nt-fish-row b{display:block}#nusaTrader .nt-fish-row small{display:block;line-height:1.45}
 </style>
 <script type="module" id="nusaFishBarterV1">
 import {initializeApp,getApps} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
@@ -4374,7 +4407,7 @@ const config={apiKey:'AIzaSyDFWMOCTkEzMemUrG_0uz74540VNcIGDMI',authDomain:'kotan
 const app=getApps().find(x=>x.name==='nusa-ktp-cloud')||initializeApp(config,'nusa-ktp-cloud'),auth=getAuth(app),db=getDatabase(app);
 const ADMIN='3bNsbErpujYgrjxdKUSiHP1sJJ93',END=Date.parse('2026-10-30T20:00:00+07:00');
 const TIER={common:['Selar Pesisir','🐟'],uncommon:['Kakap Tembaga','🐠'],rare:['Tuna Kristal','🐟'],epic:['Pari Safir','🪼'],legendary:['Arwana Matahari','🐠'],mythic:['Leviathan Abyss','🐉'],mistis:['Koi Roh Samudra','🐡'],cosmic:['Nebulashark Cosmic','🌌']};
-let overlay,tab='board',trades={},players={},stopTrades=()=>{},stopPlayers=()=>{},timer=0,notice='';
+let overlay,tab='board',trades={},players={},stopTrades=()=>{},stopPlayers=()=>{},timer=0,notice='',selectedMine=new Set();
 const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const fid=x=>`${TIER[x?.tier]?.[1]||'🐟'} ${TIER[x?.tier]?.[0]||x?.name||'Ikan'}`;
 const b=()=>window.NusaFishBridge;
@@ -4386,8 +4419,17 @@ function msg(t){notice=t;const el=overlay?.querySelector('.nt-status');if(el)el.
 function title(t){const el=overlay?.querySelector('.nt-title');if(el)el.textContent=t;}
 async function fresh(){if(auth.authStateReady)await auth.authStateReady();if(!userOK())throw Error('Hubungkan akun Google terlebih dahulu melalui menu KTP. Barter butuh dua akun Google.');if(!b())throw Error('Progres memancing belum siap. Buka event sekali.');return b().sync()}
 function pickFish(id){return mine().find(x=>x.id===id)}
+const SELL_PRICE={common:12,uncommon:28,rare:75,epic:180,legendary:520,mythic:1600,mistis:7200,cosmic:28000};
+function fishPrice(f){return SELL_PRICE[String(f?.tier||'')]||Math.max(6,Math.floor((Number(f?.score)||0)*0.32))}
+function syncSelected(){const have=new Set(mine().map(f=>f.id));selectedMine=new Set([...selectedMine].filter(id=>have.has(id)));}
+function tierSummary(){const rows=Object.entries(TIER).map(([id,v])=>{const items=mine().filter(f=>f.tier===id);return {id,name:v[0],emoji:v[1],count:items.length,total:items.reduce((n,f)=>n+fishPrice(f),0),selected:items.length&&items.every(f=>selectedMine.has(f.id))};});return rows}
+async function sellSelected(){syncSelected();const ids=[...selectedMine];if(!ids.length)return msg('Pilih ikan dulu dengan tombol kotak.');if(!confirm('Jual '+ids.length+' ikan yang dipilih?'))return;try{const r=await b().action({op:'sellSelected',ids});selectedMine.clear();await fresh();msg(r?.message||'Ikan terjual.');render()}catch(e){msg('Jual gagal: '+e.message)}}
+async function sellTierAll(tier){const items=mine().filter(f=>f.tier===tier);if(!items.length)return msg('Belum ada ikan tier ini.');if(!confirm('Jual semua ikan '+(TIER[tier]?.[0]||tier)+' sebanyak '+items.length+' ekor?'))return;try{const r=await b().action({op:'sellTier',tier});for(const f of items)selectedMine.delete(f.id);await fresh();msg(r?.message||'Tier terjual.');render()}catch(e){msg('Jual gagal: '+e.message)}}
+function toggleMine(id){if(selectedMine.has(id))selectedMine.delete(id);else selectedMine.add(id);render()}
+function toggleTierPick(tier){const items=mine().filter(f=>f.tier===tier).map(f=>f.id);if(!items.length)return;const all=items.every(id=>selectedMine.has(id));items.forEach(id=>all?selectedMine.delete(id):selectedMine.add(id));render()}
 function fishSelect(items){return `<select id="ntMyFish">${items.map(x=>`<option value="${esc(x.id)}">${esc(fid(x))} · ${esc(x.id.slice(0,7))}</option>`).join('')}</select>`}
 function fmtDate(x){return new Date(x||0).toLocaleString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+function fmtMoney(x){return Math.max(0,Math.floor(x||0)).toLocaleString('id-ID')}
 function render(){if(!overlay)return;const root=overlay.querySelector('.nt-body');root.innerHTML='';let html='';
  if(tab==='board'){
   const arr=Object.entries(trades).filter(([id,t])=>t&&(t.from===myId()||t.to===myId())).sort((a,b)=>b[1].createdAt-a[1].createdAt).slice(0,70);
@@ -4397,8 +4439,13 @@ function render(){if(!overlay)return;const root=overlay.querySelector('.nt-body'
    html+=`<div class="nt-card"><div class="nt-row"><b>🤝 ${esc(other)}</b><span class="nt-chip">${esc(t.status==='done'?'SELESAI':t.status==='cancelled'?'DIBATALKAN':'PROSES')}</span></div><div class="nt-grid"><div class="nt-fish"><span>${esc(fid({tier:t.fromTier}))}</span></div><div class="nt-fish"><span>${esc(fid({tier:t.toTier}))}</span></div></div><p>${own?'Kamu menawarkan sebelah kiri':'Kamu menerima sebelah kiri'} · ${fmtDate(t.createdAt)}</p><p>${t.fromOK?'✅':'⬜'} Pemilik tawaran · ${t.toOK?'✅':'⬜'} Penerima ${ms?'· ⏳ '+Math.ceil(ms/1000)+' detik':''}</p><div class="nt-row">${!own&&!t.toFishId&&t.status==='open'?`<button class="nt-btn" data-choose="${esc(id)}">Pilih ikan balasan</button>`:''}${!meReady&&t.status==='open'&&(own?!!t.toFishId:!!t.toFishId)?`<button class="nt-btn" data-agree="${esc(id)}">✓ Saya Setuju</button>`:''}${t.status==='done'?`<button class="nt-btn" data-claim="${esc(id)}">Ambil Hasil Barter</button>`:''}${t.status==='open'?`<button class="nt-btn secondary" data-cancel="${esc(id)}">Batalkan</button>`:''}</div></div>`;
   }
  }else if(tab==='mine'){
-  html=`<div class="nt-card"><b>🐠 Ikan dalam Koleksiku</b><p>Hasil mancing yang tersimpan di HP ini. Jangan membersihkan data browser; koleksi lokal masih menjadi sumber utama progresmu.</p></div>`;
-  html+=(mine().map(f=>`<div class="nt-card nt-fish"><span style="font-size:28px">${esc(TIER[f.tier]?.[1]||'🐟')}</span><div><b>${esc(fid(f))}</b><small>${esc(f.id)}${f.barter?' · hasil barter':''}</small></div></div>`).join('')||'<div class="nt-empty">Belum ada ikan. Mainkan event mancing dulu.</div>');
+  syncSelected();
+  const rows=tierSummary();
+  const totalSelected=[...selectedMine].reduce((n,id)=>n+fishPrice(pickFish(id)),0);
+  html=`<div class="nt-card"><b>🐠 Koleksi Ikan Warga</b><p>Lebih rapi: jumlah ikan per tier, pilih beberapa dengan kotak hijau, lalu jual. Nilai jual mengikuti tier ikan. Data tetap tersimpan lokal di HP ini.</p><div class="nt-toolbar"><button class="nt-btn secondary" id="ntClearPick">Kosongkan pilihan</button><button class="nt-btn" id="ntSellPicked" ${selectedMine.size?'' : 'disabled'}>Jual dipilih (${selectedMine.size})</button><button class="nt-btn secondary wide" id="ntSellAllFish" ${mine().length?'' : 'disabled'}>Jual semua koleksi (${fmtMoney(mine().reduce((n,f)=>n+fishPrice(f),0))} koin)</button></div><small>${selectedMine.size?('Terpilih '+selectedMine.size+' ikan · nilai jual '+fmtMoney(totalSelected)+' koin'):'Belum ada ikan dipilih.'}</small></div>`;
+  html+=`<div class="nt-tier-grid">${rows.map(r=>`<div class="nt-tier"><strong>${esc(r.emoji)} ${esc(r.name)}</strong><em>${r.count} ekor · ${fmtMoney(r.total)} koin</em><div class="nt-mini"><button class="nt-btn pick ${r.selected?'on':''}" data-picktier="${esc(r.id)}">${r.selected?'✅':'⬜'}</button><button class="nt-btn secondary" data-selltier="${esc(r.id)}" ${r.count?'' : 'disabled'}>Jual semua</button></div></div>`).join('')}</div>`;
+  html+=`<div class="nt-card"><b>📦 Ikan Detail</b><small>Kotak kosong = belum dipilih. Tekan lagi untuk centang hijau.</small></div>`;
+  html+=(mine().slice(0,80).map(f=>`<div class="nt-fish-row"><span style="font-size:28px">${esc(TIER[f.tier]?.[1]||'🐟')}</span><div class="grow"><b>${esc(fid(f))}</b><small>${esc(f.id)}${f.barter?' · hasil barter':''}<br>Nilai jual: ${fmtMoney(fishPrice(f))} koin</small></div><button class="nt-btn pick ${selectedMine.has(f.id)?'on':''}" data-pickfish="${esc(f.id)}">${selectedMine.has(f.id)?'✅':'⬜'}</button></div>`).join('')||'<div class="nt-empty">Belum ada ikan. Mainkan event mancing dulu.</div>');
  }else if(tab==='president'){
   if(myId()!==ADMIN){html='<div class="nt-empty">Panel hanya untuk akun Google Presiden.</div>';}else{
    html=`<div class="nt-card"><b>👑 Panel Presiden Ikan</b><p>Delapan spesies tersedia dalam galeri Presiden. Statistik menangkap berasal dari leaderboard Firebase. Koleksi warga lain tidak bisa diubah dari panel ini.</p><button class="nt-btn" id="ntAdminKit">Berikan 8 ikan koleksi ke Presiden (sekali)</button></div>`;
@@ -4408,6 +4455,12 @@ function render(){if(!overlay)return;const root=overlay.querySelector('.nt-body'
  }
  root.innerHTML=html;
  root.querySelector('#ntNew')?.addEventListener('click',newForm);
+ root.querySelector('#ntClearPick')?.addEventListener('click',()=>{selectedMine.clear();render()});
+ root.querySelector('#ntSellPicked')?.addEventListener('click',sellSelected);
+ root.querySelector('#ntSellAllFish')?.addEventListener('click',async()=>{if(!mine().length)return msg('Belum ada ikan untuk dijual.');if(!confirm('Jual seluruh koleksi ikan?'))return;try{const r=await b().action({op:'sellAll'});selectedMine.clear();await fresh();msg(r?.message||'Seluruh ikan terjual.');render()}catch(e){msg('Jual gagal: '+e.message)}});
+ root.querySelectorAll('[data-pickfish]').forEach(e=>e.addEventListener('click',()=>toggleMine(e.dataset.pickfish)));
+ root.querySelectorAll('[data-picktier]').forEach(e=>e.addEventListener('click',()=>toggleTierPick(e.dataset.picktier)));
+ root.querySelectorAll('[data-selltier]').forEach(e=>e.addEventListener('click',()=>sellTierAll(e.dataset.selltier)));
  root.querySelectorAll('[data-choose]').forEach(e=>e.addEventListener('click',()=>chooseFish(e.dataset.choose)));
  root.querySelectorAll('[data-agree]').forEach(e=>e.addEventListener('click',()=>agree(e.dataset.agree)));
  root.querySelectorAll('[data-cancel]').forEach(e=>e.addEventListener('click',()=>cancel(e.dataset.cancel)));
