@@ -5719,4 +5719,239 @@ window.NusaAchievements={onCatch:async fish=>{
  catch(err){console.info('Pengumuman tangkapan tidak terbit:',err?.message||err);return false}
 },state:()=>({signedIn:!!user,unread,muteChat:prefs.muteChat,hideAchievements:prefs.hideAchievements})};
 </script>
+
+<style id="nusa-v236-ui-fix">
+/* === Kota Nusa V2.36 UI rapih + tombol mata === */
+.hud-top{
+  left:16px!important;
+  right:16px!important;
+  top:max(14px,env(safe-area-inset-top))!important;
+  align-items:flex-start!important;
+}
+.identity-chip{
+  min-width:0!important;
+  max-width:162px!important;
+  width:auto!important;
+  padding:9px 14px!important;
+  gap:9px!important;
+  border-radius:26px!important;
+}
+.identity-chip .brand-mark{
+  width:28px!important;
+  height:28px!important;
+  min-width:28px!important;
+  font-size:18px!important;
+  border-radius:50%!important;
+}
+.identity-chip h3{
+  font-size:15px!important;
+  line-height:1.05!important;
+  margin:0!important;
+}
+.identity-chip small{
+  display:block!important;
+  margin-top:3px!important;
+  font-size:8px!important;
+  line-height:1.25!important;
+}
+.hud-status{gap:8px!important}
+.status-pill{
+  border-radius:24px!important;
+  min-height:52px!important;
+  padding:10px 15px!important;
+}
+#nusaActiveChip,.nusa-active-chip{
+  position:absolute!important;
+  top:max(92px,calc(env(safe-area-inset-top) + 82px))!important;
+  left:50%!important;
+  transform:translateX(-50%)!important;
+  min-width:146px!important;
+  max-width:170px!important;
+  min-height:48px!important;
+  padding:0 16px!important;
+  font-size:12px!important;
+  border-radius:999px!important;
+  z-index:14!important;
+}
+.xp-chip{
+  left:16px!important;
+  top:96px!important;
+  min-width:86px!important;
+  min-height:56px!important;
+  border-radius:999px!important;
+  padding:8px 12px!important;
+}
+.xp-chip span{display:block!important;line-height:1.1!important}
+.right-tools{
+  right:16px!important;
+  top:96px!important;
+  display:grid!important;
+  grid-template-columns:repeat(2,52px)!important;
+  gap:10px!important;
+  justify-content:end!important;
+}
+.right-tools .round-btn{
+  width:52px!important;
+  height:52px!important;
+  border-radius:50%!important;
+}
+.right-tools .round-btn svg{
+  width:21px!important;
+  height:21px!important;
+}
+.city-controls{
+  left:16px!important;
+  top:168px!important;
+  max-width:none!important;
+  gap:10px!important;
+  z-index:11!important;
+}
+#governmentAccess{
+  width:178px!important;
+  min-height:48px!important;
+  border-radius:18px!important;
+  padding:0 16px!important;
+  justify-content:space-between!important;
+}
+.camera-actions{
+  display:flex!important;
+  gap:10px!important;
+  align-items:center!important;
+}
+#cameraMode{
+  min-width:136px!important;
+  width:136px!important;
+  min-height:46px!important;
+  border-radius:999px!important;
+  padding:0 16px!important;
+  justify-content:center!important;
+}
+#photoMode{
+  width:46px!important;
+  min-width:46px!important;
+  height:46px!important;
+  min-height:46px!important;
+  border-radius:50%!important;
+  padding:0!important;
+  display:grid!important;
+  place-items:center!important;
+}
+#nusaPremiumFloat{
+  right:18px!important;
+  top:286px!important;
+}
+/* tambah sedikit ruang agar kota tidak terlalu ketutup HUD */
+.help-hint{display:none!important}
+.scene-caption{bottom:106px!important}
+
+/* tombol mata */
+#nusaEyeToggle{
+  position:relative!important;
+  background:linear-gradient(145deg,#173347,#244f64)!important;
+  color:#f4deb0!important;
+  border:1px solid #d8b56a!important;
+  box-shadow:0 8px 18px #12384d55!important;
+}
+#nusaEyeToggle svg{stroke:currentColor!important}
+body.nusa-ui-hidden .identity-chip,
+body.nusa-ui-hidden .hud-status,
+body.nusa-ui-hidden .xp-chip,
+body.nusa-ui-hidden #nusaActiveChip,
+body.nusa-ui-hidden .city-controls,
+body.nusa-ui-hidden .dock,
+body.nusa-ui-hidden .scene-caption,
+body.nusa-ui-hidden .help-hint,
+body.nusa-ui-hidden #chat,
+body.nusa-ui-hidden #nusaPremiumFloat,
+body.nusa-ui-hidden #cameraHome,
+body.nusa-ui-hidden #zoomIn,
+body.nusa-ui-hidden #zoomOut,
+body.nusa-ui-hidden #fullscreen,
+body.nusa-ui-hidden #nusaMiniSettings,
+body.nusa-ui-hidden #nusaNewsBell,
+body.nusa-ui-hidden .nusa-mini-settings,
+body.nusa-ui-hidden .nusa-news-bell,
+body.nusa-ui-hidden .interact,
+body.nusa-ui-hidden #nusaSaveStatus,
+body.nusa-ui-hidden #tipBanner,
+body.nusa-ui-hidden .offline-banner,
+body.nusa-ui-hidden .photo-exit{
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+body.nusa-ui-hidden .right-tools{
+  grid-template-columns:52px!important;
+}
+body.nusa-ui-hidden .right-tools > :not(#nusaEyeToggle){
+  display:none!important;
+}
+body.nusa-ui-hidden #nusaEyeToggle{
+  opacity:1!important;
+  visibility:visible!important;
+  pointer-events:auto!important;
+}
+@media (max-width:390px){
+  .identity-chip{max-width:152px!important;padding:8px 12px!important}
+  .identity-chip h3{font-size:14px!important}
+  .xp-chip{min-width:82px!important}
+  #cameraMode{min-width:124px!important;width:124px!important}
+  #governmentAccess{width:168px!important}
+  #nusaActiveChip,.nusa-active-chip{min-width:132px!important;font-size:11px!important}
+}
+</style>
+
+<script id="nusa-v236-ui-fix-script">
+(function(){
+  const eyeOpen = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.1" fill="none" stroke="currentColor" stroke-width="1.9"/></svg>';
+  const eyeClosed = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.6 6.4A10.9 10.9 0 0 1 12 6c6.5 0 10 6 10 6a18.9 18.9 0 0 1-4 4.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.4 6.4C3.9 8.1 2 12 2 12s3.5 6 10 6c1.6 0 3-.3 4.2-.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function applyUiFix(){
+    const hud = document.getElementById('hud');
+    const tools = hud && hud.querySelector('.right-tools');
+    if(!hud || !tools) return false;
+
+    const gov = document.getElementById('governmentAccess');
+    if(gov){
+      const sp = gov.querySelector('span');
+      if(sp) sp.textContent = 'Panel Presiden';
+    }
+    const cam = document.getElementById('cameraMode');
+    if(cam){
+      const sp = cam.querySelector('span');
+      if(sp) sp.textContent = 'Seluruh kota';
+    }
+
+    if(!document.getElementById('nusaEyeToggle')){
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'round-btn';
+      btn.id = 'nusaEyeToggle';
+      btn.setAttribute('aria-label','Sembunyikan UI');
+      btn.setAttribute('title','Sembunyikan UI');
+      btn.innerHTML = eyeOpen;
+      const settingsBtn = document.getElementById('nusaMiniSettings');
+      if(settingsBtn && settingsBtn.parentElement===tools){
+        tools.insertBefore(btn, settingsBtn);
+      } else {
+        tools.appendChild(btn);
+      }
+      btn.addEventListener('click', ()=>{
+        const hidden = !document.body.classList.contains('nusa-ui-hidden');
+        document.body.classList.toggle('nusa-ui-hidden', hidden);
+        btn.innerHTML = hidden ? eyeClosed : eyeOpen;
+        btn.setAttribute('aria-label', hidden ? 'Tampilkan UI' : 'Sembunyikan UI');
+        btn.setAttribute('title', hidden ? 'Tampilkan UI' : 'Sembunyikan UI');
+      });
+    }
+    return true;
+  }
+
+  if(!applyUiFix()){
+    const timer = setInterval(()=>{ if(applyUiFix()) clearInterval(timer); }, 400);
+    setTimeout(()=>clearInterval(timer), 15000);
+  }
+})();
+</script>
+
 </body></html>
