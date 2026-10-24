@@ -2643,7 +2643,7 @@ function openChat(){
  jump.onclick=toBottom;
  const pull=async(force)=>{if(stopped)return;
   try{let list;
-   if(mode==='firebase'){const data=await FB.get(NUSA_CONFIG.CHAT_PATH,'?orderBy=%22%24key%22&limitToLast=60');list=Object.entries(data||{}).sort((x,y)=>x[0]<y[0]?-1:1).map(([k,v])=>({k,...v,mine:v.u===me().id}));setStatus(true,'Tersambung · pesan masuk otomatis');}
+   if(mode==='firebase'){const data=await FB.get(NUSA_CONFIG.CHAT_PATH,'?orderBy=%22%24key%22&limitToLast=60');list=Object.entries(data||{}).sort((x,y)=>x[0]<y[0]?-1:1).map(([k,v])=>({k,...v,mine:(v.u===me().id||!!window.NusaNoticeGoogleUID&&v.u===window.NusaNoticeGoogleUID)}));setStatus(true,'Tersambung · pesan masuk otomatis');}
    else{const d=await request('/api/chat');list=(d.messages||[]).map(m=>({k:m.id,n:m.name,m:m.message,t:m.created,mine:true}));}
    const key=list.at(-1)?.k||'';if(key!==lastKey||force||first){const prev=lastKey;lastKey=key;items=list;render(force||(list.at(-1)?.mine&&key!==prev));}
   }catch(e){if(online)setStatus(false,e.message||'Terputus, mencoba lagi…');}};
@@ -2663,8 +2663,8 @@ function openChat(){
  $('#localChatForm').onsubmit=async e=>{e.preventDefault();const input=$('#localChatInput'),btn=$('#localChatSend'),text=input.value.trim();if(!text)return;btn.disabled=true;
   try{const d=await request('/api/chat',{message:text});absorb(d);
    if(d.rejected){$('#chatFeedback').textContent=d.feedback||'Pesan ditolak filter.';beep('bad');if(d.me?.banned)showCityBan(d.me);return;}
-   if(mode==='firebase'){await FB.post(NUSA_CONFIG.CHAT_PATH,{n:me().name,u:me().id,c:document.body.classList.contains('nusa-owned-aura')?'#E0B84C':me().color,m:text,r:me().role==='president'?'p':me().role==='vice'?'v':'',t:{'.sv':'timestamp'}});}
-   else if(mode==='ntfy'){await NET.ntfyPost(NUSA_CONFIG.NTFY_TOPIC,{n:me().name,u:me().id,c:document.body.classList.contains('nusa-owned-aura')?'#E0B84C':me().color,m:text,r:me().role==='president'?'p':me().role==='vice'?'v':''});}
+   if(mode==='firebase'){await FB.post(NUSA_CONFIG.CHAT_PATH,{n:me().name,u:window.NusaNoticeGoogleUID||me().id,c:document.body.classList.contains('nusa-owned-aura')?'#E0B84C':me().color,m:text,r:me().role==='president'?'p':me().role==='vice'?'v':'',t:{'.sv':'timestamp'}});}
+   else if(mode==='ntfy'){await NET.ntfyPost(NUSA_CONFIG.NTFY_TOPIC,{n:me().name,u:window.NusaNoticeGoogleUID||me().id,c:document.body.classList.contains('nusa-owned-aura')?'#E0B84C':me().color,m:text,r:me().role==='president'?'p':me().role==='vice'?'v':''});}
    input.value='';$('#chatFeedback').textContent='';if(mode!=='ntfy')await pull(true);beep('good');
   }catch(err){$('#chatFeedback').textContent=err.message;beep('bad');}
   finally{if(btn.isConnected){btn.disabled=false;input.focus();}}};
@@ -4902,7 +4902,7 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
  }
  async function failCast(msg){if(phase==='idle'||phase==='reward')return;phase='idle';hold=false;clearTimeout(castTimeout);clearTimeout(biteTimeout);renderControls();sfx('fail');showMessage(msg);try{await act('nusaFishing',{op:'fail'},true);await sync();renderControls()}catch(e){} }
  async function finishCatch(){showMessage('Ikan tertangkap! Menyimpan koleksi…');renderControls();
-  try{const r=await act('nusaFishing',{op:'catch'},true);reward=r.fishingReward;await sync();sfx('success');showReward(reward);window.NusaFishingCloud?.publish(F).catch(()=>{});}
+  try{const r=await act('nusaFishing',{op:'catch'},true);reward=r.fishingReward;await sync();sfx('success');showReward(reward);window.NusaFishingCloud?.publish(F).catch(()=>{});window.NusaAchievements?.onCatch?.(reward)?.catch?.(err=>console.info('Pengumuman tangkapan belum terkirim:',err));}
   catch(e){reward=null;showMessage('Gagal mencatat hasil: '+e.message+' (jangan lempar lagi sebelum diperiksa)');phase='idle';renderControls()}
  }
  function startReel(){if(phase==='bite'){clearTimeout(castTimeout);phase='fight';tension=.28;progress=0;fishMove=0;fishFactor=.7+Math.random()*.6;hold=true;sfx('pull');showMessage('Tarik saat aman, lepas sebentar jika senar tegang!');renderControls()}else if(phase==='fight'){hold=true}}
@@ -5392,5 +5392,107 @@ setInterval(()=>{if(ngwPlayer()){ngwMount();ngwRender();if(ngwReady&&ngwUser())v
 
 <script id="nusa-v8-tidy-js">
 (function(){const tick=()=>{try{const hud=document.getElementById('hud'),on=hud&&!hud.classList.contains('hidden');for(const id of ['nusaFishingJump','nusaGoogleWelcome'])if(id==='nusaFishingJump'){const e=document.getElementById(id);if(e)e.style.display=on?'':'none';}}catch(e){}};setInterval(tick,600);tick();})();
+</script>
+<style id="nusa-notices-v1-style">
+#nusaNotifyBadge{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;border-radius:12px;background:#e24657;border:2px solid #153747;color:white;font:800 10px/15px system-ui;text-align:center;padding:0 3px;z-index:5;box-shadow:0 2px 8px #0005;pointer-events:none}
+#nusaNotifyBadge[hidden]{display:none!important}
+#nusaNotifySettingsButton{position:relative;color:#174151}
+#nusaNotifySettingsPanel{position:fixed;z-index:600010;right:12px;top:116px;width:min(316px,calc(100vw - 24px));padding:16px;border:1px solid #d2e2e8;border-radius:18px;background:#fffdf8;color:#183b4d;box-shadow:0 16px 50px #102e4260;font:13px system-ui}
+#nusaNotifySettingsPanel[hidden],#nusaFishBroadcast[hidden]{display:none!important}
+#nusaNotifySettingsPanel header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+#nusaNotifySettingsPanel h2{font:800 16px system-ui;margin:0}
+#nusaNotifySettingsPanel button{cursor:pointer;border:0;background:#eaf0f3;color:#193b4d;border-radius:99px;padding:6px 10px;font:700 13px system-ui}
+#nusaNotifySettingsPanel label{display:flex;align-items:center;gap:12px;padding:12px 6px;border-bottom:1px solid #e7eef1;font-size:12px;font-weight:650;line-height:1.5;cursor:pointer}
+#nusaNotifySettingsPanel input{width:20px;height:20px;min-width:20px;accent-color:#19677c}
+#nusaNotifySettingsPanel p{font-size:10px;line-height:1.55;color:#6b838d;margin:13px 3px 0}
+#nusaFishBroadcast{position:fixed;z-index:600000;top:clamp(92px,18dvh,180px);left:50%;transform:translateX(-50%);width:min(390px,calc(100vw - 28px));pointer-events:none;padding:12px 16px;border:1px solid #ffde9a;border-radius:17px;background:linear-gradient(125deg,#143b52,#25556a);color:#fff8e0;box-shadow:0 12px 35px #0824376a;font:12px/1.5 system-ui;text-align:center;animation:nusaFishNoticeIn .25s ease}
+#nusaFishBroadcast b{font-size:13px;display:block;color:#ffe49a;margin:3px 0}
+#nusaFishBroadcast small{font-size:10px;color:#cae4e9}
+@keyframes nusaFishNoticeIn{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}}
+@media(prefers-reduced-motion:reduce){#nusaFishBroadcast{animation:none}}
+</style>
+<script type="module" id="nusaRealtimeNoticesV1">
+// Only active, Google-authenticated users subscribe to notification events.
+// This is in-page functionality: the browser must have the game open.
+import {initializeApp,getApps} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
+import {getAuth,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+import {getDatabase,ref,query,orderByKey,orderByChild,limitToLast,onValue,push,set,serverTimestamp} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js';
+const config={apiKey:'AIzaSyDFWMOCTkEzMemUrG_0uz74540VNcIGDMI',authDomain:'kotanusa-6ed9c.firebaseapp.com',databaseURL:'https://kotanusa-6ed9c-default-rtdb.asia-southeast1.firebasedatabase.app',projectId:'kotanusa-6ed9c',appId:'1:231262289343:web:486166f2e4fc6fb196350a'};
+const app=getApps().find(x=>x.name==='nusa-ktp-cloud')||initializeApp(config,'nusa-ktp-cloud');
+const auth=getAuth(app),db=getDatabase(app);
+const CHAT='chat/global',ACH='nusaFishAchievementsV1',ALLOWED=new Set(['epic','legendary','mythic','mistis','cosmic']);
+const prefsKey='nusa-notification-options-v1',prefs={muteChat:false,hideAchievements:false};
+try{Object.assign(prefs,JSON.parse(localStorage.getItem(prefsKey)||'{}')||{})}catch{}
+let user=null,stopChat=null,stopAchievements=null,chatSeen=null,achievementSeen=null,unread=0,settingsOpen=false;
+let audio=null,lastChime=0,lastCatchSent='',announceQueue=[],announcing=false;
+const $=id=>document.getElementById(id);
+function savePrefs(){try{localStorage.setItem(prefsKey,JSON.stringify(prefs))}catch{}}
+function readyHUD(){const hud=$('hud');return !!hud&&!hud.classList.contains('hidden')&&!!window.NusaPremiumUser?.()?.id;}
+function showUnread(){const b=$('nusaNotifyBadge');if(!b)return;b.hidden=unread===0||!user;b.textContent=unread>99?'99+':String(unread);b.setAttribute('aria-label',unread+' pesan baru');}
+function markChatRead(){unread=0;showUnread()}
+function chatVisible(){const form=$('localChatForm');return !!form&&form.getClientRects().length>0}
+function chime(){if(prefs.muteChat||document.hidden)return;const t=Date.now();if(t-lastChime<850)return;lastChime=t;
+ try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended'){audio.resume().catch(()=>{});return;}
+  const start=audio.currentTime;for(const [i,f] of [659.25,880].entries()){
+   const o=audio.createOscillator(),g=audio.createGain(),s=start+i*.125;o.type='sine';o.frequency.value=f;
+   g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(.018,s+.022);g.gain.exponentialRampToValueAtTime(.0001,s+.23);
+   o.connect(g);g.connect(audio.destination);o.start(s);o.stop(s+.235);
+  }
+ }catch(e){/* Browser can disable audio. Notification count still works. */}
+}
+// Warm up WebAudio on an actual gesture: mobile browsers block autoplay until interaction.
+document.addEventListener('pointerdown',()=>{if(prefs.muteChat||audio)return;try{audio=new (window.AudioContext||window.webkitAudioContext)()}catch{}},{passive:true});
+function escaped(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function mount(){const holder=document.querySelector('#hud .right-tools');if(holder&&!$('nusaNotifySettingsButton')){
+ const btn=document.createElement('button');btn.id='nusaNotifySettingsButton';btn.type='button';btn.className='round-btn';btn.title='Pengaturan notifikasi';btn.setAttribute('aria-label','Pengaturan suara chat dan pengumuman ikan');btn.textContent='⚙';
+ btn.onclick=()=>{settingsOpen=!settingsOpen;updatePrefsUI()};holder.prepend(btn);
+ }
+ const chatBtn=document.querySelector('#hud [data-nav="chat"]');if(chatBtn&&!$('nusaNotifyBadge')){
+  chatBtn.style.position='relative';const b=document.createElement('span');b.id='nusaNotifyBadge';b.hidden=true;chatBtn.append(b);showUnread();
+ }
+ if(!$('nusaNotifySettingsPanel')){
+  const p=document.createElement('section');p.id='nusaNotifySettingsPanel';p.hidden=true;p.setAttribute('aria-label','Pengaturan notifikasi');
+  p.innerHTML='<header><h2>⚙️ Pengaturan Notifikasi</h2><button type="button" id="nusaNoticeClose" aria-label="Tutup">✕</button></header><label><input type="checkbox" id="nusaChatMute">Mute suara Chat</label><label><input type="checkbox" id="nusaFishHide">Sembunyikan panel keberhasilan ikan</label><p>Pengaturan hanya berlaku di HP ini. Notifikasi tampil selama game terbuka dan akun Google terhubung.</p>';
+  document.body.append(p);p.querySelector('#nusaNoticeClose').onclick=()=>{settingsOpen=false;updatePrefsUI()};
+  p.querySelector('#nusaChatMute').onchange=e=>{prefs.muteChat=e.target.checked;savePrefs()};
+  p.querySelector('#nusaFishHide').onchange=e=>{prefs.hideAchievements=e.target.checked;savePrefs();if(prefs.hideAchievements){announceQueue=[];$('nusaFishBroadcast')?.setAttribute('hidden','')}};
+ }
+ if(!$('nusaFishBroadcast')){const e=document.createElement('aside');e.id='nusaFishBroadcast';e.hidden=true;e.setAttribute('role','status');document.body.append(e)}
+ updatePrefsUI();
+}
+function updatePrefsUI(){const p=$('nusaNotifySettingsPanel');if(!p)return;p.hidden=!settingsOpen;const mute=$('nusaChatMute'),hide=$('nusaFishHide');if(mute)mute.checked=prefs.muteChat;if(hide)hide.checked=prefs.hideAchievements}
+document.addEventListener('click',e=>{if(e.target.closest('[data-nav="chat"]'))markChatRead();if(settingsOpen&&!e.target.closest('#nusaNotifySettingsPanel,#nusaNotifySettingsButton')){settingsOpen=false;updatePrefsUI()}},true);
+const observer=new MutationObserver(()=>{if($('hud')&&!$('nusaNotifySettingsButton'))mount()});observer.observe(document.getElementById('app')||document.body,{subtree:true,childList:true});mount();
+function resetListeners(){try{stopChat?.()}catch{}try{stopAchievements?.()}catch{}stopChat=stopAchievements=null;chatSeen=achievementSeen=null;unread=0;announceQueue=[];$('nusaFishBroadcast')?.setAttribute('hidden','');showUnread()}
+function subscribeChat(){const q=query(ref(db,CHAT),orderByKey(),limitToLast(80));stopChat=onValue(q,snap=>{
+ const list=Object.entries(snap.val()||{}).sort((a,b)=>a[0].localeCompare(b[0]));const keys=new Set(list.map(x=>x[0]));
+ if(chatSeen===null){chatSeen=keys;return}let fresh=0;
+ for(const [key,m] of list){if(chatSeen.has(key)||!m||m.u===user?.uid)continue;fresh++}
+ chatSeen=keys;if(!fresh)return;if(chatVisible()){markChatRead();return}unread=Math.min(999,unread+fresh);showUnread();chime();
+ },err=>console.info('Pemberitahuan chat tidak aktif:',err?.message||err));}
+function showNext(){if(announcing||prefs.hideAchievements||!readyHUD()||!user)return;
+ const next=announceQueue.shift();if(!next)return;announcing=true;mount();const box=$('nusaFishBroadcast');
+ const name=escaped(next.name).slice(0,120),fish=escaped(next.fish).slice(0,150),tier=escaped(next.tier.toUpperCase());
+ box.innerHTML='<span>🎉 PENCAPAIAN WARGA</span><b>'+name+' mendapat ikan '+fish+'!</b><small>🐟 Tingkat '+tier+'</small>';box.hidden=false;
+ setTimeout(()=>{box.hidden=true;announcing=false;showNext()},3000);
+}
+function subscribeAchievements(){const q=query(ref(db,ACH),orderByChild('at'),limitToLast(50));stopAchievements=onValue(q,snap=>{
+ const list=Object.entries(snap.val()||{});const keys=new Set(list.map(([k])=>k));
+ if(achievementSeen===null){achievementSeen=keys;return}
+ for(const [key,a] of list){if(achievementSeen.has(key)||!a||!ALLOWED.has(a.tier)||a.uid===user?.uid||prefs.hideAchievements)continue;
+  if(typeof a.at!=='number'||Date.now()-a.at>20000||a.at>Date.now()+60000)continue;
+  announceQueue.push({name:String(a.name||'Warga').slice(0,24),fish:String(a.fish||'Ikan langka').slice(0,40),tier:a.tier});
+ }
+ achievementSeen=keys;announceQueue=announceQueue.slice(-9);showNext();
+ },err=>console.info('Pengumuman ikan belum aktif. Periksa Firebase Rules:',err?.message||err));}
+onAuthStateChanged(auth,next=>{resetListeners();user=next&&!next.isAnonymous&&next.providerData?.some(p=>p.providerId==='google.com')?next:null;window.NusaNoticeGoogleUID=user?.uid||'';if(user){subscribeChat();subscribeAchievements();}showUnread()});
+window.NusaAchievements={onCatch:async fish=>{
+ if(!ALLOWED.has(String(fish?.tier||'')))return false;
+ const current=auth.currentUser;if(!current||current.isAnonymous||!current.providerData?.some(p=>p.providerId==='google.com'))return false;
+ const identifier=String(fish.id||'');if(identifier&&lastCatchSent===identifier)return false;lastCatchSent=identifier;
+ const game=window.NusaPremiumUser?.()||{},displayName=String(game.name||current.displayName||'Warga').slice(0,24);
+ try{await set(push(ref(db,ACH)),{uid:current.uid,name:displayName,fish:String(fish.name||'Ikan langka').slice(0,40),tier:String(fish.tier),at:serverTimestamp()});return true}
+ catch(err){console.info('Pengumuman tangkapan tidak terbit:',err?.message||err);return false}
+},state:()=>({signedIn:!!user,unread,muteChat:prefs.muteChat,hideAchievements:prefs.hideAchievements})};
 </script>
 </body></html>
