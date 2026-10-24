@@ -1698,7 +1698,15 @@ function createWorld(canvas,places,callbacks={}){
   tile(x,z,w+1.8,d+2,'#d6c29b');tile(x,z,w,d,'#c7dfae');
   for(let j=-2;j<=2;j++){tile(x+j*2.9,z,0.12,d-.6,'#a7cb8b');}
   for(const dx of [-w/2,w/2])for(let k=-2;k<=2;k++)box(x+dx,z+k*d/5,.28,.28,1.7,'#8b7856');
-  if(!owner){tile(x,z,3.6,3.6,'#eff2d8');text('DIJUAL',x,z,1,8,'#577d59');return;}
+  const signText=(owner?('Kebun '+String(owner.name||'Warga')):'DIJUAL').slice(0,16)+(owner&&('Kebun '+String(owner.name||'Warga')).length>16?'…':'');
+  const signZ=z+d/2+1.35;
+  // Papan nama balok kayu di depan kebun.
+  box(x-1.1,signZ,.24,.24,1.15,'#856038');
+  box(x+1.1,signZ,.24,.24,1.15,'#856038');
+  box(x,signZ,3.15,.28,1.05,'#b8864f',1.1);
+  box(x,signZ,2.92,.16,.16,'#d8b178',2.04);
+  text(signText,x,signZ,1.75,8,owner?'#23352b':'#5f6948');
+  if(!owner){tile(x,z,3.6,3.6,'#eff2d8');return;}
   const trees=owner.orchard?.trees||[],now=Date.now();
   // Twenty distinct trees follow twenty paid seeds. No visual duplicates.
   for(let i=0;i<Math.min(ORCHARD_MAX,trees.length);i++){
@@ -2043,12 +2051,8 @@ function createWorld(canvas,places,callbacks={}){
    let name=owner.ig?'@'+owner.ig:String(owner.name||'Warga');if(name.length>16)name=name.slice(0,15)+'…';
    pill(q.x,q.y-24,name,owner.color,mine,mine?.92:Math.min(.86,.45+(zoom-1.3)*.5));
   }
-  if(zoom>=1.35)for(const citizen of citizens.filter(c=>c.orchard&&Number.isInteger(c.orchard.lot))){
-   const slot=ORCHARD_MAP_SLOTS[citizen.orchard.lot];if(!slot)continue;
-   const mine=citizen.id===localPlayerId,q=screen(P(slot.x,slot.z,6.4));
-   let name='Kebun '+String(citizen.name||'Warga');if(name.length>17)name=name.slice(0,16)+'…';
-   pill(q.x,q.y-14,name,citizen.color,mine,mine?.94:Math.min(.84,.42+(zoom-1.35)*.45));
-  }
+  // Label kebun kini ditampilkan langsung pada papan kayu di depan lahan,
+  // jadi pill terapung untuk kebun dimatikan agar tampilan lebih rapi.
   // No billboard for Sawit Emas. The tree is visibly GOLD in its own plot.
   if(zoom>=1.5)for(const [id,b] of byId){
    if(!id.startsWith('apt:'))continue;
@@ -3335,7 +3339,7 @@ function nkGuideSlides(){return [
  {step:'2/3',icon:'📦',title:'Pantau Status Pesanan Saya',text:'Kembali ke Premium Shop lalu tekan “Status Pesanan Saya”. Jika Presiden belum mengecek DANA Bisnis, status masih menunggu verifikasi.'},
  {step:'3/3',icon:'🎁',title:'Ambil item di Barang Saya',text:'Kalau status sudah Disetujui, item masuk ke menu “Barang Saya”. Dari sana kamu bisa langsung pakai Aura, masuk Rumah Selebritis, atau tanam Sawit Emas.'}
 ]}
-function nkOpenGuide(index=0){
+window.nkOpenGuide=function nkOpenGuide(index=0){
  const slides=nkGuideSlides();
  const box=nkPopup('Buku Panduan Klaim','PREMIUM SHOP · BANTUAN');
  function render(){
@@ -3357,7 +3361,7 @@ function showNusaPremium(){
  const product=NUSA_PREMIUM_CATALOG[id];
  return `<article class="np-card"><div class="np-art ${color}">${art}</div><div class="np-card-body"><div class="np-flex"><h3 class="np-name">${product.name}</h3><span class="np-tag">${tag}</span></div><p class="np-desc">${description}</p><div class="np-flex"><span class="np-price">${nusaPremiumMoney(product.price)}</span><small style="color:#67818a">Sekali beli</small></div><button class="np-action np-ghost" data-np-preview="${id}">Lihat koleksi</button></div></article>`
  }).join('');
- panel('Koleksi Premium',`<div class="np-wrap"><div class="np-hero"><span class="np-mini-pill">✦ Koleksi spesial Kota Nusa</span><div class="np-kicker">PREMIUM STORE · SEASON 01</div><h3>Hal kecil.<br>Rasa istimewa.</h3><p>Item pilihan untuk mempercantik kehidupan di kota. Semua kegiatan dasar tetap gratis dimainkan.</p></div><div class="np-top-actions"><button class="np-action" id="npMyOrders">📦 Status Pesanan Saya</button><button class="np-action np-ghost" id="npGuideBtn">📘 Buku Panduan Klaim</button></div><div class="np-guide-flash" id="npGuideFlash"><div><b>Jika anda bingung, cek buku panduan klaim barang.</b><small>Setelah disetujui Presiden, item masuk ke <b>Barang Saya</b>.</small></div><button class="np-guide-mini" id="npGuideFlashBtn">Buka</button></div><div class="np-wa-row"><a class="np-wa-contact" href="https://wa.me/6289672344059" target="_blank" rel="noopener noreferrer" aria-label="Hubungi Kota Nusa melalui WhatsApp Business"><span class="np-wa-indicator">●</span><span><b>WhatsApp Kota Nusa</b><small>Hubungi pengelola · Status online tidak dijamin</small></span><span>↗</span></a></div><div class="np-grid">${cards}</div><div class="np-note"><strong>Pesanan Premium · Pembayaran QRIS.</strong> Warga membuat pesanan, lalu membayar QRIS Kotanusa. Presiden memeriksa transaksi di DANA Bisnis sebelum menyetujui dan menyerahkan barang. Verifikasi ini manual, bukan otomatis.</div><button class="np-action np-ghost" id="npBack">← Aktivitas Kota</button></div>`,{sub:'KOTA NUSA · KOLEKSI EKSKLUSIF'});
+ panel('Koleksi Premium',`<div class="np-wrap"><div class="np-hero"><span class="np-mini-pill">✦ Koleksi spesial Kota Nusa</span><div class="np-kicker">PREMIUM STORE · SEASON 01</div><h3>Hal kecil.<br>Rasa istimewa.</h3><p>Item pilihan untuk mempercantik kehidupan di kota. Semua kegiatan dasar tetap gratis dimainkan.</p></div><div class="np-top-actions"><button class="np-action" id="npMyOrders">📦 Status Pesanan Saya</button><button type="button" class="np-action np-ghost" id="npGuideBtn" onclick="nkOpenGuide(0);return false;">📘 Buku Panduan Klaim</button></div><div class="np-guide-flash" id="npGuideFlash"><div><b>Jika anda bingung, cek buku panduan klaim barang.</b><small>Setelah disetujui Presiden, item masuk ke <b>Barang Saya</b>.</small></div><button type="button" class="np-guide-mini" id="npGuideFlashBtn" onclick="nkOpenGuide(0);return false;">Buka</button></div><div class="np-wa-row"><a class="np-wa-contact" href="https://wa.me/6289672344059" target="_blank" rel="noopener noreferrer" aria-label="Hubungi Kota Nusa melalui WhatsApp Business"><span class="np-wa-indicator">●</span><span><b>WhatsApp Kota Nusa</b><small>Hubungi pengelola · Status online tidak dijamin</small></span><span>↗</span></a></div><div class="np-grid">${cards}</div><div class="np-note"><strong>Pesanan Premium · Pembayaran QRIS.</strong> Warga membuat pesanan, lalu membayar QRIS Kotanusa. Presiden memeriksa transaksi di DANA Bisnis sebelum menyetujui dan menyerahkan barang. Verifikasi ini manual, bukan otomatis.</div><button class="np-action np-ghost" id="npBack">← Aktivitas Kota</button></div>`,{sub:'KOTA NUSA · KOLEKSI EKSKLUSIF'});
  document.querySelector('#npBack').onclick=()=>showNusaPlus();
  document.querySelector('#npMyOrders').onclick=()=>window.NusaPremiumOrders?.openMine();
  document.querySelector('#npGuideBtn').onclick=()=>nkOpenGuide(0);
