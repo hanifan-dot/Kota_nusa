@@ -1247,7 +1247,23 @@ function snapshot(){
  }
  persist();return {...view(W,uid),online:[],tips:[]};
 }
-return {creditCloudRedeems(items,authUid,gameId){
+return {claimGoogleWelcomeBonus(googleUid){
+ const p=W.players[uid];
+ demand(p&&typeof p.id==='string','Masuk ke karakter Kota Nusa dahulu.');
+ demand(typeof googleUid==='string'&&/^[A-Za-z0-9_-]{10,128}$/.test(googleUid),'Identitas akun Google tidak valid.');
+ if(p.googleWelcomeUidV230){
+  return {granted:false,linked:p.googleWelcomeUidV230===googleUid,snapshot:snapshot(),message:p.googleWelcomeUidV230===googleUid?'Bonus Google sudah diterima karakter ini.':'Karakter ini sudah ditautkan ke akun Google lain. Koin tidak ditambah.'};
+ }
+ const coins=Math.floor(Number(p.coins)||0);
+ demand(Number.isSafeInteger(coins)&&coins>=0&&coins<=999999500,'Dompet tidak dapat menerima bonus.');
+ p.googleWelcomeUidV230=googleUid;
+ p.googleWelcomeAtV230=Date.now();
+ p.coins=coins+500;
+ record(W,'google_welcome','Hadiah satu kali hubungkan Google +500 koin',p.id,500,Date.now());
+ v2Post(W,p,'🎁 Hadiah Google +500 koin','Selamat! 500 koin masuk dompet karakter ini. Bonus satu kali dan tersimpan bersama progres lokal.');
+ persist();
+ return {granted:true,linked:true,message:'500 koin masuk ke dompet game!',snapshot:snapshot()};
+},creditCloudRedeems(items,authUid,gameId){
  const p=W.players[uid];demand(p&&p.id===gameId,'Buka karakter pemilik akun Google penerima.');
  demand(typeof authUid==='string'&&authUid.length>=10,'Akun Google penerima tidak cocok.');
  demand(Array.isArray(items)&&items.length>0&&items.length<=300,'Daftar koin diterima tidak valid.');
@@ -3498,7 +3514,13 @@ bootstrap();
   const result=LocalNusa.creditCloudRedeems(items,googleUid,gameId);
   absorb(result.snapshot);
   return {gain:result.gain,count:result.count};
- }
+ },
+ claimGoogleWelcome:async googleUid=>{
+  const result=LocalNusa.claimGoogleWelcomeBonus(googleUid);
+  absorb(result.snapshot);
+  return result;
+ },
+ downloadBackup:()=>backupLocal()
 };</script>
 <script type="module" id="nusa-koin-p2p-spark">
 /* Firebase SDK bootstrap V2.30: diagnose an unavailable Firebase library
@@ -4997,6 +5019,124 @@ window.NusaNews={start,publish,entries,markAllRead,unreadCount,status(){return f
 setInterval(()=>{if(document.getElementById('hud')&&!document.getElementById('hud').classList.contains('hidden')&&!unsub&&!starting)void start();else draw()},5500);
 if(document.getElementById('hud')&&!document.getElementById('hud').classList.contains('hidden'))void start();
 window.addEventListener('storage',e=>{if(e.key?.startsWith('kota-nusa-news-read-v1:'))draw()});
+</script>
+
+<style id="nusa-google-welcome-style">
+#nusaGoogleWelcome{position:fixed;right:12px;top:230px;z-index:19;width:177px;min-height:88px;padding:10px 9px 10px 10px;display:flex;gap:8px;align-items:center;text-align:left;pointer-events:auto;border-radius:16px;background:linear-gradient(125deg,#fffefa 5%,#e7f4ff 98%);border:2px solid #d2e9fb;box-shadow:0 10px 30px #0a2c4d55,0 0 0 2px #ffffff88;color:#153a51;font:700 12px/1.23 system-ui;animation:ngwFloat 2.8s ease-in-out infinite;cursor:pointer}
+#nusaGoogleWelcome .ngw-g{display:grid;place-items:center;background:#fff;border:1px solid #dde9f0;box-shadow:0 3px 10px #1d476024;border-radius:50%;min-width:37px;width:37px;height:37px;animation:ngwWiggle 3.6s ease-in-out infinite}
+#nusaGoogleWelcome .ngw-g svg{width:27px;height:27px;stroke:none}
+#nusaGoogleWelcome strong{display:block;font-size:12px;color:#17445d;line-height:1.25}
+#nusaGoogleWelcome em{display:block;font-size:13px;color:#16804a;font-weight:900;font-style:normal;margin-top:4px}
+#nusaGoogleWelcome .ngw-spark{position:absolute;right:-4px;top:-11px;font-size:18px;animation:ngwStar 1.6s infinite alternate}
+#nusaGoogleWelcome:active{transform:scale(.96)}
+#nusaGoogleWelcome[hidden],#nusaAccountMenu[hidden]{display:none!important}
+#hud .identity-chip{cursor:pointer;pointer-events:auto;touch-action:manipulation;outline-offset:3px;position:relative}
+#hud .identity-chip:after{content:'⌄';position:absolute;right:5px;bottom:1px;color:#7b949e;font-size:13px}
+#nusaAccountMenu{position:absolute;z-index:38;left:12px;top:82px;width:min(304px,calc(100vw - 24px));max-height:min(380px,calc(100dvh - 108px));overflow:auto;background:#fffcf5;border:1px solid #e4dcbf;border-radius:18px;box-shadow:0 16px 45px #08273b75;padding:14px;pointer-events:auto;color:#183b4e;text-align:left}
+#nusaAccountMenu .ngw-title{font-size:15px;font-weight:850;margin-bottom:4px}
+#nusaAccountMenu .ngw-status{font-size:11px;line-height:1.55;color:#506879;overflow-wrap:anywhere;margin-bottom:11px}
+#nusaAccountMenu .ngw-note{font-size:10px;line-height:1.45;color:#718088;margin:7px 0 11px}
+#nusaAccountMenu button{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:1px solid #dbe7ef;background:#edf5fa;color:#17435a;padding:12px;border-radius:11px;font:700 12px system-ui;margin:8px 0;min-height:43px;pointer-events:auto}
+#nusaAccountMenu button.ngw-primary{background:#184357;color:#fff;border-color:#184357}
+#nusaAccountMenu button.ngw-out{color:#a04343;background:#fff3ee;border-color:#edcec9}
+#nusaAccountMenu .ngw-bottom{display:flex;justify-content:flex-end}
+#nusaAccountMenu .ngw-bottom button{width:auto;min-height:32px;margin:0;padding:7px 12px}
+@keyframes ngwFloat{0%,100%{translate:0 0}50%{translate:0 -6px}}
+@keyframes ngwWiggle{0%,85%,100%{transform:rotate(0)}90%{transform:rotate(-17deg)}95%{transform:rotate(13deg)}}
+@keyframes ngwStar{from{opacity:.45;transform:scale(.85) rotate(-14deg)}to{opacity:1;transform:scale(1.16) rotate(12deg)}}
+@media(max-width:600px){#nusaGoogleWelcome{width:161px;min-height:84px;padding:8px;font-size:10px;right:9px}#nusaGoogleWelcome strong{font-size:11px}#nusaGoogleWelcome em{font-size:12px}#nusaAccountMenu{top:77px}}
+@media(prefers-reduced-motion:reduce){#nusaGoogleWelcome,#nusaGoogleWelcome .ngw-g,#nusaGoogleWelcome .ngw-spark{animation:none!important}}
+</style>
+<script type="module" id="nusa-google-welcome-module">
+/* Bonus Google satu kali PER KARAKTER di penyimpanan lokal Kota Nusa.
+   Identitas Google dibuktikan oleh Firebase Auth; ini bukan sistem cloud-save.
+   Jangan menghapus simpanan game saat pengguna keluar atau berpindah Google. */
+const NGW_CONFIG={apiKey:'AIzaSyDFWMOCTkEzMemUrG_0uz74540VNcIGDMI',authDomain:'kotanusa-6ed9c.firebaseapp.com',databaseURL:'https://kotanusa-6ed9c-default-rtdb.asia-southeast1.firebasedatabase.app',projectId:'kotanusa-6ed9c',appId:'1:231262289343:web:486166f2e4fc6fb196350a'};
+const NGW_ICON='<svg viewBox="0 0 24 24" aria-label="Google"><path fill="#4285F4" d="M21.6 12.23c0-.66-.06-1.3-.17-1.92H12v3.64h5.4a4.61 4.61 0 0 1-2 3.03v2.49h3.23c1.89-1.74 2.97-4.3 2.97-7.24Z"/><path fill="#34A853" d="M12 22a9.83 9.83 0 0 0 6.63-2.43l-3.23-2.49a6 6 0 0 1-8.95-3.16H3.1v2.57A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.45 13.92A6 6 0 0 1 6.13 12c0-.66.11-1.31.32-1.92V7.5H3.1A10 10 0 0 0 2 12c0 1.62.39 3.15 1.1 4.5l3.35-2.58Z"/><path fill="#EA4335" d="M12 5.96c1.46 0 2.76.5 3.79 1.48l2.84-2.84A9.78 9.78 0 0 0 12 2a10 10 0 0 0-8.9 5.5l3.35 2.58A5.99 5.99 0 0 1 12 5.96Z"/></svg>';
+let ngwAuth=null,ngwSdk=null,ngwPending=false,ngwReady=false,ngwSeenUid='',ngwMenu=false;
+const ngwUser=()=>ngwAuth?.currentUser?.providerData?.some(v=>v.providerId==='google.com')?ngwAuth.currentUser:null;
+const ngwPlayer=()=>window.NusaPremiumLocalPlayer?.()||null;
+const ngwToast=(text,bad=false)=>window.NusaCloudBridge?.toast?.(text,bad);
+const ngwErr=e=>String(e?.message||e||'Kesalahan').slice(0,170);
+function ngwPlace(){const btn=document.getElementById('nusaPremiumFloat'),banner=document.getElementById('nusaGoogleWelcome');if(!btn||!banner)return;const r=btn.getBoundingClientRect();const h=banner.offsetHeight||92;banner.style.right=Math.max(6,innerWidth-r.right)+'px';banner.style.top=Math.max(125,r.top-h-13)+'px';}
+function ngwRender(){
+ const banner=document.getElementById('nusaGoogleWelcome'),menu=document.getElementById('nusaAccountMenu'),p=ngwPlayer(),u=ngwUser();
+ if(!banner||!menu)return;
+ // Setelah bonus pertama diklaim, ajakan tidak tampil lagi bahkan sesudah logout.
+ banner.hidden=!p||!!p.googleWelcomeUidV230||!!u||ngwPending;
+ menu.hidden=!ngwMenu;
+ const status=menu.querySelector('.ngw-status');
+ if(status)status.textContent=u?'Google: '+(u.email||u.displayName||'Terhubung')+(p?.googleWelcomeUidV230&&p.googleWelcomeUidV230!==u.uid?' · Bukan akun yang pertama ditautkan.':''):p?.googleWelcomeUidV230?'Google keluar. Progres game lokal tetap tersimpan.':'Akun Google belum terhubung ke sesi ini.';
+ const out=menu.querySelector('#ngwLogout');if(out)out.hidden=!u;
+ const sign=menu.querySelector('#ngwLogin');if(sign)sign.hidden=!!u;
+ const change=menu.querySelector('#ngwChange');if(change)change.textContent=u?'↔ Login akun Google lain':'↔ Pilih akun Google';
+ if(!banner.hidden)requestAnimationFrame(ngwPlace);
+}
+async function ngwAward(){
+ const user=ngwUser(),p=ngwPlayer();if(!p||!user||ngwPending)return;
+ if(p.googleWelcomeUidV230){ngwRender();return;}
+ ngwPending=true;ngwRender();
+ try{
+  const res=await window.NusaCloudBridge?.claimGoogleWelcome?.(user.uid);
+  if(res?.granted){ngwToast('🎉 +500 koin Google masuk ke dompet!');ngwMenu=false;}
+  else if(res?.message&&!res?.linked)ngwToast(res.message,true);
+ }catch(e){ngwToast('Bonus belum masuk: '+ngwErr(e),true)}
+ finally{ngwPending=false;ngwRender();}
+}
+async function ngwSDK(){
+ if(ngwReady)return;
+ const [appLib,authLib]=await Promise.all([import('https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js'),import('https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js')]);
+ const app=appLib.getApps().find(a=>a.name==='nusa-ktp-cloud')||appLib.initializeApp(NGW_CONFIG,'nusa-ktp-cloud');
+ ngwSdk=authLib;ngwAuth=authLib.getAuth(app);
+ await authLib.setPersistence(ngwAuth,authLib.browserLocalPersistence);
+ ngwReady=true;
+ authLib.onAuthStateChanged(ngwAuth,()=>{ngwRender();void ngwAward();});
+ ngwRender();
+}
+async function ngwLogin(switchAccount=false){
+ if(ngwPending)return;
+ if(!ngwPlayer()){ngwToast('Masuk ke karakter Kota Nusa dulu.',true);return;}
+ if(switchAccount&&ngwUser()&&!confirm('Login dengan Google lain TIDAK mengganti karakter atau progres game di HP ini. Lanjut ganti Google?'))return;
+ ngwPending=true;ngwRender();
+ try{
+  if(!ngwReady)await ngwSDK();
+  if(switchAccount&&ngwAuth.currentUser)await ngwSdk.signOut(ngwAuth);
+  if(!ngwUser())await ngwSdk.signInWithPopup(ngwAuth,new ngwSdk.GoogleAuthProvider());
+  ngwMenu=false;
+ }catch(e){ngwToast('Login Google gagal: '+ngwErr(e)+'. Gunakan Chrome biasa.',true)}
+ finally{ngwPending=false;ngwRender();void ngwAward();}
+}
+async function ngwLogout(){
+ if(!ngwReady){ngwToast('Google belum siap.',true);return;}
+ if(!confirm('Keluar dari Google? Karakter, koin dan rumah LOKAL tidak akan dihapus.'))return;
+ try{await ngwSdk.signOut(ngwAuth);ngwMenu=false;ngwRender();ngwToast('Akun Google keluar. Progres lokal tetap aman.');}
+ catch(e){ngwToast('Gagal keluar: '+ngwErr(e),true)}
+}
+function ngwMount(){
+ const hud=document.getElementById('hud'),profile=hud?.querySelector('.identity-chip'),shop=document.getElementById('nusaPremiumFloat');
+ if(!hud||!profile||!shop||document.getElementById('nusaGoogleWelcome'))return;
+ const banner=document.createElement('button');banner.id='nusaGoogleWelcome';banner.type='button';banner.hidden=true;banner.setAttribute('aria-label','Hubungkan Google dan klaim 500 koin');banner.innerHTML='<span class="ngw-g">'+NGW_ICON+'</span><span><strong>Hubungkan Google</strong><em>🎁 +500 Koin</em></span><span class="ngw-spark">✨</span>';
+ const menu=document.createElement('section');menu.id='nusaAccountMenu';menu.hidden=true;menu.setAttribute('aria-label','Menu akun Kota Nusa');menu.innerHTML='<div class="ngw-title">👤 Akun Kota Nusa</div><div class="ngw-status">Memeriksa Google…</div><p class="ngw-note">Progres game disimpan di browser ini. Login Google belum otomatis memindahkan rumah/koin ke HP lain. Cadangkan progres sebelum pindah alamat.</p><button type="button" class="ngw-primary" id="ngwLogin">'+NGW_ICON+' Hubungkan Google</button><button type="button" id="ngwChange">↔ Login akun Google lain</button><button type="button" class="ngw-out" id="ngwLogout">Keluar akun Google</button><button type="button" id="ngwBackup">⬇ Unduh cadangan progres</button><div class="ngw-bottom"><button type="button" id="ngwClose">Tutup</button></div>';
+ hud.append(banner,menu);
+ profile.setAttribute('role','button');profile.setAttribute('tabindex','0');profile.setAttribute('aria-label','Buka menu akun Google Kota Nusa');profile.setAttribute('aria-expanded','false');
+ const toggle=()=>{ngwMenu=!ngwMenu;profile.setAttribute('aria-expanded',String(ngwMenu));ngwRender()};
+ profile.addEventListener('click',toggle);
+ profile.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle()}});
+ banner.addEventListener('click',()=>void ngwLogin(false));
+ menu.querySelector('#ngwLogin').onclick=()=>void ngwLogin(false);
+ menu.querySelector('#ngwChange').onclick=()=>void ngwLogin(true);
+ menu.querySelector('#ngwLogout').onclick=()=>void ngwLogout();
+ menu.querySelector('#ngwBackup').onclick=()=>{ngwMenu=false;ngwRender();try{window.NusaCloudBridge.downloadBackup();ngwToast('Cadangan progres berhasil dibuat. Simpan file JSON dengan aman.')}catch(e){ngwToast('Cadangan gagal: '+ngwErr(e),true)}};
+ menu.querySelector('#ngwClose').onclick=()=>{ngwMenu=false;profile.setAttribute('aria-expanded','false');ngwRender()};
+ document.addEventListener('pointerdown',e=>{if(ngwMenu&&!menu.contains(e.target)&&!profile.contains(e.target)){ngwMenu=false;profile.setAttribute('aria-expanded','false');ngwRender();}},true);
+ addEventListener('resize',ngwPlace,{passive:true});
+ ngwRender();
+}
+const ngwObserve=new MutationObserver(()=>ngwMount());
+ngwObserve.observe(document.getElementById('app')||document.body,{childList:true,subtree:true});
+ngwMount();
+ngwSDK().catch(e=>{ngwReady=false;ngwToast('Firebase Google tidak dapat dimuat: '+ngwErr(e),true);ngwRender()});
+setInterval(()=>{if(ngwPlayer()){ngwMount();ngwRender();if(ngwReady&&ngwUser())void ngwAward();}},4500);
 </script>
 
 </body></html>
