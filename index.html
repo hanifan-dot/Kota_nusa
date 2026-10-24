@@ -1280,6 +1280,39 @@ return {claimGoogleWelcomeBonus(googleUid){
  v2Post(W,p,'🎁 Hadiah Google +500 koin','Selamat! 500 koin masuk dompet karakter ini. Bonus satu kali dan tersimpan bersama progres lokal.');
  persist();
  return {granted:true,linked:true,message:'500 koin masuk ke dompet game!',snapshot:snapshot()};
+},cashDepositPendingV231(authUid,gameId){
+ const p=W.players[uid];if(!p||p.id!==gameId)return [];
+ return Object.entries(p.cashDepositsV231||{}).filter(([id,item])=>item?.status==='pending'&&item?.uid===authUid).map(([id,item])=>({id,amount:item.amount,tokens:item.tokens,uid:item.uid,gameId:item.gameId}));
+},reserveCashDepositV231(input){
+ const p=W.players[uid], amount=Number(input?.amount),tokens=input?.tokens;
+ demand(ownerOK()&&p&&role(W,p.id)==='president','Hanya Presiden resmi di perangkat pemilik yang bisa mengisi kas.');
+ demand(p.id===input?.gameId&&typeof input?.uid==='string'&&input.uid.length>=10,'Identitas akun Google/karakter tidak sesuai.');
+ demand(typeof input.id==='string'&&/^kas[A-F0-9]{20}$/.test(input.id),'ID setoran tidak sah.');
+ demand(Number.isSafeInteger(amount)&&amount>=1&&amount<=10000000,'Nominal harus 1 sampai 10 juta koin.');
+ demand(Array.isArray(tokens)&&tokens.length>=1&&tokens.length<=100,'Voucher setoran tidak sah.');
+ const unique=new Set(),sum=tokens.reduce((n,t)=>{
+   demand(typeof t.path==='string'&&/^kas[A-F0-9]{20}$/.test(t.path)&&!unique.has(t.path),'Voucher kas tidak sah/duplikat.');
+   unique.add(t.path);demand(Number.isSafeInteger(t.value)&&t.value>=1&&t.value<=100000,'Nilai pecahan kas tidak sah.');return n+t.value;
+ },0);
+ demand(sum===amount,'Jumlah voucher tidak cocok dengan setoran.');
+ p.cashDepositsV231??={};
+ demand(!Object.values(p.cashDepositsV231).some(e=>e?.status==='pending'),'Ada setoran sebelumnya yang belum pasti. Selesaikan dahulu, jangan setor dua kali.');
+ demand(!p.cashDepositsV231[input.id],'ID setoran sudah pernah dipakai.');
+ demand(Number.isSafeInteger(p.coins)&&p.coins-(p.held||0)>=amount,'Koin belanja tidak cukup.');
+ const before=p.coins;
+ p.coins-=amount;
+ p.cashDepositsV231[input.id]={amount,tokens,uid:input.uid,gameId:p.id,status:'pending',at:Date.now()};
+ try{persist();}catch(e){p.coins=before;delete p.cashDepositsV231[input.id];throw e;}
+ record(W,'cash_deposit_pending','Pesan '+amount+' koin lokal untuk setoran kas online',p.id,-amount,Date.now());
+ return {snapshot:snapshot()};
+},completeCashDepositV231(id,authUid,gameId){
+ const p=W.players[uid],entry=p?.cashDepositsV231?.[id];
+ demand(ownerOK()&&p&&p.id===gameId&&entry&&entry.uid===authUid,'Setoran tidak ditemukan di karakter Presiden.');
+ if(entry.status==='done')return {snapshot:snapshot(),amount:entry.amount};
+ demand(entry.status==='pending','Status setoran tidak sesuai.');
+ entry.status='done';entry.doneAt=Date.now();
+ record(W,'cash_deposit','Setor '+entry.amount+' koin belanja ke kas online',p.id,0,Date.now());
+ persist();return {snapshot:snapshot(),amount:entry.amount};
 },creditCloudRedeems(items,authUid,gameId){
  const p=W.players[uid];demand(p&&p.id===gameId,'Buka karakter pemilik akun Google penerima.');
  demand(typeof authUid==='string'&&authUid.length>=10,'Akun Google penerima tidak cocok.');
@@ -1288,7 +1321,7 @@ return {claimGoogleWelcomeBonus(googleUid){
  let gain=0,count=0;const incoming=new Set();
  for(const item of items){
   const id=String(item?.path||''),v=Number(item?.value);
-  demand(/^vault0[0-9]{2}(?:\/[ab]){0,27}$/.test(id),'ID voucher tidak dikenal.');
+  demand(/^(?:vault0[0-9]{2}|kas[A-F0-9]{20})(?:\/[ab]){0,27}$/.test(id),'ID voucher tidak dikenal.');
   demand(Number.isSafeInteger(v)&&v>=1&&v<=100000,'Nilai voucher tidak valid.');
   demand(!incoming.has(id),'Voucher duplikat dalam batch.');incoming.add(id);
   if(p.cloudVoucherClaimedV229[id])continue;
@@ -3634,6 +3667,9 @@ bootstrap();
   absorb(result.snapshot);
   return {gain:result.gain,count:result.count};
  },
+ cashDepositPending:(googleUid,gameId)=>LocalNusa.cashDepositPendingV231(googleUid,gameId),
+ cashDepositReserve:async input=>{const r=LocalNusa.reserveCashDepositV231(input);absorb(r.snapshot);return r;},
+ cashDepositComplete:async (id,googleUid,gameId)=>{const r=LocalNusa.completeCashDepositV231(id,googleUid,gameId);absorb(r.snapshot);return r;},
  claimGoogleWelcome:async googleUid=>{
   const result=LocalNusa.claimGoogleWelcomeBonus(googleUid);
   absorb(result.snapshot);
@@ -3686,12 +3722,14 @@ async function nusaP2PBootstrap(){
 const CFG={apiKey:'AIzaSyDFWMOCTkEzMemUrG_0uz74540VNcIGDMI',authDomain:'kotanusa-6ed9c.firebaseapp.com',databaseURL:'https://kotanusa-6ed9c-default-rtdb.asia-southeast1.firebasedatabase.app',projectId:'kotanusa-6ed9c',appId:'1:231262289343:web:486166f2e4fc6fb196350a'};
 const OWNER='3bNsbErpujYgrjxdKUSiHP1sJJ93',VAULT='nusaKoinVoucherV3',PROFILES='nusaCivicProfilesV1';
 const SEED_COUNT=100,SEED_AMOUNT=100000,MAX_DEPTH=27,MAX_SEND=250000,BURN='nusa_redeemed_v229';
+const MAX_CASH_DEPOSIT=10000000;
 const host=()=>window.NusaCloudBridge||{};
 const safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num=x=>Number(x||0).toLocaleString('id-ID');
 const app=getApps().find(x=>x.name==='nusa-ktp-cloud')||initializeApp(CFG,'nusa-ktp-cloud');
 const auth=getAuth(app),db=getDatabase(app);
 let currMode='wallet',vault={},people={},myProfile=null,watchOff=null,submitting=false,selectedUid='',viewOpen=false,claiming=false,lastClaimError='',lastClaimAt=0;
+let cashFormOpen=false,cashSending=false;
 const signed=()=>!!auth.currentUser&&!auth.currentUser.isAnonymous;
 const isPres=()=>signed()&&auth.currentUser.uid===OWNER;
 const toast=(x,b=false)=>host().toast?.(x,b);
@@ -3724,7 +3762,7 @@ function row(person){const bal=balance(person.uid);return `<button type="button"
 const pendingKey=(u,g)=>'nusaCloudClaimPendingV229:'+u+':'+g;
 const autoKey=u=>'nusaCloudClaimAutoV229:'+u;
 const autoEnabled=u=>!isPres()&&localStorage.getItem(autoKey(u))!=='off';
-const validPath=x=>/^vault0[0-9]{2}(?:\/[ab]){0,27}$/.test(x);
+const validPath=x=>/^(?:vault0[0-9]{2}|kas[A-F0-9]{20})(?:\/[ab]){0,27}$/.test(x);
 function readQueue(key){try{const a=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(a)?a.filter(x=>validPath(x.path)&&Number.isSafeInteger(x.value)&&x.value>0):[]}catch{return []}}
 function saveQueue(key,arr){localStorage.setItem(key,JSON.stringify(arr));}
 function nodeAt(tree,path){let cur=tree;for(const segment of path.split('/')){cur=cur?.[segment];if(!cur)return null;}return cur;}
@@ -3784,7 +3822,8 @@ function mainUI(){const uid=auth.currentUser.uid,b=balance(uid),all=Object.value
  .p2p-person{width:100%;display:flex;align-items:center;text-align:left;gap:10px;padding:12px 10px;border:1px solid #d8e4e9;border-radius:12px;background:#fff;margin:6px 0;color:#1b3e51;min-height:66px}.p2p-person:active,.p2p-person.pick{background:#e3f0e7;border-color:#46917e}.p2p-initial{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:#dbece9;font-weight:800}.p2p-person-info{min-width:0;flex:1}.p2p-person-info strong{display:block;font-size:12px}.p2p-person-info small{display:block;font-size:10px;color:#74898c;margin-top:5px;white-space:normal;overflow-wrap:anywhere}.p2p-choose{font-size:11px;color:#3d7781}.p2p-balance{border-radius:17px;background:linear-gradient(120deg,#133f4e,#266b68);padding:20px;color:#fff;margin:11px 0 18px}.p2p-balance small{display:block;color:#bfe4e2;font-size:10px;letter-spacing:1px;text-transform:uppercase}.p2p-balance strong{font-size:29px;display:block;margin-top:7px;word-break:break-word}.p2p-identity{font-size:11px;line-height:1.65;color:#56727c;overflow-wrap:anywhere}.p2p-send{background:#f1f6f7;border:1px solid #dce8eb;border-radius:14px;padding:15px;margin-top:12px}.p2p-send label{display:block;margin:10px 0 7px;font-size:11px;font-weight:700;color:#37596b}.p2p-send input{width:100%;min-height:46px;padding:10px 12px;border-radius:10px;border:1px solid #cbdce1;background:#fff!important}.p2p-users{max-height:210px;overflow-y:auto;overscroll-behavior:contain}.p2p-chosen{background:#dfecdf;padding:11px;border-radius:10px;margin-top:9px;font-size:11px;line-height:1.6}.p2p-chip{display:inline-flex;background:#ebf1e9;padding:4px 7px;border-radius:7px;font-size:10px;font-weight:700}.p2p-tools{display:flex;gap:8px;flex-wrap:wrap;margin:9px 0}.p2p-tools button{flex:1}.p2p-setup{border:1px solid #e6d5b5;background:#fff7e7;border-radius:12px;padding:15px;margin-top:14px}.p2p-sub{font-size:10px;line-height:1.6;color:#71818d}
  </style>${note()}<div class="p2p-balance"><small>📩 VOUCHER ONLINE BELUM DIKLAIM · BISA DIKIRIM</small><strong id="p2pTotal">${num(b)} Koin</strong><div class="p2p-identity" style="color:#cce7e4">${safe(myProfile.name)} · …${safe(uid.slice(-8))} ${isPres()?'· Presiden':''}</div></div><div class="p2p-setup" style="margin-top:-7px"><strong>🪙 Saldo Belanja di Kota: ${num(Math.max(0,(host().player?.()?.coins||0)-(host().player?.()?.held||0)))} koin</strong><p class="p2p-sub">Jika klaim berhasil, saldo ONLINE berkurang dan saldo BELANJA bertambah jumlah yang sama. Koin yang diklaim tidak bisa ditransfer ulang lewat voucher.</p></div>
  ${isPres()&&seedLeft>0?`<div class="p2p-setup"><strong>🏛️ Aktivasi kas awal P2P</strong><p class="p2p-sub">Siapkan total pasokan awal 10.000.000 koin online, hanya sekali per voucher. Koin ini TIDAK berasal dari dompet lokal dan tidak bisa diuangkan. ${SEED_COUNT-seedLeft}/${SEED_COUNT} sudah dibuat.</p><button class="btn primary wide" id="p2pSeed">Aktifkan sisa ${seedLeft} voucher kas</button></div>`:''}
- <div class="p2p-setup"><strong>💳 Koin siap masuk saldo belanja</strong><p id="p2pClaimStatus" class="p2p-sub">Warga bisa menerima otomatis atau menyimpan voucher untuk dikirim lagi. Presiden klaim manual agar kas awal tidak habis.</p><button class="btn primary wide" id="p2pClaim">${isPres()?'Tukar voucher kas ke dompet game':'↻ Klaim koin masuk sekarang'}</button>${isPres()?'':`<button class="btn wide" id="p2pAutoClaim" style="margin-top:8px">${autoEnabled(uid)?'🟢 Terima otomatis AKTIF (matikan untuk kirim lagi)':'⚪ Terima otomatis NONAKTIF (voucher disimpan)'}</button>`}</div>${isPres()?'<p class="p2p-sub">Transfer P2P berasal dari saldo voucher ONLINE, bukan saldo dompet utama. Hanya penerimaan voucher yang masuk ke dompet utama setelah diklaim.</p>':''}
+ ${isPres()?`<div class="p2p-setup" style="background:#e8f6ee;border-color:#b5d9c6"><strong>🏦 Isi Kas Online Siap Dibagikan</strong><p class="p2p-sub">Pindahkan sejumlah koin dari saldo BELANJA perangkat Presiden ke voucher ONLINE. Pilih jumlah sendiri. Setoran dicatat dahulu di HP, lalu dikirim ke Firebase dengan akun Google Presiden.</p><button class="btn primary wide" id="p2pFundToggle">${cashFormOpen?'Tutup pengisian kas':'➕ Tentukan jumlah koin kas online'}</button><div id="p2pFundBox" ${cashFormOpen?'':'hidden'} style="margin-top:12px"><label for="p2pFundAmount" style="display:block;font-size:12px;font-weight:700;margin:0 0 6px">Jumlah koin yang dipindahkan</label><input id="p2pFundAmount" type="number" inputmode="numeric" min="1" max="10000000" step="1" placeholder="Contoh: 50000" style="width:100%;background:#fff!important"><button class="btn wide" id="p2pFundSubmit" style="margin-top:8px;background:#155747;color:white">Masukkan ke Kas Online</button><p class="p2p-sub" id="p2pFundStatus" role="status">Batas sekali setor 10.000.000. Jika internet terputus, gunakan tombol pemulihan sebelum mengulangi transaksi.</p></div><div id="p2pFundPending" class="hidden"></div><p class="p2p-sub" style="margin-top:10px">Catatan: saldo belanja disimpan lokal. Sistem ini hanya membolehkan Google Presiden menerbitkan voucher online; ini belum keamanan ekonomi penuh berbasis server.</p></div>`:''}
+ <div class="p2p-setup"><strong>💳 Koin siap masuk saldo belanja</strong><p id="p2pClaimStatus" class="p2p-sub">Warga bisa menerima otomatis atau menyimpan voucher untuk dikirim lagi. Presiden klaim manual agar kas awal tidak habis.</p><button class="btn primary wide" id="p2pClaim">${isPres()?'Tarik voucher ONLINE ke dompet BELANJA':'↻ Klaim koin masuk sekarang'}</button>${isPres()?'':`<button class="btn wide" id="p2pAutoClaim" style="margin-top:8px">${autoEnabled(uid)?'🟢 Terima otomatis AKTIF (matikan untuk kirim lagi)':'⚪ Terima otomatis NONAKTIF (voucher disimpan)'}</button>`}</div>${isPres()?'<p class="p2p-sub">Transfer P2P berasal dari saldo voucher ONLINE, bukan saldo dompet utama. Hanya penerimaan voucher yang masuk ke dompet utama setelah diklaim.</p>':''}
  <div class="p2p-send"><strong>💸 Kirim Koin Online</strong><p class="p2p-sub">Pilih nama akun yang sudah login Google. Periksa ID karena nama bisa sama. <b>Penerima yang sudah login Google dapat mengklaim koin ke saldo belanja. Koin tidak bisa ditransfer lagi sesudah diklaim.</b></p>
  <label for="p2pSearch">Cari nama warga</label><input id="p2pSearch" placeholder="Ketik nama karakter..." maxlength="48" autocomplete="off">
  <div class="p2p-users" id="p2pPeople">${all.slice(0,25).map(row).join('')||'<div class="empty">Belum ada warga terdaftar di akun Google.</div>'}</div>
@@ -3800,6 +3839,10 @@ function hookUI(){const search=document.getElementById('p2pSearch'),choices=docu
  search.addEventListener('input',draw);draw();btn.onclick=send;
  document.getElementById('p2pRefresh')?.addEventListener('click',()=>open(currMode));
  document.getElementById('p2pSeed')?.addEventListener('click',seed);
+ document.getElementById('p2pFundToggle')?.addEventListener('click',()=>{cashFormOpen=!cashFormOpen;const box=document.getElementById('p2pFundBox');if(box)box.hidden=!cashFormOpen;document.getElementById('p2pFundToggle').textContent=cashFormOpen?'Tutup pengisian kas':'➕ Tentukan jumlah koin kas online';if(cashFormOpen)document.getElementById('p2pFundAmount')?.focus();});
+ document.getElementById('p2pFundSubmit')?.addEventListener('click',depositToOnlineCash);
+ renderCashPending();
+
  document.getElementById('p2pClaim')?.addEventListener('click',async()=>{await claimIncoming(true);await open(currMode);});
  document.getElementById('p2pAutoClaim')?.addEventListener('click',()=>{
   const uid=auth.currentUser?.uid;if(!uid)return;
@@ -3834,6 +3877,58 @@ async function open(mode='wallet'){
 async function login(){try{await signInWithPopup(auth,new GoogleAuthProvider());await open(currMode);}catch(e){toast('Masuk Google gagal: '+err(e),true);}}
 async function register(){const p=host().player?.(),uid=auth.currentUser?.uid;if(!uid||!p?.id||!/^[a-zA-Z0-9_-]{1,64}$/.test(String(p.id)))return toast('Masuk ke karakter Kota Nusa dulu.',true);
  try{const node=ref(db,PROFILES+'/'+uid),old=(await get(node)).val();if(old&&old.gameId!==p.id)throw Error('Google ini sudah terikat ke karakter berbeda. Gunakan akun asli.');if(!old){const profile={uid,gameId:String(p.id),name:String(p.name||'Warga').slice(0,24),updated:serverTimestamp(),xp:Math.max(0,Math.min(1000000000,Math.floor(p.xp||0)))};await update(ref(db,PROFILES),{[uid]:profile});}await open(currMode);}catch(e){toast(err(e),true);}}
+const cashPending=()=>host().cashDepositPending?.(auth.currentUser?.uid,host().player?.()?.id)||[];
+function newCashToken(){const arr=new Uint8Array(10);crypto.getRandomValues(arr);return 'kas'+Array.from(arr,x=>x.toString(16).padStart(2,'0')).join('').toUpperCase();}
+function makeCashTokens(amount){let left=amount;const out=[];while(left>0){const value=Math.min(100000,left);out.push({path:newCashToken(),value});left-=value;}return out;}
+async function reconcileCashDeposit(entry,allowWrite=false){
+ const current=await get(ref(db,VAULT));const tree=current.val()||{};
+ const present=entry.tokens.filter(t=>tree[t.path]!==undefined);
+ if(present.length){
+  if(present.length!==entry.tokens.length||entry.tokens.some(t=>{const n=tree[t.path];return !n||n.v!==t.value||!Object.hasOwn(n,'o');}))throw Error('Ada bagian setoran yang tidak cocok di Firebase. Jangan setor ulang; periksa bersama admin.');
+ }else if(allowWrite){
+  const patches={};entry.tokens.forEach(t=>patches[t.path]={o:OWNER,v:t.value,s:false});
+  // Semua voucher baru dibuat sebagai satu transaksi atomik.
+  await update(ref(db,VAULT),patches);
+ }else return false;
+ await host().cashDepositComplete?.(entry.id,entry.uid,entry.gameId);
+ return true;
+}
+function renderCashPending(){
+ const box=document.getElementById('p2pFundPending');if(!box||!isPres())return;
+ const arr=cashPending();if(!arr.length){box.classList.add('hidden');box.innerHTML='';return;}
+ box.classList.remove('hidden');const pending=arr[0];
+ box.innerHTML=`<div class="notice warn" style="margin-top:10px"><b>⚠️ Setoran ${num(pending.amount)} koin belum dipastikan.</b><br>Jangan membuat setoran baru atau menghapus data Chrome sebelum dipulihkan.<button class="btn primary wide" style="margin-top:10px" id="p2pFundRecover">Periksa dan selesaikan setoran</button></div>`;
+ document.getElementById('p2pFundRecover')?.addEventListener('click',async()=>{
+  if(cashSending)return;cashSending=true;const b=document.getElementById('p2pFundRecover');if(b)b.disabled=true;
+  try{await reconcileCashDeposit(pending,true);toast('✅ Setoran lama sudah selesai; kas online tersedia.');await open('admin');}
+  catch(e){toast('Setoran belum selesai: '+err(e),true);if(b)b.disabled=false;}
+  finally{cashSending=false;}
+ });
+}
+async function depositToOnlineCash(){
+ if(cashSending||submitting||!isPres())return;
+ const p=host().player?.(),uid=auth.currentUser.uid;
+ const raw=document.getElementById('p2pFundAmount')?.value||'',amount=Number(raw);
+ if(!/^\d+$/.test(raw)||!Number.isSafeInteger(amount)||amount<1||amount>MAX_CASH_DEPOSIT)return toast('Masukkan angka bulat 1–'+num(MAX_CASH_DEPOSIT)+' koin.',true);
+ if(cashPending().length)return toast('Masih ada setoran tertunda. Selesaikan dahulu.',true);
+ if(!p||myProfile?.gameId!==p.id)return toast('Akun Google harus terhubung dengan karakter Presiden yang benar.',true);
+ if(Math.floor(Number(p.coins||0)-Number(p.held||0))<amount)return toast('Saldo belanja tidak cukup untuk setoran ini.',true);
+ if(!confirm(`ISI KAS ONLINE\n\nDari dompet BELANJA: ${num(amount)} koin\nMenjadi kas ONLINE: ${num(amount)} koin\nSaldo belanja setelah setor: ${num(Math.floor(p.coins-p.held-amount))} koin\n\nLanjut?`))return;
+ cashSending=true;const btn=document.getElementById('p2pFundSubmit');if(btn)btn.disabled=true;
+ const status=document.getElementById('p2pFundStatus');if(status)status.textContent='Mencatat setoran di HP sebelum menghubungi Firebase…';
+ try{
+  const tokens=makeCashTokens(amount),id=tokens[0].path;
+  // Reservasi lokal dilakukan lebih dahulu agar tidak ada pembelian ganda saat jaringan putus.
+  await host().cashDepositReserve?.({id,uid,gameId:p.id,amount,tokens});
+  if(status)status.textContent='Mengirim voucher kas online ke Firebase…';
+  await reconcileCashDeposit({id,uid,gameId:p.id,amount,tokens},true);
+  toast('✅ '+num(amount)+' koin berhasil masuk kas ONLINE dan siap dibagikan.');
+  cashFormOpen=false;await open('admin');
+ }catch(e){
+  if(status)status.textContent='Gagal / belum pasti: '+err(e)+' Periksa setoran tertunda sebelum mengulang.';
+  toast('Setoran belum dipastikan: '+err(e),true);renderCashPending();
+ }finally{cashSending=false;if(btn?.isConnected)btn.disabled=false;}
+}
 async function seed(){if(!isPres()||submitting)return;const existing=new Set(Object.keys(vault||{})),out={};for(let i=0;i<SEED_COUNT;i++){const k='vault'+String(i).padStart(3,'0');if(!existing.has(k))out[k]={o:OWNER,v:SEED_AMOUNT,s:false};}const cnt=Object.keys(out).length;if(!cnt)return toast('Kas P2P sudah siap.');if(!confirm(`Terbitkan ${cnt} voucher baru untuk kas Presiden? Ini pasokan koin ONLINE tetap, bukan saldo lokal. Tidak dapat diulang pada voucher sama.`))return;
  submitting=true;const button=document.getElementById('p2pSeed');if(button)button.disabled=true;
  try{await update(ref(db,VAULT),out);toast('✅ Kas koin online siap. Semua warga sekarang bisa menerima dan mengirim.');await open(currMode);}catch(e){toast('Aktivasi gagal: '+err(e),true);if(button)button.disabled=false;}finally{submitting=false;}}
