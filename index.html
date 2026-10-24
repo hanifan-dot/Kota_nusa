@@ -494,6 +494,18 @@ html body #nusaFishingOverlay .nf-reward .nf-buy{width:100%}
  html body .toast,html body #nusaFishBroadcast,html body #nusaFishBroadcast.out,#nusaFishBroadcast .nfb-ico,html body #nusaFishingOverlay .nf-reward{animation:none!important}
 }
 </style>
+
+<style id="nusa-v238-kebunku-layout">
+#nusaMyOrchardNav svg{width:20px;height:20px;flex:none;stroke:currentColor}
+#nusaMyOrchardNav{position:relative}
+@media(max-width:600px){
+ .dock{left:6px!important;right:6px!important;transform:none!important;width:calc(100% - 12px)!important;max-width:none!important;padding:5px 4px!important;gap:0!important;justify-content:space-around!important;}
+ .dock button{min-width:0!important;flex:1 1 0!important;padding:7px 1px!important;}
+ .dock button span{font-size:clamp(7px,2.2vw,10px)!important;letter-spacing:-.15px!important;}
+ .dock button svg{width:19px!important;height:19px!important;}
+ #nusaMyOrchardNav svg{width:19px!important;height:19px!important;}
+}
+</style>
 </head><body><main id="app"><div id="boot"><h1>Kota Nusa.</h1><p>Menyiapkan kota…</p></div></main><script>'use strict';
 // ===== Deteksi browser dalam Instagram/Facebook (progres sering hilang di sana) =====
 (function(){
@@ -2697,13 +2709,28 @@ async function openMapTarget(id){beep();
   const i=Number(id.split(':')[1]),slot=ORCHARD_MAP_SLOTS[i],own=state.citizens.find(c=>c.orchard?.lot===i);
   if(slot)world.navigate(slot.x,slot.z);
   if(own){if(own.id===state.me.id){showNusaPlus('orchard');return;}showKTP(own.id);return;}
-  panel('Lahan Kebun Barat '+(i+1),`<p class="intro">Kavling kebun kosong nyata di peta. Setelah dibeli, 20 pohon akan tumbuh sesuai jumlah bibit dari Shop.</p><div class="v2-stats">${v2Stat('Harga',fmt(ORCHARD_COST)+' koin')}${v2Stat('Kapasitas','20 pohon')}</div><button class="btn primary wide" id="purchaseMapOrchard" ${state.me?.orchard?'disabled':''}>Beli lahan ini</button>`,{narrow:true,sub:'KAWASAN KEBUN BARAT'});
+  panel('Lahan Kebun Barat '+(i+1),`<p class="intro">Kavling kebun kosong nyata di peta. Setelah dibeli, 20 pohon akan tumbuh sesuai jumlah bibit dari Shop.</p><div class="v2-stats">${v2Stat('Harga',fmt(ORCHARD_COST)+' koin')}${v2Stat('Kapasitas','20 pohon')}</div><div class="notice warn hidden" id="orchardPurchaseStatus" role="alert" aria-live="polite"></div><button class="btn primary wide" id="purchaseMapOrchard" ${state.me?.orchard?'disabled':''}>Beli lahan ini</button>`,{narrow:true,sub:'KAWASAN KEBUN BARAT'});
   $('#purchaseMapOrchard').onclick=async(e)=>{
    const btn=e.currentTarget;if(btn.disabled)return;btn.disabled=true;
-   const label=btn.textContent;btn.textContent='⏳ Memeriksa kepemilikan lahan…';
-   try{await act('orchard',{op:'buy',lot:i});showNusaPlus('orchard');}
-   catch(err){toast(String(err?.message||err),true);}
-   finally{if(btn.isConnected){btn.disabled=false;btn.textContent=label;}}
+   const status=document.getElementById('orchardPurchaseStatus');
+   const say=(message,fail=false)=>{if(status){status.classList.remove('hidden');status.textContent=message;status.classList.toggle('bad',fail);status.classList.toggle('warn',!fail);}};
+   const label=btn.textContent;btn.textContent='Memeriksa kebun…';
+   say('Memeriksa akun Google, kepemilikan petak, dan izin Firebase.');
+   try{
+    await act('orchard',{op:'buy',lot:i});
+    say('Pembelian berhasil. Kebun sedang ditampilkan.');
+    showNusaPlus('orchard');
+   }catch(err){
+    let message=String(err?.message||err||'Transaksi belum berhasil.');
+    if(/permission.denied|izin firebase|klaim petak/i.test(message)){
+     const result=await window.NusaOrchardCloud?.findMine?.(state.me);
+     if(result?.status==='anotherCharacter')message='Akun Google ini memiliki kebun di petak '+(result.lot+1)+' dengan karakter lain. Gunakan karakter pemilik; koin tidak dipotong.';
+     else if(result?.status==='owned')message='Kebun sudah tercatat di petak '+(result.lot+1)+' di Firebase. Jangan beli ulang; tekan tombol Kebunku.';
+     else if(result?.status==='login')message='Akun Google belum terhubung. Hubungkan Google dahulu melalui menu KTP.';
+     else if(result?.status==='none')message='Firebase masih menolak klaim petak '+(i+1)+'. Koin tidak dipotong. Laporkan kepada Presiden untuk memeriksa Rules kebun.';
+    }
+    say(message,true);
+   }finally{if(btn.isConnected){btn.disabled=false;btn.textContent=label;}}
   };return;
  }
  const p=catalog.places.find(p=>p.id===id);if(!p)return;
@@ -3195,6 +3222,54 @@ function v2BusyAction(op,body={},onDone=()=>showNusaPlus()){
  return async()=>{try{await act('nusaV2',{op,...body});onDone();}catch(e){toast(e.message||'Gagal menyimpan.',true)}};
 }
 function v2Stat(name,val){return `<div class="v2-stat"><small>${name}</small><strong>${val}</strong></div>`;}
+ let myOrchardBusy=false;
+ async function openMyOrchard(){
+  if(myOrchardBusy)return;
+  if(!entered||!state.me){join();return;}
+  myOrchardBusy=true;
+  const trigger=document.getElementById('nusaMyOrchardNav');
+  if(trigger)trigger.disabled=true;
+  const getResult=window.NusaOrchardCloud?.findMine;
+  try{
+   if(typeof getResult!=='function'){
+    panel('Kebunku',`<div class="notice warn">Pengecekan kepemilikan online belum siap. Jangan membeli ulang sebelum akun dan data kebun tersambung.</div>`,{narrow:true});return;
+   }
+   panel('Kebunku',`<p class="intro" role="status">Memeriksa kepemilikan kebun di Firebase untuk karakter yang sedang dimainkan…</p>`,{narrow:true});
+   const result=await window.NusaOrchardCloud.findMine(state.me);
+   if(result.status==='owned'){
+    const lot=ORCHARD_MAP_SLOTS[result.lot];
+    if(!lot){toast('Lokasi kebun tidak tersedia dalam peta ini.',true);return;}
+    closePanel();world.navigate(lot.x,lot.z);
+    if(!result.local){
+     panel('Kebunku ditemukan',`<p class="intro">Firebase mencatat kebunmu di lahan ${result.lot+1}. Kamera sudah diarahkan ke sana. Namun progres kebun belum tersedia di penyimpanan HP ini. Jangan membeli ulang; pulihkan progres karakter dulu.</p>`,{narrow:true});
+    } else toast('Kebunku ditemukan: lahan '+(result.lot+1)+'.');
+    return;
+   }
+   if(result.status==='none'){
+    panel('Kebunku',`<div class="notice warn" role="status"><strong>Anda belum memiliki kebun.</strong><br>Silakan buat kebun baru di kawasan lahan yang tersedia.</div><button class="btn primary wide" id="nusaGoNewOrchard">🌱 Buat Kebun Baru</button><p class="intro" style="margin-top:12px">Pembelian baru memerlukan akun Google yang sesuai dan koin cukup. Kamu bisa memilih salah satu lahan kosong pada peta.</p>`,{narrow:true});
+    document.getElementById('nusaGoNewOrchard').onclick=()=>{closePanel();world.focusOrchards();toast('Pilih petak kebun yang bertanda DIJUAL.');};
+    return;
+   }
+   if(result.status==='login'){
+    panel('Kebunku',`<div class="notice warn">Hubungkan akun Google terlebih dahulu agar kepemilikan kebun bisa diperiksa. Pemeriksaan belum menyatakan kamu tidak punya kebun.</div><button class="btn primary wide" id="nusaGoogleFarm">Hubungkan Google</button>`,{narrow:true});
+    document.getElementById('nusaGoogleFarm').onclick=async function(){
+     this.disabled=true;this.textContent='Menghubungkan Google…';
+     try{if(!window.NusaKtpCloud?.signIn)throw Error('Login Google belum siap.');await window.NusaKtpCloud.signIn();closePanel();openMyOrchard();}
+     catch(e){this.disabled=false;this.textContent='Coba Login Google Lagi';toast(String(e.message||e),true);}
+    };
+    return;
+   }
+   const help={
+    anotherCharacter:'Google ini sudah memiliki kebun pada karakter lain (lahan '+(result.lot+1)+'). Gunakan karakter pemilik sebelumnya; jangan membuat kebun kedua.',
+    conflict:'Identitas karakter ini terkait kebun dengan akun Google lain. Jangan beli ulang atau menimpa kebun; hubungi Presiden untuk memeriksa kepemilikan.',
+    localOnly:'Kebun tersimpan di HP (petak '+(result.lot+1)+'), tetapi belum terhubung ke Firebase. Jangan membeli ulang. Gunakan menu Aktivitas → Perkebunan Nusa → Sambungkan Lahan Lama.',
+    error:'Pengecekan Firebase gagal: '+(result.message||'Koneksi bermasalah')+'. Kepemilikan belum bisa dipastikan; jangan beli ulang.'
+   };
+   panel('Status Kebunku',`<div class="notice warn" role="alert">${esc(help[result.status]||'Kepemilikan belum dapat diperiksa.')}</div><button class="btn wide" id="nusaOpenOrchardHelp">Buka menu Perkebunan Nusa</button>`,{narrow:true});
+   document.getElementById('nusaOpenOrchardHelp').onclick=()=>showNusaPlus('orchard');
+  }catch(e){toast('Periksa kebun gagal: '+String(e?.message||e),true);}
+  finally{myOrchardBusy=false;if(trigger)trigger.disabled=false;}
+ }
 function showNusaPlus(section='hub'){
  if(!entered||!state.me)return join();const d=state.me.nusaV2||{},bag=d.bag||{};
  if(section==='hub'){
@@ -3673,7 +3748,7 @@ flightScreen=function(f){_nusaFlightScreen(f);if(!('Notification' in window))ret
 window.NusaNewsLocalEntries=()=>state.city?.news||[];
 const nav={nusaPlus:()=>showNusaPlus(),cityOffice:showCityOffice,career:showCareer,jobs:showJobs,market:showMarket,clinic:showClinic,home:showHome,land:showLand,wallet:showWallet,people:showCitizens,news:showNews,map:showMap,vote:showVote,guide:showGuide,settings:showSettings,owner:showGovernment,support:showSupport,chat:openChat,ktp:()=>showKTP(),apt:()=>showApt(0)};
 async function bootstrap(){
- try{catalog=CATALOG;$('#app').innerHTML=`<canvas id="world" aria-label="Peta Kota Nusa 2D isometrik, geser dan ketuk bangunan"></canvas><div id="labels">${catalog.places.map(p=>`<button class="place-label" id="label-${p.id}" data-place="${p.id}">${p.name}</button>`).join('')}</div><section id="landing"><div class="landing-shade"></div><header class="topbar"><div class="brand"><div class="brand-mark">N</div><div><strong>Kota Nusa.</strong><small>SEBUAH KEHIDUPAN BARU</small></div></div><div class="topbar-links"><button class="quiet-btn" data-nav="guide">${icon('book')} Panduan warga</button><button class="quiet-btn icon-only" id="landingSound" aria-label="Aktifkan suara">${icon(settings.sound?'volume':'mute')}</button></div></header><div class="hero"><div class="eyebrow"><span class="status-dot"></span> PULAU KECIL, CERITA BESAR</div><h1>Tempat baru.<br><em>Ceritamu sendiri.</em></h1><p>Punya rumah. Temukan pekerjaanmu.<br>Kenalan dengan tetangga, dan bangun<br>kota yang tumbuh bersama kalian.</p><div class="hero-actions"><button class="btn primary" id="joinBtn">Mulai kehidupan ${icon('arrow')}</button><button class="btn" data-nav="guide">Kenali Nusa ${icon('book')}</button></div><div class="entry-landing-note">${icon('plane')} Petualangan baru: penerbangan Nusa 1 menit</div><div class="hero-note"><button class="quiet-btn" id="landingBackup">Cadangkan</button><label class="quiet-btn">Impor progres<input type="file" id="landingRestore" accept=".json,application/json" hidden></label></div><div class="hero-note">${icon('lock')} TrebEdit · Offline · Progres di HP ini</div></div><div class="landing-bottom"><div class="feature-stamps"><div class="feature-stamp"><strong>39</strong><span>Pilihan profesi</span></div><div class="feature-stamp"><strong>30</strong><span>Rencana bangunan</span></div><div class="feature-stamp"><strong>1 kota</strong><span>Tumbuh bersama</span></div></div><div class="postcard"><span>SALAM DARI PESISIR</span><strong>Rumah bagi ceritamu.</strong><p>Kota jernih · Edisi TrebEdit</p></div></div></section><section class="hud hidden" id="hud"><header class="hud-top"><div class="identity-chip"><div class="brand-mark">N</div><div><h3 id="hudName">Warga Nusa</h3><small id="hudRole">Kehidupan pertama</small></div></div><div class="nusa-active-chip wait" id="nusaActiveChip" role="status" aria-label="Status pemain aktif"><i></i><span id="nusaActiveCount">Menghubungkan…</span></div><div class="hud-status"><div class="status-pill">${icon('sun')}<div id="cityClock">Sore di Nusa</div></div><button class="status-pill" data-nav="wallet">${icon('wallet')}<div><span id="coins">250</span><small>Koin tersedia</small></div></button><button class="status-pill" data-nav="people">${icon('people')}<div><span id="onlineCount">0 warga online</span><small>Simpanan lokal</small></div></button></div></header><button class="xp-chip" data-nav="career">${icon('shield')}<span id="xpLabel">0 EXP</span>${icon('arrow')}</button><div class="right-tools"><button class="round-btn nusa-news-bell" id="nusaNewsBell" data-nav="news" aria-label="Kabar kota, belum ada notifikasi baru" title="Berita resmi Kota Nusa">${icon('bell')}<span class="nusa-news-badge" id="nusaNewsBadge" hidden aria-hidden="true">0</span></button><button class="round-btn" id="cameraHome" aria-label="Pusatkan kamera">${icon('compass')}</button><button class="round-btn" id="zoomIn" aria-label="Perbesar">${icon('plus')}</button><button class="round-btn" id="zoomOut" aria-label="Perkecil">${icon('minus')}</button><button class="round-btn" id="fullscreen" aria-label="Layar penuh">${icon('fullscreen')}</button><button class="round-btn nusa-mini-settings" data-nav="settings" id="nusaMiniSettings" aria-label="Setelan mini, atur waktu kota"><span class="nusa-attention" aria-hidden="true"></span>${icon('settings')}</button></div><div class="scene-caption"><span class="status-dot"></span> KOTA NUSA · TREBEDIT</div><nav class="dock"><button data-nav="map">${icon('map')}<span>Peta</span></button><button data-nav="jobs">${icon('work')}<span>Kerja</span></button><button data-nav="home">${icon('home')}<span>Rumah</span></button><button data-nav="chat">${icon('chat')}<span>Chat</span></button><button data-nav="ktp">${icon('person')}<span>KTP</span></button><button data-nav="cityOffice" id="cityOfficeNav" class="hidden">${icon('hall')}<span>Balai Kota</span></button><div class="dock-divider"></div><button data-nav="nusaPlus">${icon('hall')}<span>Aktivitas</span></button><button data-nav="owner" class="hidden" id="ownerNav">${icon('shield')}<span>Presiden</span></button></nav><div class="help-hint">Geser peta · cubit untuk zoom · ketuk bangunan</div></section><div id="chat" class="chat-panel hidden"></div><div class="modal-backdrop hidden" id="modal"></div><div class="toast-stack" id="toasts" aria-live="polite"></div><div class="offline-banner hidden" id="offline" role="alert">Ada kendala menyimpan data di HP. Jangan hapus data browser; cadangkan progres dulu.</div>`;
+ try{catalog=CATALOG;$('#app').innerHTML=`<canvas id="world" aria-label="Peta Kota Nusa 2D isometrik, geser dan ketuk bangunan"></canvas><div id="labels">${catalog.places.map(p=>`<button class="place-label" id="label-${p.id}" data-place="${p.id}">${p.name}</button>`).join('')}</div><section id="landing"><div class="landing-shade"></div><header class="topbar"><div class="brand"><div class="brand-mark">N</div><div><strong>Kota Nusa.</strong><small>SEBUAH KEHIDUPAN BARU</small></div></div><div class="topbar-links"><button class="quiet-btn" data-nav="guide">${icon('book')} Panduan warga</button><button class="quiet-btn icon-only" id="landingSound" aria-label="Aktifkan suara">${icon(settings.sound?'volume':'mute')}</button></div></header><div class="hero"><div class="eyebrow"><span class="status-dot"></span> PULAU KECIL, CERITA BESAR</div><h1>Tempat baru.<br><em>Ceritamu sendiri.</em></h1><p>Punya rumah. Temukan pekerjaanmu.<br>Kenalan dengan tetangga, dan bangun<br>kota yang tumbuh bersama kalian.</p><div class="hero-actions"><button class="btn primary" id="joinBtn">Mulai kehidupan ${icon('arrow')}</button><button class="btn" data-nav="guide">Kenali Nusa ${icon('book')}</button></div><div class="entry-landing-note">${icon('plane')} Petualangan baru: penerbangan Nusa 1 menit</div><div class="hero-note"><button class="quiet-btn" id="landingBackup">Cadangkan</button><label class="quiet-btn">Impor progres<input type="file" id="landingRestore" accept=".json,application/json" hidden></label></div><div class="hero-note">${icon('lock')} TrebEdit · Offline · Progres di HP ini</div></div><div class="landing-bottom"><div class="feature-stamps"><div class="feature-stamp"><strong>39</strong><span>Pilihan profesi</span></div><div class="feature-stamp"><strong>30</strong><span>Rencana bangunan</span></div><div class="feature-stamp"><strong>1 kota</strong><span>Tumbuh bersama</span></div></div><div class="postcard"><span>SALAM DARI PESISIR</span><strong>Rumah bagi ceritamu.</strong><p>Kota jernih · Edisi TrebEdit</p></div></div></section><section class="hud hidden" id="hud"><header class="hud-top"><div class="identity-chip"><div class="brand-mark">N</div><div><h3 id="hudName">Warga Nusa</h3><small id="hudRole">Kehidupan pertama</small></div></div><div class="nusa-active-chip wait" id="nusaActiveChip" role="status" aria-label="Status pemain aktif"><i></i><span id="nusaActiveCount">Menghubungkan…</span></div><div class="hud-status"><div class="status-pill">${icon('sun')}<div id="cityClock">Sore di Nusa</div></div><button class="status-pill" data-nav="wallet">${icon('wallet')}<div><span id="coins">250</span><small>Koin tersedia</small></div></button><button class="status-pill" data-nav="people">${icon('people')}<div><span id="onlineCount">0 warga online</span><small>Simpanan lokal</small></div></button></div></header><button class="xp-chip" data-nav="career">${icon('shield')}<span id="xpLabel">0 EXP</span>${icon('arrow')}</button><div class="right-tools"><button class="round-btn nusa-news-bell" id="nusaNewsBell" data-nav="news" aria-label="Kabar kota, belum ada notifikasi baru" title="Berita resmi Kota Nusa">${icon('bell')}<span class="nusa-news-badge" id="nusaNewsBadge" hidden aria-hidden="true">0</span></button><button class="round-btn" id="cameraHome" aria-label="Pusatkan kamera">${icon('compass')}</button><button class="round-btn" id="zoomIn" aria-label="Perbesar">${icon('plus')}</button><button class="round-btn" id="zoomOut" aria-label="Perkecil">${icon('minus')}</button><button class="round-btn" id="fullscreen" aria-label="Layar penuh">${icon('fullscreen')}</button><button class="round-btn nusa-mini-settings" data-nav="settings" id="nusaMiniSettings" aria-label="Setelan mini, atur waktu kota"><span class="nusa-attention" aria-hidden="true"></span>${icon('settings')}</button></div><div class="scene-caption"><span class="status-dot"></span> KOTA NUSA · TREBEDIT</div><nav class="dock"><button data-nav="map">${icon('map')}<span>Peta</span></button><button data-nav="jobs">${icon('work')}<span>Kerja</span></button><button data-nav="home">${icon('home')}<span>Rumah</span></button><button id="nusaMyOrchardNav" data-nav="myOrchard" aria-label="Kebunku: lihat lahan milikku" title="Cari lokasi kebun milikku"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-8M12 13c-5 0-8-4-8-9 5 0 8 3 8 9Zm0 1c0-6 4-9 9-9 0 5-3 9-9 9Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Kebunku</span></button><button data-nav="chat">${icon('chat')}<span>Chat</span></button><button data-nav="ktp">${icon('person')}<span>KTP</span></button><button data-nav="cityOffice" id="cityOfficeNav" class="hidden">${icon('hall')}<span>Balai Kota</span></button><div class="dock-divider"></div><button data-nav="nusaPlus">${icon('hall')}<span>Aktivitas</span></button><button data-nav="owner" class="hidden" id="ownerNav">${icon('shield')}<span>Presiden</span></button></nav><div class="help-hint">Geser peta · cubit untuk zoom · ketuk bangunan</div></section><div id="chat" class="chat-panel hidden"></div><div class="modal-backdrop hidden" id="modal"></div><div class="toast-stack" id="toasts" aria-live="polite"></div><div class="offline-banner hidden" id="offline" role="alert">Ada kendala menyimpan data di HP. Jangan hapus data browser; cadangkan progres dulu.</div>`;
  $('#hud').insertAdjacentHTML('beforeend',`<button type="button" id="nusaPremiumFloat" class="nusa-premium-float" aria-label="Buka Premium Shop" title="Premium Shop"><span class="nusa-bag-icon"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true" style="fill:none;stroke:#f4d77f;stroke-width:2.1;stroke-linejoin:round;stroke-linecap:round"><path d="M6 11h20l-2 16H8L6 11Z"/><path d="M12 12V8a4 4 0 0 1 8 0v4"/><path d="m16 16 1.7 3.1 3.3.5-2.4 2.3.5 3.3-3.1-1.7-3.1 1.7.5-3.3-2.4-2.3 3.3-.5Z" style="fill:#e0b84c;stroke-width:.5"/></svg></span><small>SHOP</small></button>`);$('#nusaPremiumFloat').onclick=()=>{nusaShopChime();showNusaPremium();};
  $('#hud').insertAdjacentHTML('beforeend',`<div class="city-controls"><button id="governmentAccess" data-nav="owner">${icon('shield')}<span>Pemerintahan</span>${icon('arrow')}</button><div class="camera-actions"><button id="cameraMode">${icon('map')}<span>Seluruh kota</span></button><button id="photoMode" aria-label="Mode foto tanpa panel">${icon('camera')}</button></div></div>`);$('#app').insertAdjacentHTML('beforeend','<button class="btn photo-exit hidden" id="photoExit">Selesai mode foto</button>');
  const photoMode=value=>{$('#app').classList.toggle('photo-mode',value);$('#photoExit').classList.toggle('hidden',!value);world.photo(value);if(value){chatOpen=false;$('#chat').classList.add('hidden');closePanel();}};$('#photoMode').onclick=()=>photoMode(true);$('#photoExit').onclick=()=>photoMode(false);let civicTapTimes=[];$('#cameraMode').onclick=()=>{world.home();const t=performance.now();civicTapTimes=civicTapTimes.filter(v=>t-v<4000);civicTapTimes.push(t);if(civicTapTimes.length>=10){civicTapTimes=[];window.NusaGovUI.open();}};addEventListener('keydown',e=>{if(e.key==='Escape')photoMode(false);});
@@ -3681,7 +3756,7 @@ async function bootstrap(){
  $('#joinBtn').onclick=join;$('#landingBackup').onclick=backupLocal;$('#landingRestore').onchange=restoreLocal;$('#landingSound').onclick=()=>{settings.sound=!settings.sound;settings.music=settings.sound;$('#landingSound').innerHTML=icon(settings.sound?'volume':'mute');beep();music();};$('#cameraHome').onclick=()=>world.focusCity();$('#zoomIn').onclick=()=>world.zoom(-4);$('#zoomOut').onclick=()=>world.zoom(4);$('#fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else toast('Browser ini belum mendukung layar penuh.');}catch{toast('Layar penuh ditolak browser. Gunakan menu Chrome untuk tampilan lebih luas.');}};
 
 
- $('#app').addEventListener('click',e=>{if(e.target.closest('button,a,input,select'))beep('click');},{capture:true});$('#app').addEventListener('click',e=>{if(e.target.closest('#nusaSettingsBackup')){showSettings();return;}const b=e.target.closest('[data-nav],[data-place],[data-close]');if(!b)return;if(b.hasAttribute('data-close'))return closePanel();if(b.dataset.place){openMapTarget(b.dataset.place);return;}const n=b.dataset.nav;if(!['guide','support'].includes(n)&&!entered)return join();if(state.me?.banned)return showCityBan(state.me);if(n==='jobs')showJobs();else if(n==='people')showCitizens();else if(n==='chat')openChat();else nav[n]?.();});
+ $('#app').addEventListener('click',e=>{if(e.target.closest('button,a,input,select'))beep('click');},{capture:true});$('#app').addEventListener('click',e=>{if(e.target.closest('#nusaSettingsBackup')){showSettings();return;}const b=e.target.closest('[data-nav],[data-place],[data-close]');if(!b)return;if(b.hasAttribute('data-close'))return closePanel();if(b.dataset.place){openMapTarget(b.dataset.place);return;}const n=b.dataset.nav;if(!['guide','support'].includes(n)&&!entered)return join();if(state.me?.banned)return showCityBan(state.me);if(n==='myOrchard')openMyOrchard();else if(n==='jobs')showJobs();else if(n==='people')showCitizens();else if(n==='chat')openChat();else nav[n]?.();});
  $('#modal').addEventListener('click',e=>{if(e.target===$('#modal'))closePanel();});addEventListener('keydown',e=>{if(e.key==='Escape'){closePanel();chatOpen=false;$('#chat').classList.add('hidden');}});
  try{absorb(await request('/api/state'));if(state.me){$('#joinBtn').innerHTML='Lanjutkan cerita '+icon('arrow');$('.hero-note').insertAdjacentHTML('afterend','<div class="hero-note">'+icon('check')+' Selamat kembali, '+esc(state.me.name)+' · Data tersimpan</div>');}}catch(e){if(!e.login)toast(e.message,true);}
  setInterval(poll,5000);setInterval(()=>{if(entered)updateHud();},10000);setInterval(nusaUpdateLocalTime,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)nusaUpdateLocalTime();});
@@ -4429,6 +4504,24 @@ const API={lots:{},lastError:'',
    });
   }catch(e){this.lastError=String(e.code||e.message||e).slice(0,180);}finally{this.starting=null;}})();
   return this.starting;
+ },
+ async findMine(p){
+  try{
+   const {auth,c,db}=await sdk();
+   const signed=auth.currentUser;
+   if(!signed||signed.isAnonymous||!signed.providerData?.some(provider=>provider.providerId==='google.com'))
+    return {status:'login'};
+   const current=(await c.get(c.ref(db,base))).val()||{};
+   const entries=Object.entries(current).filter(([k,v])=>validLot(Number(k))&&v&&typeof v==='object');
+   const exact=entries.find(([k,v])=>v.uid===signed.uid&&v.gameId===p?.id);
+   if(exact)return {status:'owned',lot:Number(exact[0]),local:!!p?.orchard};
+   const byUid=entries.find(([k,v])=>v.uid===signed.uid);
+   if(byUid)return {status:'anotherCharacter',lot:Number(byUid[0])};
+   const byCharacter=entries.find(([k,v])=>v.gameId===p?.id);
+   if(byCharacter)return {status:'conflict',lot:Number(byCharacter[0])};
+   if(p?.orchard&&validLot(Number(p.orchardLot)))return {status:'localOnly',lot:Number(p.orchardLot)};
+   return {status:'none'};
+  }catch(err){return {status:'error',message:String(err?.message||err).slice(0,150)};}
  },
  async claim(lot,p){
   if(!validLot(lot))throw Error('Lahan tidak ditemukan.');
