@@ -3304,15 +3304,21 @@ async function bootstrap(){
 const _nusaOriginalAct = act;
 act = async function(action,body={},quiet=false){
  const orchard=action==='orchard';
+ let justClaimed=false;
  if(orchard&&body?.op==='buy'){
   if(!window.NusaOrchardCloud)throw Error('Kebun online belum dimuat. Coba buka ulang.');
   if(state.me?.orchard)throw Error('Kamu sudah punya kebun.');
   if((state.me?.coins||0)-(state.me?.held||0)<ORCHARD_COST)throw Error('Koin lahan belum cukup.');
-  await window.NusaOrchardCloud.claim(Number(body.lot),state.me);
+  const result=await window.NusaOrchardCloud.claim(Number(body.lot),state.me);
+  justClaimed=result?.created===true;
  }
  let result;
  try{result=await _nusaOriginalAct(action,body,quiet);}
- catch(e){if(orchard&&body?.op==='buy')await window.NusaOrchardCloud?.release(Number(body.lot));throw e;}
+ catch(e){
+  // Jangan hapus lahan lama jika pemain sudah memilikinya sebelum klik Beli.
+  if(orchard&&body?.op==='buy'&&justClaimed)await window.NusaOrchardCloud?.release(Number(body.lot),state.me);
+  throw e;
+ }
  if(orchard){
   try{await window.NusaOrchardCloud?.publish(state.me);}catch(e){toast('Tersimpan di HP, tetapi sinkron kebun gagal: '+(e.message||e),true);}
  }
@@ -3920,8 +3926,17 @@ const base='nusaOrchardLotsV1';
 const validLot=n=>Number.isInteger(n)&&n>=0&&n<20;
 const validId=v=>typeof v==='string'&&/^[a-zA-Z0-9_-]{1,64}$/.test(v);
 const cleanTrees=(farm)=>JSON.stringify((farm?.plots||[]).slice(0,20).map(t=>t&&['sawit','apel','mangga','jeruk','pisang','emas'].includes(t.type)?{type:t.type,plantedAt:Number(t.plantedAt)||0,nextAt:Number(t.nextAt)||0,harvested:Number(t.harvested)||0}:null));
-async function getUser(){const {auth}=await sdk();if(auth.currentUser)return auth.currentUser;
- if(!window.NusaKtpCloud?.signIn)throw Error('Modul Google belum siap. Coba muat ulang.');return window.NusaKtpCloud.signIn();}
+async function getUser(){
+ const {auth}=await sdk();
+ if(auth.currentUser){
+  if(auth.currentUser.isAnonymous)throw Error('Akun Firebase anonim belum boleh membeli kebun. Hubungkan Google melalui menu KTP, kemudian coba lagi.');
+  return auth.currentUser;
+ }
+ if(!window.NusaKtpCloud?.signIn)throw Error('Modul Google belum siap. Coba muat ulang.');
+ const user=await window.NusaKtpCloud.signIn();
+ if(!user||user.isAnonymous)throw Error('Login Google belum aktif. Hubungkan Google dahulu.');
+ return user;
+}
 const API={lots:{},lastError:'',
  async diagnose(p){
   try{
@@ -3929,7 +3944,12 @@ const API={lots:{},lastError:'',
    await c.get(c.ref(db,base));
    if(!auth.currentUser)return {ok:false,message:'✅ Database kebun dapat dibaca, tetapi belum login Google. Hubungkan Google di KTP agar kebunmu bisa diklaim.'};
    const lot=Number(p?.orchardLot);
-   if(!p?.orchard||!validLot(lot))return {ok:true,message:'✅ Firebase kebun dapat dibaca. Kamu belum memiliki lahan lokal untuk disambungkan.'};
+   if(!p?.orchard||!validLot(lot)){
+    const lots=(await c.get(c.ref(db,base))).val()||{};
+    const same=Object.entries(lots).find(([k,v])=>validLot(Number(k))&&v&&(v.uid===auth.currentUser.uid||v.gameId===p?.id));
+    if(same)return {ok:false,message:'⚠️ Firebase sudah mencatat kebun terkait Google/karakter ini pada petak '+(Number(same[0])+1)+'. Jangan beli ulang; gunakan Sambungkan Lahan Lama atau minta admin memeriksa kepemilikan.'};
+    return {ok:true,message:'✅ Daftar kebun bisa dibaca dan akun Google terhubung. Jika klaim baru gagal, periksa izin .write/.validate pada Rules kebun.'};
+   }
    const rec=(await c.get(c.ref(db,base+'/'+lot))).val();
    if(!rec)return {ok:false,message:'⚠️ Lahan ini masih hanya tersimpan di HP. Tekan Sambungkan Lahan Lama, setelah Rules kebun diterbitkan.'};
    if(rec.uid!==auth.currentUser.uid||rec.gameId!==p.id)return {ok:false,message:'⚠️ Lahan nomor ini tercatat milik akun/karakter lain di Firebase. Jangan beli ulang; periksa identitas lahan.'};
@@ -3953,19 +3973,51 @@ const API={lots:{},lastError:'',
   }catch(e){this.lastError=String(e.code||e.message||e).slice(0,180);}finally{this.starting=null;}})();
   return this.starting;
  },
- async claim(lot,p){if(!validLot(lot))throw Error('Lahan tidak ditemukan.');if(!p||!validId(p.id))throw Error('Identitas karakter belum siap.');
+ async claim(lot,p){
+  if(!validLot(lot))throw Error('Lahan tidak ditemukan.');
+  if(!p||!validId(p.id))throw Error('Identitas karakter belum siap.');
   const u=await getUser(),{c,db}=await sdk(),ref=c.ref(db,base+'/'+lot);
-  const existing=await c.get(ref);
-  if(existing.exists()){
-   if(existing.val()?.uid===u.uid&&existing.val()?.gameId===p.id)return;
-   throw Error('Kebun ini sudah dimiliki orang lain di Firebase. Pilih kebun lain.');
+  let all;
+  try{all=(await c.get(c.ref(db,base))).val()||{};}
+  catch(e){
+   if(/permission[ _-]?denied/i.test(String(e?.code||e?.message||e)))throw Error('Firebase menolak membaca daftar lahan. Periksa cabang nusaOrchardLotsV1 pada Realtime Database Rules (izin .read).');
+   throw e;
+  }
+  const existing=all[String(lot)];
+  if(existing){
+   if(existing.uid===u.uid&&existing.gameId===p.id)return {created:false};
+   throw Error('Kebun petak '+(lot+1)+' sudah dimiliki warga lain. Pilih kavling kosong.');
+  }
+  const another=Object.entries(all).find(([k,v])=>validLot(Number(k))&&v&&(v.uid===u.uid||v.gameId===p.id));
+  if(another){
+   const [lotOld,v]=another;
+   if(v.uid===u.uid&&v.gameId===p.id)throw Error('Karakter ini sudah memiliki kebun di petak '+(Number(lotOld)+1)+'. Buka lahan lama, jangan beli lagi.');
+   if(v.uid===u.uid)throw Error('Akun Google ini sudah punya kebun di petak '+(Number(lotOld)+1)+' dengan karakter lain. Gunakan karakter pemilik atau hubungi admin.');
+   throw Error('Identitas karakter ini tercatat pada petak '+(Number(lotOld)+1)+' dengan akun Google berbeda. Jangan klaim lahan baru; minta admin mengecek data.');
   }
   const rec={uid:u.uid,gameId:p.id,name:String(p.name||'Warga').slice(0,24),color:/^#[0-9a-fA-F]{6}$/.test(p.color)?p.color:'#579b8b',trees:'[]',harvest:0,updated:c.serverTimestamp()};
-  try{const res=await c.runTransaction(ref,old=>old===null?rec:undefined,{applyLocally:false});if(!res.committed)throw Error('Baru saja dibeli warga lain. Pilih lahan lain.');}
-  catch(e){throw Error('Klaim online belum berhasil: '+String(e.message||e).slice(0,130)+'. Pastikan Rules kebun sudah dipasang.');}
+  let result;
+  try{result=await c.runTransaction(ref,old=>old===null?rec:undefined,{applyLocally:false});}
+  catch(e){
+   if(/permission[ _-]?denied/i.test(String(e?.code||e?.message||e)))throw Error('Firebase menolak klaim petak '+(lot+1)+'. Periksa izin .write dan .validate pada nusaOrchardLotsV1/$lot di Realtime Database Rules. Tidak ada koin dipotong.');
+   throw Error('Klaim online gagal: '+String(e?.message||e).slice(0,150));
+  }
+  if(!result.committed)throw Error('Petak baru saja diklaim warga lain. Pilih lahan lain.');
   this.lots[lot]={...rec,updated:Date.now()};window.NusaWorldCloudRefresh?.();
+  return {created:true};
  },
- async release(lot){if(!validLot(lot))return;try{const {auth,c,db}=await sdk();const ref=c.ref(db,base+'/'+lot);const snap=await c.get(ref);if(snap.val()?.uid===auth.currentUser?.uid){await c.remove(ref);delete this.lots[lot];window.NusaWorldCloudRefresh?.();}}catch{}},
+ async release(lot,p){
+  if(!validLot(lot)||!p?.id)return;
+  try{
+   const {auth,c,db}=await sdk();const ref=c.ref(db,base+'/'+lot);
+   // Cek pemilik dan kondisi kebun secara atomik agar perubahan HP lain tidak terhapus.
+   const res=await c.runTransaction(ref,v=>{
+    if(!v||v.uid!==auth.currentUser?.uid||v.gameId!==p.id||v.trees!=='[]'||v.harvest!==0)return;
+    return null;
+   },{applyLocally:false});
+   if(res.committed){delete this.lots[lot];window.NusaWorldCloudRefresh?.();}
+  }catch(e){console.warn('Tidak dapat membatalkan klaim kebun kosong; hubungi admin jika petak tertahan:',e);}
+ },
  async publish(p){if(!p?.orchard||!validLot(p.orchardLot))return;
   const {auth,c,db}=await sdk();if(!auth.currentUser)throw Error('Hubungkan Google agar kebun terbit online.');
   const ref=c.ref(db,base+'/'+p.orchardLot),rec=(await c.get(ref)).val();
