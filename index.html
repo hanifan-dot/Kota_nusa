@@ -5719,239 +5719,198 @@ window.NusaAchievements={onCatch:async fish=>{
  catch(err){console.info('Pengumuman tangkapan tidak terbit:',err?.message||err);return false}
 },state:()=>({signedIn:!!user,unread,muteChat:prefs.muteChat,hideAchievements:prefs.hideAchievements})};
 </script>
-
-<style id="nusa-v236-ui-fix">
-/* === Kota Nusa V2.36 UI rapih + tombol mata === */
-.hud-top{
-  left:16px!important;
-  right:16px!important;
-  top:max(14px,env(safe-area-inset-top))!important;
-  align-items:flex-start!important;
+<style id="nusa-v237-mini-hud">
+/* V2.37: only display/layout, no world, Firebase, economy or camera changes. */
+@media(max-width:650px){
+  html body #app #hud .hud-top{top:10px!important;left:10px!important;right:10px!important;gap:4px!important}
+  html body #app #hud .identity-chip{
+    position:relative!important;flex:0 0 46px!important;width:46px!important;max-width:46px!important;
+    min-width:46px!important;height:46px!important;min-height:46px!important;
+    padding:0!important;border-radius:50%!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    border:1.5px solid #dfbd79!important;background:#f8f6ed!important;
+    overflow:visible!important;box-shadow:0 4px 12px #09253930!important;
+    cursor:pointer!important;
+  }
+  html body #app #hud .identity-chip .brand-mark{
+    display:grid!important;place-items:center!important;
+    width:34px!important;height:34px!important;min-width:34px!important;
+    padding:0!important;margin:0!important;border-radius:50%!important;
+    font:800 17px/1 system-ui,sans-serif!important;
+    background:#17465a!important;color:#fff3d9!important;
+  }
+  html body #app #hud .identity-chip>div:last-child{display:none!important}
+  html body #app #hud .identity-chip:after{content:none!important;display:none!important}
+  html body #app #hud .hud-status{margin-left:auto!important;gap:0!important;align-items:center!important}
+  html body #app #hud .hud-status>button[data-nav="wallet"]{
+    height:45px!important;min-height:45px!important;max-width:calc(100vw - 150px)!important;
+    min-width:0!important;width:auto!important;padding:5px 10px!important;gap:6px!important;
+    border-radius:22px!important;display:flex!important;align-items:center!important;
+  }
+  html body #app #hud .hud-status>button[data-nav="wallet"] svg{width:16px!important;height:16px!important}
+  html body #app #hud .hud-status>button[data-nav="wallet"] span{font-size:13px!important;line-height:1.15!important}
+  html body #app #hud .hud-status>button[data-nav="wallet"] small{font-size:8px!important;line-height:1.1!important}
+  html body #app #hud .xp-chip{
+    left:10px!important;top:66px!important;width:84px!important;max-width:84px!important;
+    min-width:84px!important;height:35px!important;min-height:35px!important;
+    padding:4px 7px!important;gap:3px!important;font-size:9px!important;
+    border-radius:19px!important;justify-content:center!important;
+  }
+  html body #app #hud .xp-chip svg{width:12px!important;height:12px!important}
+  html body #app #hud .hud-top #nusaActiveChip{
+    position:absolute!important;top:66px!important;left:50%!important;right:auto!important;
+    transform:translateX(-50%)!important;width:111px!important;max-width:111px!important;
+    min-width:111px!important;height:35px!important;min-height:35px!important;
+    padding:0 7px!important;display:flex!important;align-items:center!important;
+    justify-content:center!important;gap:5px!important;
+    font-size:10px!important;border-radius:19px!important;
+    white-space:nowrap!important;z-index:11!important;
+  }
+  html body #app #hud .right-tools{
+    top:66px!important;right:52px!important;left:auto!important;width:75px!important;
+    display:grid!important;grid-template-columns:repeat(2,34px)!important;
+    grid-auto-rows:34px!important;gap:6px!important;
+    justify-content:end!important;align-items:center!important;z-index:14!important;
+  }
+  html body #app #hud .right-tools>button{
+    position:relative!important;width:34px!important;height:34px!important;min-width:34px!important;
+    min-height:34px!important;padding:0!important;margin:0!important;border-radius:50%!important;
+    grid-column:auto!important;grid-row:auto!important;left:auto!important;right:auto!important;top:auto!important;
+    align-items:center!important;justify-content:center!important;
+  }
+  html body #app #hud .right-tools>button svg{width:17px!important;height:17px!important}
+  html body #app #hud .right-tools>#nusaNewsBell{display:grid!important;grid-column:1!important;grid-row:1!important}
+  html body #app #hud .right-tools>#nusaNotifySettingsButton{display:grid!important;grid-column:2!important;grid-row:1!important}
+  html body #app #hud .right-tools>#nusaToolToggle{display:grid!important;grid-column:2!important;grid-row:2!important}
+  html body #app #hud .right-tools>button:not(#nusaNewsBell):not(#nusaNotifySettingsButton):not(#nusaToolToggle){display:none!important}
+  html body #app #hud .right-tools.open>button:not(#nusaNewsBell):not(#nusaNotifySettingsButton):not(#nusaToolToggle){display:grid!important;grid-row:auto!important}
+  html body #app #hud .city-controls{
+    position:absolute!important;left:10px!important;top:112px!important;
+    width:150px!important;max-width:150px!important;gap:6px!important;
+    z-index:12!important;
+  }
+  html body #app #hud .city-controls #governmentAccess{
+    width:150px!important;min-width:150px!important;height:36px!important;min-height:36px!important;
+    padding:5px 10px!important;border-radius:18px!important;
+    font-size:10px!important;gap:6px!important;
+  }
+  html body #app #hud .city-controls #governmentAccess svg{width:15px!important;height:15px!important}
+  html body #app #hud .camera-actions{
+    display:flex!important;align-items:center!important;gap:7px!important;
+  }
+  html body #app #hud .camera-actions #cameraMode,
+  html body #app #hud .camera-actions #photoMode{
+    width:39px!important;max-width:39px!important;min-width:39px!important;
+    height:39px!important;min-height:39px!important;
+    border-radius:50%!important;padding:0!important;
+    display:grid!important;place-items:center!important;
+    flex:0 0 39px!important;
+  }
+  html body #app #hud .camera-actions #cameraMode span{display:none!important}
+  html body #app #hud .camera-actions button svg{width:18px!important;height:18px!important}
+  html body #app #hud #nusaPremiumFloat{
+    position:absolute!important;right:12px!important;top:151px!important;
+    width:49px!important;height:58px!important;min-height:58px!important;
+    padding:5px 2px!important;border-radius:16px!important;
+    animation:none!important;
+  }
+  html body #app #hud #nusaPremiumFloat svg{width:24px!important;height:24px!important}
+  html body #app #hud #nusaPremiumFloat small{font-size:9px!important}
+  html body #nusaGoogleWelcome{right:12px!important;top:219px!important;width:45px!important;height:44px!important;min-height:44px!important;border-radius:14px!important}
+  html body #app #hud .dock{
+    min-height:65px!important;padding:4px!important;
+    width:calc(100% - 16px)!important;max-width:520px!important;
+    bottom:max(9px,env(safe-area-inset-bottom))!important;
+    border-radius:17px!important;gap:1px!important;
+  }
+  html body #app #hud .dock button{min-height:53px!important;padding:3px 0!important;gap:3px!important;min-width:0!important}
+  html body #app #hud .dock button svg{width:19px!important;height:19px!important}
+  html body #app #hud .dock button span{font-size:8px!important}
+  html body #nusaFishingJump{bottom:max(90px,calc(env(safe-area-inset-bottom) + 85px))!important}
 }
-.identity-chip{
-  min-width:0!important;
-  max-width:162px!important;
-  width:auto!important;
-  padding:9px 14px!important;
-  gap:9px!important;
-  border-radius:26px!important;
+/* External eye stays clickable even when the HUD is hidden. */
+html body #app #nusaHudEyeButton{
+  display:grid;place-items:center;position:absolute;top:66px;right:10px;
+  width:34px;height:34px;min-width:34px;min-height:34px;padding:0;
+  border-radius:50%;background:#fdf9ed;color:#173e50;border:1px solid #fff;
+  box-shadow:0 4px 14px #092c4345;z-index:12000;
+  pointer-events:auto;cursor:pointer;touch-action:manipulation;
 }
-.identity-chip .brand-mark{
-  width:28px!important;
-  height:28px!important;
-  min-width:28px!important;
-  font-size:18px!important;
-  border-radius:50%!important;
+html body #app #nusaHudEyeButton[hidden]{display:none!important}
+#nusaHudEyeButton svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+html body.nusa-hud-hidden #hud,
+html body.nusa-hud-hidden #labels,
+html body.nusa-hud-hidden #modal,
+html body.nusa-hud-hidden #chat,
+html body.nusa-hud-hidden #toasts,
+html body.nusa-hud-hidden #nusaFishingJump,
+html body.nusa-hud-hidden #nusaGoogleWelcome,
+html body.nusa-hud-hidden #nusaNotifySettingsPanel,
+html body.nusa-hud-hidden #nusaAccountMenu,
+html body.nusa-hud-hidden #tipBanner,
+html body.nusa-hud-hidden #nusaOrderOverlay,
+html body.nusa-hud-hidden #nusaCloudAnnouncement,
+html body.nusa-hud-hidden #nusaAchievementsLayer{
+  visibility:hidden!important;pointer-events:none!important;opacity:0!important;
 }
-.identity-chip h3{
-  font-size:15px!important;
-  line-height:1.05!important;
-  margin:0!important;
-}
-.identity-chip small{
-  display:block!important;
-  margin-top:3px!important;
-  font-size:8px!important;
-  line-height:1.25!important;
-}
-.hud-status{gap:8px!important}
-.status-pill{
-  border-radius:24px!important;
-  min-height:52px!important;
-  padding:10px 15px!important;
-}
-#nusaActiveChip,.nusa-active-chip{
-  position:absolute!important;
-  top:max(92px,calc(env(safe-area-inset-top) + 82px))!important;
-  left:50%!important;
-  transform:translateX(-50%)!important;
-  min-width:146px!important;
-  max-width:170px!important;
-  min-height:48px!important;
-  padding:0 16px!important;
-  font-size:12px!important;
-  border-radius:999px!important;
-  z-index:14!important;
-}
-.xp-chip{
-  left:16px!important;
-  top:96px!important;
-  min-width:86px!important;
-  min-height:56px!important;
-  border-radius:999px!important;
-  padding:8px 12px!important;
-}
-.xp-chip span{display:block!important;line-height:1.1!important}
-.right-tools{
-  right:16px!important;
-  top:96px!important;
-  display:grid!important;
-  grid-template-columns:repeat(2,52px)!important;
-  gap:10px!important;
-  justify-content:end!important;
-}
-.right-tools .round-btn{
-  width:52px!important;
-  height:52px!important;
-  border-radius:50%!important;
-}
-.right-tools .round-btn svg{
-  width:21px!important;
-  height:21px!important;
-}
-.city-controls{
-  left:16px!important;
-  top:168px!important;
-  max-width:none!important;
-  gap:10px!important;
-  z-index:11!important;
-}
-#governmentAccess{
-  width:178px!important;
-  min-height:48px!important;
-  border-radius:18px!important;
-  padding:0 16px!important;
-  justify-content:space-between!important;
-}
-.camera-actions{
-  display:flex!important;
-  gap:10px!important;
-  align-items:center!important;
-}
-#cameraMode{
-  min-width:136px!important;
-  width:136px!important;
-  min-height:46px!important;
-  border-radius:999px!important;
-  padding:0 16px!important;
-  justify-content:center!important;
-}
-#photoMode{
-  width:46px!important;
-  min-width:46px!important;
-  height:46px!important;
-  min-height:46px!important;
-  border-radius:50%!important;
-  padding:0!important;
-  display:grid!important;
-  place-items:center!important;
-}
-#nusaPremiumFloat{
-  right:18px!important;
-  top:286px!important;
-}
-/* tambah sedikit ruang agar kota tidak terlalu ketutup HUD */
-.help-hint{display:none!important}
-.scene-caption{bottom:106px!important}
-
-/* tombol mata */
-#nusaEyeToggle{
-  position:relative!important;
-  background:linear-gradient(145deg,#173347,#244f64)!important;
-  color:#f4deb0!important;
-  border:1px solid #d8b56a!important;
-  box-shadow:0 8px 18px #12384d55!important;
-}
-#nusaEyeToggle svg{stroke:currentColor!important}
-body.nusa-ui-hidden .identity-chip,
-body.nusa-ui-hidden .hud-status,
-body.nusa-ui-hidden .xp-chip,
-body.nusa-ui-hidden #nusaActiveChip,
-body.nusa-ui-hidden .city-controls,
-body.nusa-ui-hidden .dock,
-body.nusa-ui-hidden .scene-caption,
-body.nusa-ui-hidden .help-hint,
-body.nusa-ui-hidden #chat,
-body.nusa-ui-hidden #nusaPremiumFloat,
-body.nusa-ui-hidden #cameraHome,
-body.nusa-ui-hidden #zoomIn,
-body.nusa-ui-hidden #zoomOut,
-body.nusa-ui-hidden #fullscreen,
-body.nusa-ui-hidden #nusaMiniSettings,
-body.nusa-ui-hidden #nusaNewsBell,
-body.nusa-ui-hidden .nusa-mini-settings,
-body.nusa-ui-hidden .nusa-news-bell,
-body.nusa-ui-hidden .interact,
-body.nusa-ui-hidden #nusaSaveStatus,
-body.nusa-ui-hidden #tipBanner,
-body.nusa-ui-hidden .offline-banner,
-body.nusa-ui-hidden .photo-exit{
-  opacity:0!important;
-  visibility:hidden!important;
-  pointer-events:none!important;
-}
-body.nusa-ui-hidden .right-tools{
-  grid-template-columns:52px!important;
-}
-body.nusa-ui-hidden .right-tools > :not(#nusaEyeToggle){
-  display:none!important;
-}
-body.nusa-ui-hidden #nusaEyeToggle{
-  opacity:1!important;
-  visibility:visible!important;
-  pointer-events:auto!important;
-}
-@media (max-width:390px){
-  .identity-chip{max-width:152px!important;padding:8px 12px!important}
-  .identity-chip h3{font-size:14px!important}
-  .xp-chip{min-width:82px!important}
-  #cameraMode{min-width:124px!important;width:124px!important}
-  #governmentAccess{width:168px!important}
-  #nusaActiveChip,.nusa-active-chip{min-width:132px!important;font-size:11px!important}
+#app.photo-mode #nusaHudEyeButton{display:none!important}
+@media(min-width:651px){html body #app #nusaHudEyeButton{right:20px;top:95px}}
+@media(max-width:350px){
+ html body #app #hud .hud-top #nusaActiveChip{width:102px!important;min-width:102px!important;font-size:9px!important}
+ html body #app #hud .right-tools{right:39px!important;width:68px!important;grid-template-columns:repeat(2,31px)!important;grid-auto-rows:31px!important;gap:5px!important}
+ html body #app #hud .right-tools>button{width:31px!important;height:31px!important;min-height:31px!important;min-width:31px!important}
+ html body #app #nusaHudEyeButton{right:8px;top:66px;width:31px;height:31px;min-height:31px;min-width:31px}
+ html body #app #hud .xp-chip{left:8px!important;width:78px!important;min-width:78px!important;font-size:8px!important}
+ html body #app #hud .city-controls{left:8px!important}
 }
 </style>
-
-<script id="nusa-v236-ui-fix-script">
-(function(){
-  const eyeOpen = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.1" fill="none" stroke="currentColor" stroke-width="1.9"/></svg>';
-  const eyeClosed = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.6 6.4A10.9 10.9 0 0 1 12 6c6.5 0 10 6 10 6a18.9 18.9 0 0 1-4 4.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.4 6.4C3.9 8.1 2 12 2 12s3.5 6 10 6c1.6 0 3-.3 4.2-.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-
-  function applyUiFix(){
-    const hud = document.getElementById('hud');
-    const tools = hud && hud.querySelector('.right-tools');
-    if(!hud || !tools) return false;
-
-    const gov = document.getElementById('governmentAccess');
-    if(gov){
-      const sp = gov.querySelector('span');
-      if(sp) sp.textContent = 'Panel Presiden';
-    }
-    const cam = document.getElementById('cameraMode');
-    if(cam){
-      const sp = cam.querySelector('span');
-      if(sp) sp.textContent = 'Seluruh kota';
-    }
-
-    if(!document.getElementById('nusaEyeToggle')){
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'round-btn';
-      btn.id = 'nusaEyeToggle';
-      btn.setAttribute('aria-label','Sembunyikan UI');
-      btn.setAttribute('title','Sembunyikan UI');
-      btn.innerHTML = eyeOpen;
-      const settingsBtn = document.getElementById('nusaMiniSettings');
-      if(settingsBtn && settingsBtn.parentElement===tools){
-        tools.insertBefore(btn, settingsBtn);
-      } else {
-        tools.appendChild(btn);
-      }
-      btn.addEventListener('click', ()=>{
-        const hidden = !document.body.classList.contains('nusa-ui-hidden');
-        document.body.classList.toggle('nusa-ui-hidden', hidden);
-        btn.innerHTML = hidden ? eyeClosed : eyeOpen;
-        btn.setAttribute('aria-label', hidden ? 'Tampilkan UI' : 'Sembunyikan UI');
-        btn.setAttribute('title', hidden ? 'Tampilkan UI' : 'Sembunyikan UI');
-      });
-    }
-    return true;
-  }
-
-  if(!applyUiFix()){
-    const timer = setInterval(()=>{ if(applyUiFix()) clearInterval(timer); }, 400);
-    setTimeout(()=>clearInterval(timer), 15000);
-  }
+<script id="nusa-v237-eye-controller">
+(()=>{
+ const openSvg='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="3"/></svg>';
+ const closedSvg='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.8 6.1A10.5 10.5 0 0 1 12 6c6.4 0 10 6 10 6a17.2 17.2 0 0 1-4.1 4.3M6.2 6.4C3.7 8.1 2 12 2 12s3.6 6 10 6a11.9 11.9 0 0 0 4.1-.8"/></svg>';
+ let btn;
+ function init(){
+   const app=document.getElementById('app');
+   if(!app)return;
+   if(!btn){
+     btn=document.createElement('button');
+     btn.type='button';btn.id='nusaHudEyeButton';btn.hidden=true;
+     btn.setAttribute('aria-label','Sembunyikan tampilan UI');
+     btn.title='Sembunyikan tampilan UI';btn.innerHTML=openSvg;
+     app.appendChild(btn);
+     btn.addEventListener('click',()=>{
+       const off=!document.body.classList.contains('nusa-hud-hidden');
+       document.body.classList.toggle('nusa-hud-hidden',off);
+       btn.innerHTML=off?closedSvg:openSvg;
+       const name=off?'Tampilkan kembali UI':'Sembunyikan tampilan UI';
+       btn.title=name;btn.setAttribute('aria-label',name);
+       btn.setAttribute('aria-pressed',String(off));
+     });
+   }
+   const hud=document.getElementById('hud');
+   const inGame=!!hud&&!hud.classList.contains('hidden');
+   btn.hidden=!inGame;
+   if(hud){
+     const profile=hud.querySelector('.identity-chip');
+     if(profile){
+       profile.setAttribute('role','button');profile.setAttribute('tabindex','0');
+       profile.setAttribute('aria-label','Buka profil dan akun pemain');
+       profile.title='Profil dan akun pemain';
+     }
+     const name=document.getElementById('hudName');
+     const initial=hud.querySelector('.identity-chip .brand-mark');
+     if(name&&initial&&inGame){
+       const newLetter=(name.textContent||'N').trim().charAt(0).toLocaleUpperCase('id-ID')||'N';
+       if(initial.textContent!==newLetter)initial.textContent=newLetter;
+     }
+     const map=document.getElementById('cameraMode');
+     if(map){map.title='Seluruh kota';map.setAttribute('aria-label','Seluruh kota')}
+   }
+ }
+ const observer=new MutationObserver(()=>{if(!queuePending){queuePending=true;queueMicrotask(()=>{queuePending=false;init()})}});
+ let queuePending=false;
+ function start(){init();observer.observe(document.getElementById('app')||document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class'],characterData:true});}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
 </script>
-
 </body></html>
