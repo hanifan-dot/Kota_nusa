@@ -1247,7 +1247,28 @@ function snapshot(){
  }
  persist();return {...view(W,uid),online:[],tips:[]};
 }
-return {setCivicOfficesV220(offices,verifiedRole){
+return {creditCloudRedeems(items,authUid,gameId){
+ const p=W.players[uid];demand(p&&p.id===gameId,'Buka karakter pemilik akun Google penerima.');
+ demand(typeof authUid==='string'&&authUid.length>=10,'Akun Google penerima tidak cocok.');
+ demand(Array.isArray(items)&&items.length>0&&items.length<=300,'Daftar koin diterima tidak valid.');
+ p.cloudVoucherClaimedV229??={};
+ let gain=0,count=0;const incoming=new Set();
+ for(const item of items){
+  const id=String(item?.path||''),v=Number(item?.value);
+  demand(/^vault0[0-9]{2}(?:\/[ab]){0,27}$/.test(id),'ID voucher tidak dikenal.');
+  demand(Number.isSafeInteger(v)&&v>=1&&v<=100000,'Nilai voucher tidak valid.');
+  demand(!incoming.has(id),'Voucher duplikat dalam batch.');incoming.add(id);
+  if(p.cloudVoucherClaimedV229[id])continue;
+  p.cloudVoucherClaimedV229[id]={amount:v,uid:authUid};gain+=v;count++;
+ }
+ if(gain>0){
+  demand(Number.isSafeInteger(p.coins+gain)&&p.coins+gain<=1000000000,'Dompet mencapai batas.');
+  p.coins+=gain;
+  record(W,'transfer_online','Terima '+count+' voucher Firebase, koin untuk belanja',p.id,gain,Date.now());
+  v2Post(W,p,'📥 '+gain.toLocaleString('id-ID')+' koin masuk','Transfer Firebase ditukarkan menjadi koin belanja di Kota Nusa.');
+ }
+ persist();return {gain,count,snapshot:snapshot()};
+},setCivicOfficesV220(offices,verifiedRole){
  const p=W.players[uid];if(!p)return null;
  const old=JSON.stringify([W.civicOfficialV220,W.vice,W.president]);
  W.civicOfficialV220=offices;W.termDays=offices.termDays||30;
@@ -1256,8 +1277,21 @@ return {setCivicOfficesV220(offices,verifiedRole){
  W.civicPresidentV220=verifiedRole==='president'?p.id:null;
  W.vice=offices.vice?.gameId||null;
  if(W.vice===p.id&&verifiedRole!=='vice')W.vice=null;
+ // V2.28: pemilik yang terverifikasi di Firebase mendapat minimal
+ // 1.000.000 KOIN GAME LOKAL, SEKALI SAJA di progres karakter ini.
+ // Bukan top-up saldo cloud atau hak warga lain. Wajib owner lokal + Presiden resmi.
+ let ownerTopup=false;
+ if(verifiedRole==='president'&&ownerOK()&&!p.ownerMillionV228){
+  const prev=Math.max(0,Math.floor(Number(p.coins)||0));
+  const gain=Math.max(0,1000000-prev);
+  p.coins=prev+gain;p.ownerMillionV228=true;
+  p.ownerBonus100kV24=true; // jangan memicu bonus lama setelah top-up ini
+  if(gain>0){record(W,'owner_bonus','Penyesuaian saldo Presiden menjadi 1.000.000 (sekali)',p.id,gain,Date.now());
+   v2Post(W,p,'Saldo Presiden: 1.000.000 koin','Saldo game lokal Presiden ditambah '+gain.toLocaleString('id-ID')+' koin. Tidak mempengaruhi dompet online ataupun warga lain.');}
+  ownerTopup=true;
+ }
  refresh(W,Date.now());
- if(old===JSON.stringify([W.civicOfficialV220,W.vice,W.president]))return null;
+ if(!ownerTopup&&old===JSON.stringify([W.civicOfficialV220,W.vice,W.president]))return null;
  persist();return snapshot();
 },setCivicViceVerified(enabled){
  const player=W.players[uid];if(!player||role(W,player.id)==='president')return snapshot();
@@ -2248,7 +2282,7 @@ function showLand(district=0,page=0){
  $$('[data-view-plot]').forEach(b=>b.onclick=()=>{const pos=world.plotPosition(Number(b.dataset.viewPlot));closePanel();world.navigate(pos.x,pos.z);});
  $$('[data-plot]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.plot),cost=plotPrice(i);confirmBox('Beli petak '+(i+1)+'?',`Harga tanah dan rumah: <b>${cost} koin</b>.<br>Lokasi: ${districtFor(i).name}.<br>Sisa saldo: ${fmt(state.me.coins-state.me.held-cost)} koin.`,async()=>{await SOCIAL.claimPlot(i);await act('buyLand',{plot:i});closePanel();const pos=world.plotPosition(i);world.navigate(pos.x,pos.z);},'Beli rumah');});
 }
-function showWallet(){const p=state.me;panel('Dompet warga',`<div class="eyebrow">SALDO TERSEDIA</div><div class="balance-number">${fmt(p.coins-p.held)} <small style="font:15px system-ui;color:#8c997f">koin</small></div><p class="intro">${p.held?fmt(p.held)+' koin ditahan untuk pembangunan.':'Uang permainan. Tidak dapat diuangkan atau ditukar menjadi saldo DANA.'} Transfer antar-HP tersedia dalam dompet koin online di bawah ini.</p><button class="btn wide" id="cloudWalletOpen">${icon('wallet')} Transfer Koin Online Antarwarga</button><h3 class="section-title">${icon('send')} Transfer lokal dalam HP</h3><label class="field"><span>Penerima</span><select id="transferTo"><option value="">Pilih warga</option>${state.citizens.filter(x=>x.id!==p.id&&!x.remote).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label><label class="field"><span>Jumlah koin</span><input class="input" id="transferAmount" type="number" inputmode="numeric" min="1" placeholder="Contoh: 50"></label><button class="btn primary wide" id="transferBtn">Periksa transfer ${icon('arrow')}</button><h3 class="section-title">Riwayat transaksi</h3>${state.ledger.filter(x=>x.actor===p.id).map(x=>`<div class="ledger-row"><div>${esc(x.text)}<span>${niceDate(x.time)}</span></div><strong class="${x.amount<0?'negative':''}">${x.amount>0?'+':''}${fmt(x.amount)}</strong></div>`).join('')||'<div class="empty">Belum ada transaksi.</div>'}`,{sub:'SEMUA TRANSAKSI TERCATAT',narrow:true});$('#cloudWalletOpen').onclick=()=>window.NusaCloudCoins?window.NusaCloudCoins.open('wallet'):toast('Modul koin online belum siap.',true);$('#transferBtn').onclick=()=>{const to=$('#transferTo').value,n=Number($('#transferAmount').value),target=state.citizens.find(p=>p.id===to);if(!target||!Number.isInteger(n)||n<=0)return toast('Pilih penerima dan jumlah koin yang valid.',true);confirmBox('Kirim koin?',`Penerima: <b>${esc(target.name)}</b><br>Jumlah: <b>${fmt(n)} koin</b><br>Sisa saldo tersedia: ${fmt(state.me.coins-state.me.held-n)} koin.`,async()=>{await act('transfer',{to,amount:n});showWallet();},'Kirim sekarang');};}
+function showWallet(){const p=state.me;panel('Dompet warga',`<div class="eyebrow">SALDO TERSEDIA</div><div class="balance-number">${fmt(p.coins-p.held)} <small style="font:15px system-ui;color:#8c997f">koin</small></div><p class="intro">${p.held?fmt(p.held)+' koin ditahan untuk pembangunan.':'Uang permainan. Tidak dapat diuangkan atau ditukar menjadi saldo DANA.'} Koin transfer ONLINE yang sudah diterima akan diklaim sekali lalu masuk ke saldo belanja utama. Hubungkan Google dan karakter yang sama; klaim memerlukan koneksi Firebase.</p><div class="notice">💡 Transfer memakai voucher koin ONLINE. Voucher yang <b>berhasil diklaim</b> akan ditukar menjadi koin belanja game dan tidak bisa ditransfer online lagi. Periksa status klaim di Dompet Transfer.</div><button class="btn wide" id="cloudWalletOpen">${icon('wallet')} Kirim / Terima Koin Antar-HP</button><h3 class="section-title">${icon('send')} Transfer lokal dalam HP</h3><label class="field"><span>Penerima</span><select id="transferTo"><option value="">Pilih warga</option>${state.citizens.filter(x=>x.id!==p.id&&!x.remote).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label><label class="field"><span>Jumlah koin</span><input class="input" id="transferAmount" type="number" inputmode="numeric" min="1" placeholder="Contoh: 50"></label><button class="btn primary wide" id="transferBtn">Periksa transfer ${icon('arrow')}</button><h3 class="section-title">Riwayat transaksi</h3>${state.ledger.filter(x=>x.actor===p.id).map(x=>`<div class="ledger-row"><div>${esc(x.text)}<span>${niceDate(x.time)}</span></div><strong class="${x.amount<0?'negative':''}">${x.amount>0?'+':''}${fmt(x.amount)}</strong></div>`).join('')||'<div class="empty">Belum ada transaksi.</div>'}`,{sub:'SEMUA TRANSAKSI TERCATAT',narrow:true});$('#cloudWalletOpen').onclick=()=>window.NusaCloudCoins?window.NusaCloudCoins.open('wallet'):toast('Modul koin online belum siap.',true);$('#transferBtn').onclick=()=>{const to=$('#transferTo').value,n=Number($('#transferAmount').value),target=state.citizens.find(p=>p.id===to);if(!target||!Number.isInteger(n)||n<=0)return toast('Pilih penerima dan jumlah koin yang valid.',true);confirmBox('Kirim koin?',`Penerima: <b>${esc(target.name)}</b><br>Jumlah: <b>${fmt(n)} koin</b><br>Sisa saldo tersedia: ${fmt(state.me.coins-state.me.held-n)} koin.`,async()=>{await act('transfer',{to,amount:n});showWallet();},'Kirim sekarang');};}
 function showCitizens(friendsOnly=false){const p=state.me;panel('Tetangga & teman',`<div class="chips"><button class="chip ${!friendsOnly?'active':''}" id="allCitizens">Semua warga · ${state.citizens.length}</button><button class="chip ${friendsOnly?'active':''}" id="friendCitizens">Teman · ${p.friends.length}</button></div>${p.requests.length?'<div class="notice">Ada '+p.requests.length+' permintaan pertemanan. Pilih Terima pada kartu warga.</div>':''}${state.citizens.filter(x=>!friendsOnly||p.friends.includes(x.id)).map(c=>`<div class="citizen-card"><div class="citizen-avatar" style="background:${c.color}">${esc(c.name[0])}</div><div class="grow"><h3>${esc(c.name)}${badge(c.role)}</h3><p>${state.online.some(x=>x.id===c.id)?'● Online':'Offline'} · ${c.jobs} tugas · Kehidupan ${c.life}</p></div>${c.id!==p.id?`<button class="btn small" data-citizen="${c.id}">Lihat</button>`:'<span class="tag">Kamu</span>'}</div>`).join('')||'<div class="empty">Belum ada teman. Kenalan dengan warga di kota.</div>'}`,{sub:'KOMUNITAS NUSA'});$('#allCitizens').onclick=()=>showCitizens(false);$('#friendCitizens').onclick=()=>showCitizens(true);$$('[data-citizen]').forEach(b=>b.onclick=()=>showCitizen(b.dataset.citizen));}
 function showCitizen(id){const c=state.citizens.find(x=>x.id===id),p=state.me;if(!c)return;if(c.remote){showKTP(id);return;}const friend=p.friends.includes(id),blocked=p.blocks.includes(id);panel(esc(c.name),`<div class="avatar-preview" style="color:${c.color}">${icon('person')}</div><div class="row" style="justify-content:center">${badge(c.role)}<span class="tag">Warga sejak ${niceDate(c.joined)}</span></div><div class="stats-grid" style="margin-top:22px"><div class="stat-box"><span>Tugas</span><strong>${c.jobs}</strong></div><div class="stat-box"><span>Pengalaman</span><strong>${c.xp}</strong></div><div class="stat-box"><span>Kehidupan</span><strong>${c.life}</strong></div></div><div class="row wrap"><button class="btn primary grow" id="friendAction">${friend?'Pesan pribadi':p.requests.includes(id)?'Terima teman':'Tambah teman'}</button><button class="btn" id="blockAction">${blocked?'Buka blokir':'Blokir'}</button><button class="btn" id="reportAction">Laporkan</button></div>`,{narrow:true,sub:'KARTU WARGA'});$('#friendAction').onclick=async()=>{if(friend){closePanel();openChat('dm:'+([p.id,id].sort().join(':')));return;}try{await act('friend',{to:id});showCitizen(id);}catch{}};$('#blockAction').onclick=async()=>{try{await act('block',{to:id});showCitizen(id);}catch{}};$('#reportAction').onclick=()=>reportForm(id);}
 function reportForm(id=''){panel('Sampaikan laporan',`<p class="intro">Jelaskan kejadiannya. Laporan hanya dibaca pengelola.</p><label class="field"><span>Alasan / usulan</span><textarea id="reportText" maxlength="400" placeholder="Ceritakan secara singkat…"></textarea></label><button class="btn primary wide" id="sendReport">Kirim laporan</button>`,{narrow:true});$('#sendReport').onclick=async()=>{try{await act('report',{to:id,text:$('#reportText').value});closePanel();}catch{}};}
@@ -3453,30 +3487,71 @@ bootstrap();
 <script>window.NusaCloudBridge={
  player:()=>state.me,
  panel:(title,html)=>panel(title,html,{narrow:true,sub:'TRANSFER ONLINE · WARGA & PRESIDEN'}),
- toast:(message,bad=false)=>toast(message,bad)
+ toast:(message,bad=false)=>toast(message,bad),
+ credit:async(items,googleUid,gameId)=>{
+  const result=LocalNusa.creditCloudRedeems(items,googleUid,gameId);
+  absorb(result.snapshot);
+  return {gain:result.gain,count:result.count};
+ }
 };</script>
 <script type="module" id="nusa-koin-p2p-spark">
+/* Firebase SDK bootstrap V2.30: diagnose an unavailable Firebase library
+   without stopping the Kota Nusa game. Primary: Google CDN.
+   Secondary: CDNJS ESM distribution if the Google CDN is temporarily blocked. */
+const NUSA_SDK_ENDPOINTS = [
+  'https://www.gstatic.com/firebasejs/11.10.0/',
+  'https://cdnjs.cloudflare.com/ajax/libs/firebase/11.10.0-20250626140224/'
+];
+let nusaSdkIssue='';
+function nusaSdkHelp(mode){
+ const h=window.NusaCloudBridge||{};
+ const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ h.panel?.('Koin Online · Periksa Koneksi',`<div class="notice warn"><b>Firebase library belum berhasil dimuat.</b><br>Transfer tidak dijalankan agar saldo tetap aman.<br><small>${esc(nusaSdkIssue||'Koneksi ke layanan Firebase gagal.')}</small></div><p class="intro">Pastikan memakai tautan GitHub Pages, bukan file HTML yang dibuka offline. Periksa internet dan matikan pemblokiran CDN bila aktif. Jangan mengulang transfer yang belum pasti sebelum cek saldo.</p><button class="btn primary wide" id="nusaP2PRetrySdk">↻ Muat ulang dan periksa Firebase</button>`);
+ document.getElementById('nusaP2PRetrySdk')?.addEventListener('click',()=>location.reload());
+}
+window.NusaCloudCoins={configured:()=>false,balance:()=>0,claim:async()=>({gain:0,count:0}),open:nusaSdkHelp,mode:'firebase-loading-v230'};
+async function nusaP2PLoadSdk(){
+ const problems=[];
+ for(const base of NUSA_SDK_ENDPOINTS){
+   try{
+    const [a,b,c]=await Promise.all([import(base+'firebase-app.js'),import(base+'firebase-auth.js'),import(base+'firebase-database.js')]);
+    if(typeof a.initializeApp==='function' && typeof a.getApps==='function' && typeof b.getAuth==='function' && typeof c.getDatabase==='function')return {a,b,c};
+    throw new Error('Modul tidak memiliki fungsi Firebase yang dibutuhkan');
+   }catch(e){problems.push(base.includes('gstatic')?'Firebase Google: '+String(e?.message||e):'CDN cadangan: '+String(e?.message||e));}
+ }
+ throw new Error(problems.join(' | '));
+}
+async function nusaP2PBootstrap(){
+ let moduleSet;
+ try{moduleSet=await nusaP2PLoadSdk();}
+ catch(e){
+  nusaSdkIssue=String(e?.message||e).slice(0,300);
+  console.warn('[Kota Nusa] Firebase SDK koin tidak siap:',e);
+  return;
+ }
+ const {getApps,initializeApp}=moduleSet.a;
+ const {getAuth,GoogleAuthProvider,signInWithPopup,setPersistence,browserLocalPersistence,onAuthStateChanged}=moduleSet.b;
+ const {getDatabase,ref,get,update,onValue,serverTimestamp}=moduleSet.c;
+
 /* Kota Nusa · Koin P2P Aman Spark · Voucher bernilai tetap, bukan saldo klien.
    Semua perubahan pemilik / pecahan diperiksa Firebase Database Rules.
    DOMPET P2P terpisah dari uang lokal game sampai ekonomi game diserverkan. */
-import {getApps,initializeApp} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
-import {getAuth,GoogleAuthProvider,signInWithPopup,setPersistence,browserLocalPersistence} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
-import {getDatabase,ref,get,update,onValue,serverTimestamp} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js';
+
 const CFG={apiKey:'AIzaSyDFWMOCTkEzMemUrG_0uz74540VNcIGDMI',authDomain:'kotanusa-6ed9c.firebaseapp.com',databaseURL:'https://kotanusa-6ed9c-default-rtdb.asia-southeast1.firebasedatabase.app',projectId:'kotanusa-6ed9c',appId:'1:231262289343:web:486166f2e4fc6fb196350a'};
 const OWNER='3bNsbErpujYgrjxdKUSiHP1sJJ93',VAULT='nusaKoinVoucherV3',PROFILES='nusaCivicProfilesV1';
-const SEED_COUNT=100,SEED_AMOUNT=100000,MAX_DEPTH=27,MAX_SEND=250000;
+const SEED_COUNT=100,SEED_AMOUNT=100000,MAX_DEPTH=27,MAX_SEND=250000,BURN='nusa_redeemed_v229';
 const host=()=>window.NusaCloudBridge||{};
 const safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num=x=>Number(x||0).toLocaleString('id-ID');
 const app=getApps().find(x=>x.name==='nusa-ktp-cloud')||initializeApp(CFG,'nusa-ktp-cloud');
 const auth=getAuth(app),db=getDatabase(app);
-let currMode='wallet',vault={},people={},myProfile=null,watchOff=null,submitting=false,selectedUid='',viewOpen=false;
+let currMode='wallet',vault={},people={},myProfile=null,watchOff=null,submitting=false,selectedUid='',viewOpen=false,claiming=false,lastClaimError='',lastClaimAt=0;
 const signed=()=>!!auth.currentUser&&!auth.currentUser.isAnonymous;
 const isPres=()=>signed()&&auth.currentUser.uid===OWNER;
 const toast=(x,b=false)=>host().toast?.(x,b);
-const err=e=>/permission.denied|permission_denied/i.test(e?.message||'')?'Izin Firebase ditolak. Gabungkan dan Publish Rules Koin P2P V3 serta login Google karakter asli.':String(e?.message||e||'Terjadi kesalahan').slice(0,230);
+const err=e=>/permission.denied|permission_denied/i.test(e?.message||'')?'PERMISSION_DENIED: Firebase Rules Koin P2P belum mengizinkan transaksi ini, atau akun Google salah. Jangan anggap transfer berhasil.':String(e?.message||e||'Terjadi kesalahan').slice(0,230);
 const panel=(content)=>{host().panel?.(currMode==='admin'?'Kas Presiden & Transfer P2P':'Dompet & Transfer Koin Antarwarga',content);viewOpen=true;};
-const note=()=>'<div class="notice">🔐 <b>Koin P2P online (gratis)</b> · Setiap koin diwakili voucher yang kepemilikannya dijaga Firebase. Presiden dan semua warga bisa mengirim ke akun Google lain. <b>Koin online tidak menambah saldo game lokal</b> sebelum sistem toko online diintegrasikan secara aman.</div>';
+const note=()=>'<div class="notice">💰 <b>Transfer bisa jadi koin belanja.</b> Saat voucher ONLINE diterima, warga akan mencoba mengklaimnya otomatis ke saldo utama Kota Nusa. Klaim memerlukan akun Google penerima dan Firebase Rules V2.29. Jangan mengirim ulang jika klaim sedang diproses.</div>';
 function leaves(node,path,output,depth=0){
  if(!node||typeof node!=='object')return;
  if(node.s===true){leaves(node.a,path+'/a',output,depth+1);leaves(node.b,path+'/b',output,depth+1);}
@@ -3498,20 +3573,79 @@ function makePlan(tokens,amount,to){
 function formLoggedOut(){return note()+'<div class="notice warn">Untuk transfer antar-HP wajib masuk dengan akun Google. Nama karakter saja tidak dapat dipakai mengambil saldo.</div><button class="btn primary wide" id="p2pGoogle">Masuk dengan Google</button>';}
 function formNeedsProfile(){const p=host().player?.();return note()+`<div class="notice warn">Akun Google ini belum memiliki profil Kota Nusa. Masuk ke karakter asli lebih dulu.</div><p class="intro">Karakter saat ini: <b>${safe(p?.name||'Belum ada')}</b></p><button class="btn primary wide" id="p2pRegister" ${p?.id?'':'disabled'}>Daftarkan karakter ini</button>`;}
 function row(person){const bal=balance(person.uid);return `<button type="button" class="p2p-person" data-uid="${safe(person.uid)}"><span class="p2p-initial">${safe(String(person.name||'?')[0].toUpperCase())}</span><span class="p2p-person-info"><strong>${safe(person.name||'Warga')}</strong><small>ID ${safe(person.gameId||'—')} · Google …${safe(person.uid.slice(-7))}</small></span><span class="p2p-choose">Pilih <span aria-hidden="true">→</span></span></button>`;}
+// Redeem flow V2.29: spend an owned voucher in Firebase, then credit local wallet once.
+// Queue is saved BEFORE spending and recovered if the tab closes after Firebase succeeds.
+const pendingKey=(u,g)=>'nusaCloudClaimPendingV229:'+u+':'+g;
+const autoKey=u=>'nusaCloudClaimAutoV229:'+u;
+const autoEnabled=u=>!isPres()&&localStorage.getItem(autoKey(u))!=='off';
+const validPath=x=>/^vault0[0-9]{2}(?:\/[ab]){0,27}$/.test(x);
+function readQueue(key){try{const a=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(a)?a.filter(x=>validPath(x.path)&&Number.isSafeInteger(x.value)&&x.value>0):[]}catch{return []}}
+function saveQueue(key,arr){localStorage.setItem(key,JSON.stringify(arr));}
+function nodeAt(tree,path){let cur=tree;for(const segment of path.split('/')){cur=cur?.[segment];if(!cur)return null;}return cur;}
+function claimDisplay(msg,bad=false){const el=document.getElementById('p2pClaimStatus');if(el)el.textContent=msg;if(bad)console.warn('Nusa P2P klaim:',msg);}
+async function claimIncoming(manual=false){
+ if(claiming||!signed()||document.hidden)return {gain:0,count:0};
+ const player=host().player?.(),uid=auth.currentUser.uid;
+ if(!player?.id)return {gain:0,count:0};
+ claiming=true;
+ try{
+  const profile=(await get(ref(db,PROFILES+'/'+uid))).val();
+  if(!profile||profile.gameId!==player.id){if(manual)throw Error('Akun Google belum terhubung dengan karakter ini. Daftarkan karakter pada Dompet Transfer.');return {gain:0,count:0};}
+  const key=pendingKey(uid,player.id);let queue=readQueue(key);
+  const latest=(await get(ref(db,VAULT))).val()||{};
+  // Reconcile queue after a previous network failure / closed tab.
+  const confirmed=[],stillOwned=[];
+  for(const entry of queue){
+   const n=nodeAt(latest,entry.path);
+   if(n?.s===false&&n.o===BURN&&n.r===uid&&n.v===entry.value)confirmed.push(entry);
+   else if(n?.s===false&&n.o===uid&&n.v===entry.value)stillOwned.push(entry);
+  }
+  if(confirmed.length){
+   const r=await host().credit?.(confirmed,uid,player.id);
+   if(!r)throw Error('Dompet game lokal belum siap, klaim disimpan untuk dipulihkan.');
+   queue=stillOwned;saveQueue(key,queue);
+   if(r.gain)toast('✅ +'+num(r.gain)+' koin masuk dompet BELANJA Kota Nusa!');
+  }else if(queue.length!==stillOwned.length){queue=stillOwned;saveQueue(key,queue);}
+  if(!manual&&!autoEnabled(uid)){lastClaimAt=Date.now();return {gain:0,count:0};}
+  const owned=[];for(const [k,n] of Object.entries(latest))leaves(n,k,owned);
+  const alreadyPending=new Set(queue.map(x=>x.path));
+  // Cap each batch so slow devices and large vaults stay usable.
+  const picks=owned.filter(x=>x.owner===uid&&!alreadyPending.has(x.path)).slice(0,60);
+  if(!picks.length){lastClaimAt=Date.now();claimDisplay(queue.length?'Ada klaim tertunda, coba Segarkan.':'✅ Tidak ada koin baru yang perlu diklaim.');return {gain:0,count:0};}
+  if(isPres()&&manual&&!(confirm('Tukar '+num(picks.reduce((s,x)=>s+x.value,0))+' koin dari kas ONLINE menjadi koin BELANJA lokal? Tidak bisa dibatalkan.')))return {gain:0,count:0};
+  const freshQueue=[...queue,...picks.map(x=>({path:x.path,value:x.value}))];
+  // If storage is blocked we MUST NOT burn vouchers.
+  saveQueue(key,freshQueue);
+  const patch={};for(const x of picks)patch[x.path]={o:BURN,v:x.value,s:false,r:uid};
+  claimDisplay('Mengklaim '+picks.length+' voucher di Firebase…');
+  try{await update(ref(db,VAULT),patch);}catch(e){
+   // Keep queue for recovery only if server actually committed (e.g. response lost).
+   lastClaimError=err(e);claimDisplay('Klaim belum berhasil: '+lastClaimError,true);if(manual)throw e;return {gain:0,count:0};
+  }
+  const result=await host().credit?.(picks.map(x=>({path:x.path,value:x.value})),uid,player.id);
+  if(!result)throw Error('Voucher tersimpan di Firebase tetapi dompet game belum siap. Jangan hapus data browser; klaim akan dipulihkan.');
+  const done=new Set(picks.map(x=>x.path));saveQueue(key,freshQueue.filter(x=>!done.has(x.path)));
+  lastClaimAt=Date.now();lastClaimError='';
+  if(result.gain)toast('✅ '+num(result.gain)+' koin transfer masuk dompet UTAMA untuk belanja!');
+  claimDisplay('✅ '+num(result.gain)+' koin berhasil masuk dompet utama.');
+  return result;
+ }catch(e){lastClaimError=err(e);claimDisplay('Klaim gagal: '+lastClaimError,true);if(manual)toast('Klaim belum berhasil: '+lastClaimError,true);return {gain:0,count:0};}
+ finally{claiming=false;}
+}
 function mainUI(){const uid=auth.currentUser.uid,b=balance(uid),all=Object.values(people).filter(x=>x&&x.uid&&x.uid!==uid&&x.gameId&&x.name).sort((a,c)=>String(a.name).localeCompare(String(c.name)));
  const seedLeft=isPres()?SEED_COUNT-Object.keys(vault||{}).filter(x=>/^vault0\d\d$/.test(x)).length:0;
  return `<style>
  .p2p-person{width:100%;display:flex;align-items:center;text-align:left;gap:10px;padding:12px 10px;border:1px solid #d8e4e9;border-radius:12px;background:#fff;margin:6px 0;color:#1b3e51;min-height:66px}.p2p-person:active,.p2p-person.pick{background:#e3f0e7;border-color:#46917e}.p2p-initial{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:#dbece9;font-weight:800}.p2p-person-info{min-width:0;flex:1}.p2p-person-info strong{display:block;font-size:12px}.p2p-person-info small{display:block;font-size:10px;color:#74898c;margin-top:5px;white-space:normal;overflow-wrap:anywhere}.p2p-choose{font-size:11px;color:#3d7781}.p2p-balance{border-radius:17px;background:linear-gradient(120deg,#133f4e,#266b68);padding:20px;color:#fff;margin:11px 0 18px}.p2p-balance small{display:block;color:#bfe4e2;font-size:10px;letter-spacing:1px;text-transform:uppercase}.p2p-balance strong{font-size:29px;display:block;margin-top:7px;word-break:break-word}.p2p-identity{font-size:11px;line-height:1.65;color:#56727c;overflow-wrap:anywhere}.p2p-send{background:#f1f6f7;border:1px solid #dce8eb;border-radius:14px;padding:15px;margin-top:12px}.p2p-send label{display:block;margin:10px 0 7px;font-size:11px;font-weight:700;color:#37596b}.p2p-send input{width:100%;min-height:46px;padding:10px 12px;border-radius:10px;border:1px solid #cbdce1;background:#fff!important}.p2p-users{max-height:210px;overflow-y:auto;overscroll-behavior:contain}.p2p-chosen{background:#dfecdf;padding:11px;border-radius:10px;margin-top:9px;font-size:11px;line-height:1.6}.p2p-chip{display:inline-flex;background:#ebf1e9;padding:4px 7px;border-radius:7px;font-size:10px;font-weight:700}.p2p-tools{display:flex;gap:8px;flex-wrap:wrap;margin:9px 0}.p2p-tools button{flex:1}.p2p-setup{border:1px solid #e6d5b5;background:#fff7e7;border-radius:12px;padding:15px;margin-top:14px}.p2p-sub{font-size:10px;line-height:1.6;color:#71818d}
- </style>${note()}<div class="p2p-balance"><small>Saldo koin transfer online</small><strong id="p2pTotal">${num(b)} Koin</strong><div class="p2p-identity">${safe(myProfile.name)} · …${safe(uid.slice(-8))} ${isPres()?'· Presiden':''}</div></div>
+ </style>${note()}<div class="p2p-balance"><small>📩 VOUCHER ONLINE BELUM DIKLAIM · BISA DIKIRIM</small><strong id="p2pTotal">${num(b)} Koin</strong><div class="p2p-identity" style="color:#cce7e4">${safe(myProfile.name)} · …${safe(uid.slice(-8))} ${isPres()?'· Presiden':''}</div></div><div class="p2p-setup" style="margin-top:-7px"><strong>🪙 Saldo Belanja di Kota: ${num(Math.max(0,(host().player?.()?.coins||0)-(host().player?.()?.held||0)))} koin</strong><p class="p2p-sub">Jika klaim berhasil, saldo ONLINE berkurang dan saldo BELANJA bertambah jumlah yang sama. Koin yang diklaim tidak bisa ditransfer ulang lewat voucher.</p></div>
  ${isPres()&&seedLeft>0?`<div class="p2p-setup"><strong>🏛️ Aktivasi kas awal P2P</strong><p class="p2p-sub">Siapkan total pasokan awal 10.000.000 koin online, hanya sekali per voucher. Koin ini TIDAK berasal dari dompet lokal dan tidak bisa diuangkan. ${SEED_COUNT-seedLeft}/${SEED_COUNT} sudah dibuat.</p><button class="btn primary wide" id="p2pSeed">Aktifkan sisa ${seedLeft} voucher kas</button></div>`:''}
- ${isPres()?'<p class="p2p-sub">Panel Presiden dan warga sama-sama memakai sistem transfer ini. Seluruh kiriman mengurangi saldo online pengirim.</p>':''}
- <div class="p2p-send"><strong>💸 Kirim Koin Online</strong><p class="p2p-sub">Pilih nama akun yang sudah login Google. Periksa ID karena nama bisa sama.</p>
+ <div class="p2p-setup"><strong>💳 Koin siap masuk saldo belanja</strong><p id="p2pClaimStatus" class="p2p-sub">Warga bisa menerima otomatis atau menyimpan voucher untuk dikirim lagi. Presiden klaim manual agar kas awal tidak habis.</p><button class="btn primary wide" id="p2pClaim">${isPres()?'Tukar voucher kas ke dompet game':'↻ Klaim koin masuk sekarang'}</button>${isPres()?'':`<button class="btn wide" id="p2pAutoClaim" style="margin-top:8px">${autoEnabled(uid)?'🟢 Terima otomatis AKTIF (matikan untuk kirim lagi)':'⚪ Terima otomatis NONAKTIF (voucher disimpan)'}</button>`}</div>${isPres()?'<p class="p2p-sub">Transfer P2P berasal dari saldo voucher ONLINE, bukan saldo dompet utama. Hanya penerimaan voucher yang masuk ke dompet utama setelah diklaim.</p>':''}
+ <div class="p2p-send"><strong>💸 Kirim Koin Online</strong><p class="p2p-sub">Pilih nama akun yang sudah login Google. Periksa ID karena nama bisa sama. <b>Penerima yang sudah login Google dapat mengklaim koin ke saldo belanja. Koin tidak bisa ditransfer lagi sesudah diklaim.</b></p>
  <label for="p2pSearch">Cari nama warga</label><input id="p2pSearch" placeholder="Ketik nama karakter..." maxlength="48" autocomplete="off">
  <div class="p2p-users" id="p2pPeople">${all.slice(0,25).map(row).join('')||'<div class="empty">Belum ada warga terdaftar di akun Google.</div>'}</div>
  <div id="p2pChosen" class="p2p-chosen hidden"></div>
  <label for="p2pAmount">Jumlah transfer (1–${num(MAX_SEND)} koin)</label><input id="p2pAmount" inputmode="numeric" type="number" min="1" max="${MAX_SEND}" placeholder="Contoh: 1500">
  <button class="btn primary wide" id="p2pSend" style="margin-top:12px" disabled>Konfirmasi dan kirim koin</button><p id="p2pStatus" class="p2p-sub" role="status" style="margin-top:9px"></p></div>
- <div class="p2p-tools"><button class="btn" id="p2pRefresh">↻ Segarkan saldo</button></div><p class="p2p-sub">Transfer disimpan atomik di Firebase. Saldo baru terlihat di perangkat lain saat tersambung internet. Batas pecahan voucher dapat membuat transfer tertentu tidak tersedia jika uang online sangat terfragmentasi.</p>`;
+ <div class="p2p-tools"><button class="btn" id="p2pRefresh">↻ Segarkan saldo</button></div><p class="p2p-sub">Jika terima otomatis AKTIF, voucher baru dikonversi ke koin belanja dan tidak tersedia lagi untuk dikirim. Matikan fitur itu bila ingin memakai voucher untuk transfer ke warga lain. Transfer disimpan atomik di Firebase. Saldo baru terlihat di perangkat lain saat tersambung internet. Batas pecahan voucher dapat membuat transfer tertentu tidak tersedia jika uang online sangat terfragmentasi.</p>`;
 }
 function hookUI(){const search=document.getElementById('p2pSearch'),choices=document.getElementById('p2pPeople'),chosen=document.getElementById('p2pChosen'),btn=document.getElementById('p2pSend');if(!search||!choices)return;
  const rows=Object.values(people).filter(p=>p?.uid&&p?.name&&p.uid!==auth.currentUser.uid&&p.gameId);
@@ -3520,14 +3654,35 @@ function hookUI(){const search=document.getElementById('p2pSearch'),choices=docu
  search.addEventListener('input',draw);draw();btn.onclick=send;
  document.getElementById('p2pRefresh')?.addEventListener('click',()=>open(currMode));
  document.getElementById('p2pSeed')?.addEventListener('click',seed);
+ document.getElementById('p2pClaim')?.addEventListener('click',async()=>{await claimIncoming(true);await open(currMode);});
+ document.getElementById('p2pAutoClaim')?.addEventListener('click',()=>{
+  const uid=auth.currentUser?.uid;if(!uid)return;
+  const enabled=autoEnabled(uid);localStorage.setItem(autoKey(uid),enabled?'off':'on');
+  toast(enabled?'Terima otomatis dimatikan. Voucher tetap bisa ditransfer.':'Terima otomatis aktif. Voucher baru masuk saldo belanja sekali.');
+  void open(currMode);
+ });
 }
 async function ensure(){await setPersistence(auth,browserLocalPersistence);await auth.authStateReady?.();}
 async function open(mode='wallet'){
  currMode=mode==='admin'?'admin':'wallet';selectedUid='';if(watchOff){watchOff();watchOff=null;}panel('<div class="notice">Memuat dompet koin online yang tersimpan di Firebase…</div>');
  try{await ensure();if(!signed()){panel(formLoggedOut());document.getElementById('p2pGoogle')?.addEventListener('click',login);return;}
   const uid=auth.currentUser.uid;const snap=await get(ref(db,PROFILES+'/'+uid));myProfile=snap.val();if(!myProfile){panel(formNeedsProfile());document.getElementById('p2pRegister')?.addEventListener('click',register);return;}
-  const [vs,ps]=await Promise.all([get(ref(db,VAULT)),get(ref(db,PROFILES))]);vault=vs.val()||{};people=ps.val()||{};panel(mainUI());hookUI();
-  watchOff=onValue(ref(db,VAULT),ss=>{vault=ss.val()||{};const el=document.getElementById('p2pTotal');if(el)el.textContent=num(balance(uid))+' Koin';},e=>{const el=document.getElementById('p2pStatus');if(el)el.textContent='Koneksi saldo terputus: '+err(e);});
+  const [vs,ps]=await Promise.all([get(ref(db,VAULT)),get(ref(db,PROFILES))]);vault=vs.val()||{};people=ps.val()||{};panel(mainUI());hookUI();void claimIncoming(false);
+  watchOff=onValue(ref(db,VAULT),ss=>{
+   vault=ss.val()||{};
+   const current=balance(uid),el=document.getElementById('p2pTotal');
+   if(el)el.textContent=num(current)+' Koin';
+   const key='nusaKoinSeenBalanceV228:'+uid;
+   try{
+    const beforeRaw=localStorage.getItem(key),before=beforeRaw===null?null:Number(beforeRaw);
+    if(before!==null&&Number.isFinite(before)&&current>before){
+     toast('📥 Ada '+num(current-before)+' voucher koin ONLINE masuk. Klaim akan diproses untuk dompet utama.');void claimIncoming(false);
+    }else if(before===null&&current>0&&!isPres()){
+     toast('📨 Saldo ONLINE '+num(current)+' koin terdeteksi. Memeriksa klaim ke dompet utama.');void claimIncoming(false);
+    }
+    localStorage.setItem(key,String(current));
+   }catch{}
+  },e=>{const el=document.getElementById('p2pStatus');if(el)el.textContent='Koneksi saldo terputus: '+err(e);});
  }catch(e){panel(note()+`<div class="notice bad">${safe(err(e))}</div><button class="btn wide" id="p2pRetry">Coba lagi</button>`);document.getElementById('p2pRetry')?.addEventListener('click',()=>open(currMode));}
 }
 async function login(){try{await signInWithPopup(auth,new GoogleAuthProvider());await open(currMode);}catch(e){toast('Masuk Google gagal: '+err(e),true);}}
@@ -3546,14 +3701,24 @@ async function send(){if(submitting||!signed()||!selectedUid)return;const p=peop
   const plan=makePlan(own,amount,selectedUid);if(!plan)throw Error('Voucher tidak bisa dipecah untuk nominal ini. Coba nominal lain atau minta bantuan Presiden.');
   // Firebase update() menerima beberapa path dan menerapkan semua atau menolak semua.
   await update(ref(db,VAULT),plan.patches);
-  if(status)status.textContent=`✅ Berhasil mengirim ${num(amount)} koin kepada ${p.name}.`;
-  toast(`✅ ${num(amount)} koin online terkirim kepada ${p.name}!`);
+  if(status)status.textContent=`✅ ${num(amount)} koin ONLINE terkirim kepada ${p.name}. Setelah penerima online, voucher bisa diklaim ke saldo belanja.`;
+  toast(`✅ ${num(amount)} koin ONLINE terkirim kepada ${p.name}. Penerima bisa klaim ke dompet game.`);
   // Setelah sukses hilangkan pilihan agar tap berulang tidak mengirim dua kali.
   selectedUid='';await open(currMode);
  }catch(e){if(status)status.textContent='Gagal: '+err(e);toast('Transfer belum berhasil: '+err(e),true);}finally{submitting=false;if(sendBtn?.isConnected)sendBtn.disabled=!selectedUid;}
 }
-window.NusaCloudCoins={open,configured:()=>true,mode:'voucher-p2p-spark',balance:()=>signed()?balance(auth.currentUser.uid):0};
+// Periksa saat akun Google tersambung, tab aktif, dan secara berkala saat game berjalan.
+onAuthStateChanged(auth,user=>{if(user&&!user.isAnonymous)setTimeout(()=>void claimIncoming(false),1800);});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>void claimIncoming(false),1100);});
+setInterval(()=>{if(!document.hidden&&signed()&&host().player?.()&&Date.now()-lastClaimAt>18000)void claimIncoming(false)},24000);
+window.NusaCloudCoins={open,claim:claimIncoming,configured:()=>true,mode:'voucher-p2p-redeem-v229',balance:()=>signed()?balance(auth.currentUser.uid):0};
 
+
+}
+void nusaP2PBootstrap().catch(e=>{
+ nusaSdkIssue='Pemrosesan modul transfer gagal: '+String(e?.message||e).slice(0,260);
+ console.warn('[Kota Nusa] Modul transfer belum bisa digunakan:',e);
+});
 </script>
 
 <script type="module">
