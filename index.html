@@ -2208,7 +2208,17 @@ const niceDate=t=>new Date(t).toLocaleString('id-ID',{day:'numeric',month:'short
 let catalog,world,state={me:null,city:{news:[],events:[],projects:[]},citizens:[],online:[],ledger:[],reports:[]},entered=false,loading=false,polling=false,mutating=false,currentPanel='',chatChannel='global',chatOpen=false,workStop=null,miniActive=false,selectedColor='#579b8b',selectedBuildings=new Set(),seenEvents=new Set(),lastChatId=0,nearby=null,settings={sound:true,music:false,quality:'high',weather:'auto',reduced:false,timeConfigured:false},audioCtx=null,musicTimer=null,connected=true,lastState=0;
 try{settings={...settings,...JSON.parse(localStorage.getItem('nusa-trebedit-settings')||'{}')};}catch{}
 if(!settings.timeConfigured)settings.weather='auto';
-function toast(msg,bad=false){const el=document.createElement('div');el.className='toast'+(bad?' bad':'');el.textContent=msg;$('#toasts')?.append(el);setTimeout(()=>el.remove(),4500);}
+const nusaLastToast=new Map();
+function toast(msg,bad=false){
+ const txt=String(msg||'');
+ // Show each identical error at most once per 18 seconds, even after repeated taps.
+ if(bad){const last=nusaLastToast.get(txt)||0;if(Date.now()-last<18000)return;nusaLastToast.set(txt,Date.now());}
+ const stack=$('#toasts');if(!stack)return;
+ if(bad)stack.querySelectorAll('.toast.bad').forEach(x=>x.remove());
+ const el=document.createElement('div');el.className='toast'+(bad?' bad':'');el.textContent=txt;stack.append(el);
+ while(stack.childElementCount>3)stack.firstElementChild?.remove();
+ setTimeout(()=>el.remove(),bad?6500:4500);
+}
 let pendingSound=null,soundTimer=null,lastSoundAt=-1000;
 function beep(type='click'){
  if(!settings.sound)return;
@@ -2330,7 +2340,13 @@ async function openMapTarget(id){beep();
   if(slot)world.navigate(slot.x,slot.z);
   if(own){if(own.id===state.me.id){showNusaPlus('orchard');return;}showKTP(own.id);return;}
   panel('Lahan Kebun Barat '+(i+1),`<p class="intro">Kavling kebun kosong nyata di peta. Setelah dibeli, 20 pohon akan tumbuh sesuai jumlah bibit dari Shop.</p><div class="v2-stats">${v2Stat('Harga',fmt(ORCHARD_COST)+' koin')}${v2Stat('Kapasitas','20 pohon')}</div><button class="btn primary wide" id="purchaseMapOrchard" ${state.me?.orchard?'disabled':''}>Beli lahan ini</button>`,{narrow:true,sub:'KAWASAN KEBUN BARAT'});
-  $('#purchaseMapOrchard').onclick=async()=>{try{await act('orchard',{op:'buy',lot:i});showNusaPlus('orchard')}catch(e){toast(e.message,true)}};return;
+  $('#purchaseMapOrchard').onclick=async(e)=>{
+   const btn=e.currentTarget;if(btn.disabled)return;btn.disabled=true;
+   const label=btn.textContent;btn.textContent='⏳ Memeriksa kepemilikan lahan…';
+   try{await act('orchard',{op:'buy',lot:i});showNusaPlus('orchard');}
+   catch(err){toast(String(err?.message||err),true);}
+   finally{if(btn.isConnected){btn.disabled=false;btn.textContent=label;}}
+  };return;
  }
  const p=catalog.places.find(p=>p.id===id);if(!p)return;
  world.navigate(p.x,p.z);
@@ -4022,6 +4038,23 @@ const API={lots:{},lastError:'',
   catch(e){
    const cause=String(e?.code||e?.message||e);
    if(/permission[ _-]?denied/i.test(cause)){
+    // A serverTimestamp placeholder may be incompatible with older Rules on
+    // some deployed versions. For EMPTY LOTS ONLY, retry once with a numeric
+    // timestamp calibrated against Firebase serverTimeOffset. This still
+    // requires the normal owner/UID, one-lot, and .validate server Rules.
+    // Never retry blindly over an existing lot.
+    try{
+     const snap=await c.get(ref);
+     if(!snap.exists()){
+      const off=await c.get(c.ref(db,'.info/serverTimeOffset')).catch(()=>null);
+      const delta=Number(off?.val());
+      const numericTime=Math.round(Date.now()+(Number.isFinite(delta)?delta:0));
+      const retryRec={...rec,updated:numericTime};
+      const fallback=await c.runTransaction(ref,old=>old===null?retryRec:undefined,{applyLocally:false});
+      if(fallback.committed){result=fallback;}
+     }
+    }catch(retryError){console.warn('Fallback klaim kebun tidak diterima oleh Rules:',String(retryError?.code||retryError?.message||retryError));}
+    if(!result){
     // Read-only verification after a failed transaction. Never override another owner's slot.
     try{
      const latest=(await c.get(c.ref(db,base))).val()||{};
@@ -4040,11 +4073,11 @@ const API={lots:{},lastError:'',
     }catch(inspection){
      if(!/permission[ _-]?denied/i.test(String(inspection?.code||inspection?.message||inspection)) && inspection?.message?.includes('Koin belum dipotong'))throw inspection;
     }
-    throw Error('Petak '+(lot+1)+' terlihat kosong, tetapi Firebase menolak menyimpan klaim. Admin perlu mengecek validasi nusaOrchardLotsV1/$lot (termasuk updated) lewat Rules Playground. Koin belum dipotong.');
-   }
-   throw Error('Klaim online gagal: '+String(e?.message||e).slice(0,150));
+    throw Error('Klaim petak '+(lot+1)+' masih ditolak Firebase (termasuk setelah percobaan timestamp cadangan). Admin perlu memeriksa Rules aktif dan kepemilikan akun. Koin tidak dipotong.');
+    } // no valid fallback transaction result
+   } else throw Error('Klaim online gagal: '+String(e?.message||e).slice(0,150));
   }
-  if(!result.committed)throw Error('Petak baru saja diklaim warga lain. Pilih lahan lain.');
+  if(!result?.committed)throw Error('Petak baru saja diklaim warga lain. Pilih lahan lain.');
   this.lots[lot]={...rec,updated:Date.now()};window.NusaWorldCloudRefresh?.();
   return {created:true};
  },
