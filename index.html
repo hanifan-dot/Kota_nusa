@@ -399,6 +399,101 @@ body:has(#chat:not(.hidden)) > #nusaFishingJump{display:none!important;pointer-e
  #hud .right-tools #nusaNotifySettingsButton{display:grid!important}
 }
 </style>
+
+<style id="nusa-v236-polish">
+/* ===== Kota Nusa V2.36 — rapikan HUD + notifikasi ikan. Hanya visual; peta, Firebase & logika game tidak diubah. ===== */
+:root{--nu-ink:#16384a;--nu-sub:#6b8591;--nu-d1:#18485e;--nu-d2:#0d2c3d;--nu-gold:#e3be7a;--nu-surface:rgba(255,254,250,.95);--nu-line:rgba(255,255,255,.92);--nu-shadow:0 6px 20px rgba(11,40,56,.20),0 1px 3px rgba(11,40,56,.12)}
+
+/* 1) Permukaan seragam: semua kartu terang satu gaya */
+html body #hud .identity-chip,
+html body #hud .hud-status>button[data-nav="wallet"],
+html body #hud .xp-chip,
+html body #hud .city-controls button:not(#governmentAccess),
+html body #hud .right-tools .round-btn{
+ background:var(--nu-surface)!important;border:1px solid var(--nu-line)!important;box-shadow:var(--nu-shadow)!important;color:var(--nu-ink)!important;
+ -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+html body #hud .identity-chip{padding-right:30px!important}
+html body #hud .identity-chip h3{color:var(--nu-ink)!important;font-weight:800!important;letter-spacing:-.2px!important}
+html body #hud .identity-chip small{color:var(--nu-sub)!important;font-weight:600!important}
+html body #hud .identity-chip:after{right:12px!important;bottom:auto!important;top:50%!important;transform:translateY(-62%)!important;font-size:17px!important;color:#8aa0aa!important}
+html body #hud .hud-status>button[data-nav="wallet"] span{color:var(--nu-ink)!important;font-weight:800!important;letter-spacing:-.2px}
+html body #hud .hud-status>button[data-nav="wallet"] small{color:var(--nu-sub)!important;font-weight:600!important}
+html body #hud .hud-status>button[data-nav="wallet"] svg{color:#2f7a64!important}
+html body #hud .xp-chip{font-weight:700!important;letter-spacing:.1px}
+html body #hud .xp-chip svg{color:#2f7a64!important}
+
+/* 2) Tombol primer gelap seragam (Panel/Pemerintahan, Dermaga) */
+html body #hud .city-controls #governmentAccess,
+html body #nusaFishingJump{
+ background:linear-gradient(160deg,var(--nu-d1),var(--nu-d2))!important;color:#fbf0d2!important;
+ border:1px solid rgba(227,190,122,.85)!important;box-shadow:var(--nu-shadow)!important;font-weight:800!important}
+html body #hud .city-controls #governmentAccess svg{color:var(--nu-gold)!important}
+html body #nusaFishingJump{border-radius:999px!important;letter-spacing:.2px}
+html body #hud .city-controls button:active,html body #nusaFishingJump:active,html body #hud .right-tools .round-btn:active{transform:scale(.97)}
+
+/* 3) Chip "pemain aktif": sebaris dengan EXP, bukan melayang di tengah */
+html body #hud .nusa-active-chip{background:var(--nu-surface)!important;color:var(--nu-ink)!important;border:1px solid var(--nu-line)!important;box-shadow:var(--nu-shadow)!important;font-weight:750!important;opacity:1!important}
+html body #hud .nusa-active-chip span{overflow:hidden;text-overflow:ellipsis}
+html body #hud .nusa-active-chip.live i{background:#2fbf71!important;box-shadow:0 0 0 3px rgba(47,191,113,.22)!important}
+@media(max-width:650px){
+ html body #hud .hud-top #nusaActiveChip{left:121px!important;transform:none!important;height:41px!important;min-width:0!important;max-width:calc(100vw - 251px)!important;padding:0 12px!important;font-size:10.5px!important;border-radius:16px!important}
+ html body #hud .right-tools .round-btn{width:42px!important;height:42px!important}
+ html body #nusaFishingJump{padding:9px 14px!important;font-size:11px!important}
+}
+@media(max-width:355px){
+ html body #hud .hud-top #nusaActiveChip{left:102px!important;max-width:calc(100vw - 232px)!important;font-size:9.5px!important;padding:0 9px!important}
+}
+
+/* 4) Toast umum (termasuk "Dapat <ikan>!") — pindah ke bawah, tidak menutupi HUD */
+html body .toast-stack{top:auto!important;bottom:calc(max(12px,env(safe-area-inset-bottom)) + 150px)!important;left:50%!important;transform:translateX(-50%)!important;width:min(400px,calc(100vw - 28px))!important;max-width:none!important;justify-content:flex-end!important;align-items:stretch!important;gap:8px!important;z-index:9999!important}
+html body .toast{display:flex!important;align-items:center;gap:10px;background:linear-gradient(160deg,var(--nu-d1),var(--nu-d2))!important;color:#fff7e0!important;
+ border:1px solid rgba(227,190,122,.5)!important;border-left:4px solid #4fd08a!important;border-radius:14px!important;padding:11px 14px!important;font-size:12.5px!important;font-weight:650;line-height:1.4;
+ box-shadow:0 10px 28px rgba(8,30,44,.38)!important;animation:nuToastIn .3s cubic-bezier(.2,.9,.3,1.15) both!important}
+html body .toast:before{content:'✓';flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#4fd08a;color:#0d2c3d;font:900 13px/1 system-ui}
+html body .toast.fish{border-left-color:var(--nu-gold)!important}
+html body .toast.fish:before{content:'🎣';background:rgba(227,190,122,.22);font-size:13px}
+html body .toast.bad{background:linear-gradient(160deg,#7a2f38,#4a1b23)!important;border-color:rgba(255,143,155,.45)!important;border-left-color:#ff8f9b!important}
+html body .toast.bad:before{content:'!';background:#ff8f9b;color:#4a1b23}
+@keyframes nuToastIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+
+/* 5) Pengumuman warga dapat ikan langka */
+html body #nusaFishBroadcast[hidden]{display:none!important}
+html body #nusaFishBroadcast{position:fixed!important;z-index:600000!important;top:clamp(280px,36dvh,420px)!important;left:0!important;right:0!important;margin:0 auto!important;transform:none!important;
+ width:min(360px,calc(100vw - 28px))!important;padding:11px 14px 11px 11px!important;border:1px solid var(--tc,#e3be7a)!important;border-radius:20px!important;
+ background:linear-gradient(135deg,#18485e,#0d2c3d 78%)!important;color:#fff7e0!important;text-align:left!important;pointer-events:none;
+ box-shadow:0 14px 36px rgba(6,24,36,.5),0 0 24px -6px var(--tc,#e3be7a)!important;animation:nuFishIn .45s cubic-bezier(.2,.9,.3,1.15) both!important}
+html body #nusaFishBroadcast:not([hidden]){display:flex!important;align-items:center;gap:12px}
+html body #nusaFishBroadcast.out{animation:nuFishOut .35s ease both!important}
+#nusaFishBroadcast .nfb-ico{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-size:24px;border:1.5px solid var(--tc,#e3be7a);background:radial-gradient(circle at 50% 35%,rgba(255,255,255,.22),rgba(255,255,255,.04) 70%);box-shadow:0 0 16px -2px var(--tc,#e3be7a);animation:nuFishPulse 1.8s ease-in-out infinite}
+#nusaFishBroadcast .nfb-txt{flex:1;min-width:0;display:grid;gap:1px}
+#nusaFishBroadcast .nfb-txt small{font-size:9px;letter-spacing:.9px;text-transform:uppercase;color:#a9c8d3;font-weight:800}
+#nusaFishBroadcast .nfb-txt b{display:block;margin:0;font-size:15px;line-height:1.25;color:#fff3cf;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#nusaFishBroadcast .nfb-txt span{font-size:12px;line-height:1.3;color:#d5e7ec}
+#nusaFishBroadcast .nfb-txt strong{color:var(--tc,#f5c561);font-weight:800}
+#nusaFishBroadcast .nfb-tier{flex:none;font-style:normal;font:900 9.5px/1 system-ui;letter-spacing:.8px;text-transform:uppercase;padding:6px 9px;border-radius:99px;background:var(--tc,#f5c561);color:#0d2c3d}
+@keyframes nuFishIn{0%{opacity:0;transform:translateY(-14px) scale(.94)}60%{opacity:1;transform:translateY(2px) scale(1.01)}100%{opacity:1;transform:none}}
+@keyframes nuFishOut{to{opacity:0;transform:translateY(-10px) scale(.96)}}
+@keyframes nuFishPulse{50%{box-shadow:0 0 24px 1px var(--tc,#e3be7a)}}
+
+/* 6) Layar hasil tangkapan di overlay memancing */
+html body #nusaFishingOverlay .nf-reward{border:1.5px solid var(--tc,#f7d180)!important;padding:16px 14px 16px!important;gap:12px!important;width:100%;
+ background:radial-gradient(circle at 50% 24%,#2f6396,#0e213b 82%)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 0 34px -8px var(--tc,#f7d180)!important;animation:nuRewardPop .5s cubic-bezier(.2,.9,.3,1.25) both}
+#nusaFishingOverlay .nf-rw-badge{padding:6px 14px;border-radius:99px;background:linear-gradient(120deg,#f7d98c,#e3b560);color:#2b2108;font:900 11px/1 system-ui;letter-spacing:.7px;text-transform:uppercase}
+#nusaFishingOverlay .nf-rw-fish{width:100%;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),transparent 66%)}
+html body #nusaFishingOverlay .nf-reward h2{font:800 24px/1.2 Georgia,serif!important;color:#fff0c4!important;text-shadow:0 2px 12px rgba(0,0,0,.35)}
+#nusaFishingOverlay .nf-rw-tier{padding:5px 14px;border-radius:99px;border:1px solid var(--tc,#f7d180);color:var(--tc,#f7d180);font:800 11px/1 system-ui;letter-spacing:.8px;text-transform:uppercase;background:rgba(0,0,0,.18)}
+#nusaFishingOverlay .nf-rw-stats{width:100%;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border-radius:14px;background:rgba(5,22,40,.5);border:1px solid rgba(255,255,255,.1)}
+#nusaFishingOverlay .nf-rw-stats>div{padding:10px 6px;display:grid;gap:3px;text-align:center}
+#nusaFishingOverlay .nf-rw-stats>div+div{border-left:1px solid rgba(255,255,255,.12)}
+#nusaFishingOverlay .nf-rw-stats b{font:800 17px/1.1 system-ui;color:#ffe9a8}
+#nusaFishingOverlay .nf-rw-stats small{font-size:10px;color:#bcd6e0;font-weight:600}
+html body #nusaFishingOverlay .nf-reward .nf-buy{width:100%}
+@keyframes nuRewardPop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+
+@media(prefers-reduced-motion:reduce){
+ html body .toast,html body #nusaFishBroadcast,html body #nusaFishBroadcast.out,#nusaFishBroadcast .nfb-ico,html body #nusaFishingOverlay .nf-reward{animation:none!important}
+}
+</style>
 </head><body><main id="app"><div id="boot"><h1>Kota Nusa.</h1><p>Menyiapkan kota…</p></div></main><script>'use strict';
 // ===== Deteksi browser dalam Instagram/Facebook (progres sering hilang di sana) =====
 (function(){
@@ -2478,7 +2573,7 @@ function toast(msg,bad=false){
  if(bad){const last=nusaLastToast.get(txt)||0;if(Date.now()-last<18000)return;nusaLastToast.set(txt,Date.now());}
  const stack=$('#toasts');if(!stack)return;
  if(bad)stack.querySelectorAll('.toast.bad').forEach(x=>x.remove());
- const el=document.createElement('div');el.className='toast'+(bad?' bad':'');el.textContent=txt;stack.append(el);
+ const el=document.createElement('div');el.className='toast'+(bad?' bad':(/\b(ikan|dapat|tangkap|mancing)\b/i.test(txt)?' fish':''));el.textContent=txt;stack.append(el);
  while(stack.childElementCount>3)stack.firstElementChild?.remove();
  setTimeout(()=>el.remove(),bad?6500:4500);
 }
@@ -5034,7 +5129,9 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
  }
  function startReel(){if(phase==='bite'){clearTimeout(castTimeout);phase='fight';tension=.28;progress=0;fishMove=0;fishFactor=.7+Math.random()*.6;hold=true;sfx('pull');showMessage('Tarik saat aman, lepas sebentar jika senar tegang!');renderControls()}else if(phase==='fight'){hold=true}}
  function showReward(r){if(!overlay||!r)return;const i=FS.findIndex(x=>x[0]===r.tier),k=Math.max(0,i);
-  const body=$('#nfPlay');const w=body?.querySelector('.nf-reward');w?.remove();const node=document.createElement('div');node.className='nf-reward';node.innerHTML=`${fishSVG(k,210,r.name)}<h2>${safe(r.name)}</h2><p>${safe(r.rarity)} · +${fmt(r.score)} poin event</p><button class="nf-buy" id="nfBackFishing">🎣 Mancing Lagi</button>`;
+  const body=$('#nfPlay');const w=body?.querySelector('.nf-reward');w?.remove();const node=document.createElement('div');node.className='nf-reward';let sellPrice=null;try{if(typeof nusaFishSellPrice==='function'){const v=Number(nusaFishSellPrice(r));if(Number.isFinite(v)&&v>0)sellPrice=v}}catch(e){}
+  node.style.setProperty('--tc',FS[k][3]);
+  node.innerHTML=`<span class="nf-rw-badge">🎉 Tangkapan Berhasil!</span><div class="nf-rw-fish">${fishSVG(k,210,r.name)}</div><h2>${safe(r.name)}</h2><span class="nf-rw-tier">${safe(r.rarity)}</span><div class="nf-rw-stats"><div><b>+${fmt(r.score)}</b><small>poin event</small></div>${sellPrice!==null?`<div><b>${fmt(sellPrice)}</b><small>nilai jual (koin)</small></div>`:''}</div><button class="nf-buy" id="nfBackFishing">🎣 Mancing Lagi</button>`;
   body.querySelector('.nf-illustration').hidden=true;body.querySelector('.nf-fight').hidden=true;body.querySelector('.nf-controls').hidden=true;body.insertBefore(node,body.querySelector('.nf-status'));
   node.querySelector('#nfBackFishing').onclick=()=>{node.remove();body.querySelector('.nf-illustration').hidden=false;body.querySelector('.nf-fight').hidden=false;body.querySelector('.nf-controls').hidden=false;reward=null;resetPhase();showMessage('Selamat! Ikan masuk ke Koleksi Ikan.');};
  }
@@ -5600,8 +5697,8 @@ function subscribeChat(){const q=query(ref(db,CHAT),orderByKey(),limitToLast(80)
 function showNext(){if(announcing||prefs.hideAchievements||!readyHUD()||!user)return;
  const next=announceQueue.shift();if(!next)return;announcing=true;mount();const box=$('nusaFishBroadcast');
  const name=escaped(next.name).slice(0,120),fish=escaped(next.fish).slice(0,150),tier=escaped(next.tier.toUpperCase());
- box.innerHTML='<span>🎉 PENCAPAIAN WARGA</span><b>'+name+' mendapat ikan '+fish+'!</b><small>🐟 Tingkat '+tier+'</small>';box.hidden=false;
- setTimeout(()=>{box.hidden=true;announcing=false;showNext()},3000);
+ const tm=({epic:['Epic','#d18cff','🦈'],legendary:['Legendary','#f5c561','🐠'],mythic:['Mythic','#fa7b91','🐉'],mistis:['Mistis','#bd79fa','🎏'],cosmic:['Cosmic','#fcdf7d','🌌']})[String(next.tier)]||['Langka','#f5c561','🐟'];box.className='nfb';box.style.setProperty('--tc',tm[1]);box.innerHTML='<div class="nfb-ico" aria-hidden="true">'+tm[2]+'</div><div class="nfb-txt"><small>🎉 Pencapaian warga</small><b>'+name+'</b><span>mendapat <strong>'+fish+'</strong></span></div><em class="nfb-tier">'+tm[0]+'</em>';box.hidden=false;
+ setTimeout(()=>box.classList.add('out'),4300);setTimeout(()=>{box.hidden=true;box.classList.remove('out');announcing=false;showNext()},4650);
 }
 function subscribeAchievements(){const q=query(ref(db,ACH),orderByChild('at'),limitToLast(50));stopAchievements=onValue(q,snap=>{
  const list=Object.entries(snap.val()||{});const keys=new Set(list.map(([k])=>k));
