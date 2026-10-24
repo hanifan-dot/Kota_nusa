@@ -272,6 +272,18 @@ html body .nusa-active-chip{min-width:0!important;padding:4px 9px!important;font
 html body #nusaFishingJump{padding:6px 9px!important;font-size:10px!important;border-radius:14px!important;max-width:none!important;opacity:.92}
 html body #hud .city-controls{gap:6px!important}
 </style>
+
+<!-- V2.33: Pulihkan lonceng berita tanpa menyembunyikan tombol pengaturan notifikasi. -->
+<style id="nusa-restore-official-news-bell-v233">
+/* Toolbar sebelumnya menyembunyikan semua tombol selain anak pertama.
+   Tombol pengaturan baru disisipkan sebagai anak pertama sehingga lonceng berita
+   tersembunyi. Tampilkan dua tombol penting berdampingan secara eksplisit. */
+#hud .right-tools{width:84px!important;align-items:flex-end!important;position:absolute!important}
+#hud .right-tools #nusaNewsBell{display:grid!important;position:absolute!important;top:0!important;left:0!important;right:auto!important;z-index:4!important;pointer-events:auto!important}
+#hud .right-tools #nusaNotifySettingsButton{display:grid!important;position:relative!important;align-self:flex-end!important;z-index:4!important;pointer-events:auto!important}
+#hud .right-tools #nusaNewsBell .nusa-news-badge[hidden]{display:none!important}
+@media(max-width:600px){#hud .right-tools{width:84px!important}}
+</style>
 </head><body><main id="app"><div id="boot"><h1>Kota Nusa.</h1><p>Menyiapkan kota…</p></div></main><script>'use strict';
 // ===== Deteksi browser dalam Instagram/Facebook (progres sering hilang di sana) =====
 (function(){
