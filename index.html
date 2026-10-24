@@ -117,7 +117,7 @@
 .np-counter{display:flex;align-items:center;gap:12px}.np-counter button{width:35px;height:35px;border:1px solid #bfd3d4;border-radius:10px;background:#fff;color:#143e4c;font-size:22px}
 .np-heading{font-weight:850;margin:6px 0 2px;color:#193944;font-size:15px}
 .np-meta{font-size:11px;opacity:.7;margin-top:5px}
-.np-photo-rule{font-size:11px;color:#687681;margin:0}
+.np-photo-rule{font-size:11px;color:#687681;margin:0}.np-top-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.np-guide-flash{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:14px;background:#f2db8b18;border:1px solid #d9b76570;color:#f8eed3;transition:opacity .35s ease,transform .35s ease,max-height .35s ease;padding-top:10px;padding-bottom:10px;max-height:120px;overflow:hidden}.np-guide-flash small{display:block;color:#d7dfeb;font-size:10px;line-height:1.45;margin-top:3px}.np-guide-flash.hide{opacity:0;transform:translateY(-6px);max-height:0;padding-top:0;padding-bottom:0;border-width:0;margin:0}.np-guide-mini{border:1px solid #e2c06f;background:#f0d28c;color:#14334a;border-radius:10px;padding:9px 12px;font-weight:850;flex:0 0 auto}.np-alert{animation:npOrderBlink .9s ease-in-out infinite alternate;box-shadow:0 0 0 1px #ffe6a1 inset,0 0 16px #e0b84c55}.np-alert-badge{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;margin-left:6px;border-radius:999px;background:#f0d083;color:#15384f;font-size:11px;font-weight:900}.nk-guide-card{display:grid;justify-items:center;text-align:center;gap:10px;padding:6px 2px 0}.nk-guide-step{padding:5px 10px;border-radius:999px;border:1px solid #dcb870;background:#f0d389;color:#163c51;font-weight:900;font-size:11px}.nk-guide-art{width:84px;height:84px;border-radius:22px;display:grid;place-items:center;background:linear-gradient(155deg,#f0d79a,#d7b063);font-size:42px;box-shadow:0 10px 24px #00000026}.nk-guide-card strong{font-size:18px;color:#ffe3a2}.nk-guide-card p{margin:0;color:#d9e4ef;line-height:1.7;font-size:12px}.no-btn.attention{animation:npOrderBlink .9s ease-in-out infinite alternate}@keyframes npOrderBlink{0%{transform:scale(1)}100%{transform:scale(1.02);box-shadow:0 0 0 1px #ffe3a3 inset,0 0 18px #dfb24c80}}@media(max-width:600px){.np-top-actions{grid-template-columns:1fr}.np-guide-flash{align-items:flex-start}.np-guide-mini{width:auto;min-width:64px}}
 @media(min-width:700px){.np-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.np-card-body{padding:12px}.np-name{font-size:15px}.np-art{height:130px}}
 @media(prefers-reduced-motion:no-preference){.np-gold svg .shine{animation:npPulse 2.5s ease-in-out infinite}.np-chat .np-glow{animation:npPulse 2.8s ease-in-out infinite}}@keyframes npPulse{50%{opacity:.25;transform:translateY(-3px)}}
 </style>
@@ -3291,6 +3291,61 @@ function nusaShopChime(){
  }catch{}
 }
 function nusaPremiumMoney(n){return 'Rp'+n.toLocaleString('id-ID')}
+
+const NK_PREMIUM_GUIDE_KEY='nusa-premium-guide-v224';
+function nkSeenApprovedKey(uid){return 'nusa-premium-seen-approved:'+uid}
+function nkReadSeenApproved(uid){try{return JSON.parse(localStorage.getItem(nkSeenApprovedKey(uid))||'{}')||{}}catch{return {}}}
+function nkWriteSeenApproved(uid,obj){try{localStorage.setItem(nkSeenApprovedKey(uid),JSON.stringify(obj||{}))}catch{}}
+async function nkApprovedMineData(){
+ const x=await nkSigned();if(!x)return {uid:'',approvedIds:[]};
+ const uid=x.auth.currentUser.uid;
+ const idx=await x.d.get(x.d.ref(x.db,'nusaPremiumOrderIndexV2/'+uid));
+ const ids=Object.keys(idx.val()||{}).slice(-120).reverse();
+ const rows=(await Promise.all(ids.map(id=>x.d.get(x.d.ref(x.db,'nusaPremiumOrdersV2/'+id)).then(s=>s.exists()?({...s.val(),id}):null).catch(()=>null)))).filter(Boolean);
+ return {uid,approvedIds:rows.filter(o=>o.status==='approved').map(o=>o.id)};
+}
+async function nkMarkApprovedSeen(ids){
+ try{
+  const x=await nkSigned();if(!x)return;
+  const uid=x.auth.currentUser.uid,seen=nkReadSeenApproved(uid);
+  (ids||[]).forEach(id=>seen[id]=Date.now());
+  nkWriteSeenApproved(uid,seen);
+ }catch{}
+}
+async function nkRefreshPremiumReminder(){
+ const flash=document.querySelector('#npGuideFlash');
+ if(flash){clearTimeout(window.__nkGuideFlashTimer);window.__nkGuideFlashTimer=setTimeout(()=>flash.classList.add('hide'),3000)}
+ const btn=document.querySelector('#npMyOrders');
+ if(!btn)return;
+ btn.classList.remove('np-alert');
+ btn.innerHTML='📦 Status Pesanan Saya';
+ try{
+  const {uid,approvedIds}=await nkApprovedMineData();
+  if(!uid)return;
+  const seen=nkReadSeenApproved(uid);
+  const unseen=approvedIds.filter(id=>!seen[id]);
+  if(unseen.length){
+   btn.classList.add('np-alert');
+   btn.innerHTML=`📦 Status Pesanan Saya <span class="np-alert-badge">${unseen.length}</span>`;
+  }
+ }catch{}
+}
+function nkGuideSlides(){return [
+ {step:'1/3',icon:'🛍️',title:'Beli lalu bayar QRIS',text:'Tekan tombol Beli pada item. Setelah QRIS muncul, kirim uang dengan nominal yang tepat. Jika uang memang sudah terkirim, tekan tombol “Saya Sudah Bayar”.'},
+ {step:'2/3',icon:'📦',title:'Pantau Status Pesanan Saya',text:'Kembali ke Premium Shop lalu tekan “Status Pesanan Saya”. Jika Presiden belum mengecek DANA Bisnis, status masih menunggu verifikasi.'},
+ {step:'3/3',icon:'🎁',title:'Ambil item di Barang Saya',text:'Kalau status sudah Disetujui, item masuk ke menu “Barang Saya”. Dari sana kamu bisa langsung pakai Aura, masuk Rumah Selebritis, atau tanam Sawit Emas.'}
+]}
+function nkOpenGuide(index=0){
+ const slides=nkGuideSlides();
+ const box=nkPopup('Buku Panduan Klaim','PREMIUM SHOP · BANTUAN');
+ function render(){
+  const s=slides[index];
+  box.innerHTML=`<div class="nk-guide-card"><div class="nk-guide-step">${s.step}</div><div class="nk-guide-art">${s.icon}</div><strong>${nkEsc(s.title)}</strong><p>${nkEsc(s.text)}</p></div><div class="no-box no-warn">Jika Presiden sudah menyetujui pembayaran, cari itemmu di <b>Barang Saya</b>, bukan di tombol Beli lagi.</div><div class="no-buttons"><button class="no-btn ghost" id="nkGuidePrev" ${index===0?'disabled':''}>← Sebelumnya</button><button class="no-btn" id="nkGuideNext">${index===slides.length-1?'Saya paham':'Lanjut →'}</button></div>`;
+  box.querySelector('#nkGuidePrev').onclick=()=>{if(index>0){index--;render();}};
+  box.querySelector('#nkGuideNext').onclick=()=>{if(index<slides.length-1){index++;render();}else{try{localStorage.setItem(NK_PREMIUM_GUIDE_KEY,'1')}catch{}nkClose();}};
+ }
+ render();
+}
 function showNusaPremium(){
  if(!state.me)return join();
  const products=[
@@ -3302,10 +3357,13 @@ function showNusaPremium(){
  const product=NUSA_PREMIUM_CATALOG[id];
  return `<article class="np-card"><div class="np-art ${color}">${art}</div><div class="np-card-body"><div class="np-flex"><h3 class="np-name">${product.name}</h3><span class="np-tag">${tag}</span></div><p class="np-desc">${description}</p><div class="np-flex"><span class="np-price">${nusaPremiumMoney(product.price)}</span><small style="color:#67818a">Sekali beli</small></div><button class="np-action np-ghost" data-np-preview="${id}">Lihat koleksi</button></div></article>`
  }).join('');
- panel('Koleksi Premium',`<div class="np-wrap"><div class="np-hero"><span class="np-mini-pill">✦ Koleksi spesial Kota Nusa</span><div class="np-kicker">PREMIUM STORE · SEASON 01</div><h3>Hal kecil.<br>Rasa istimewa.</h3><p>Item pilihan untuk mempercantik kehidupan di kota. Semua kegiatan dasar tetap gratis dimainkan.</p></div><div class="np-wa-row"><a class="np-wa-contact" href="https://wa.me/6289672344059" target="_blank" rel="noopener noreferrer" aria-label="Hubungi Kota Nusa melalui WhatsApp Business"><span class="np-wa-indicator">●</span><span><b>WhatsApp Kota Nusa</b><small>Hubungi pengelola · Status online tidak dijamin</small></span><span>↗</span></a></div><div class="np-grid">${cards}</div><div class="np-note"><strong>Pesanan Premium · Pembayaran QRIS.</strong> Warga membuat pesanan, lalu membayar QRIS Kotanusa. Presiden memeriksa transaksi di DANA Bisnis sebelum menyetujui dan menyerahkan barang. Verifikasi ini manual, bukan otomatis.</div><button class="np-action np-ghost" id="npMyOrders">📦 Status Pesanan Saya</button><button class="np-action np-ghost" id="npBack">← Aktivitas Kota</button></div>`,{sub:'KOTA NUSA · KOLEKSI EKSKLUSIF'});
+ panel('Koleksi Premium',`<div class="np-wrap"><div class="np-hero"><span class="np-mini-pill">✦ Koleksi spesial Kota Nusa</span><div class="np-kicker">PREMIUM STORE · SEASON 01</div><h3>Hal kecil.<br>Rasa istimewa.</h3><p>Item pilihan untuk mempercantik kehidupan di kota. Semua kegiatan dasar tetap gratis dimainkan.</p></div><div class="np-top-actions"><button class="np-action" id="npMyOrders">📦 Status Pesanan Saya</button><button class="np-action np-ghost" id="npGuideBtn">📘 Buku Panduan Klaim</button></div><div class="np-guide-flash" id="npGuideFlash"><div><b>Jika anda bingung, cek buku panduan klaim barang.</b><small>Setelah disetujui Presiden, item masuk ke <b>Barang Saya</b>.</small></div><button class="np-guide-mini" id="npGuideFlashBtn">Buka</button></div><div class="np-wa-row"><a class="np-wa-contact" href="https://wa.me/6289672344059" target="_blank" rel="noopener noreferrer" aria-label="Hubungi Kota Nusa melalui WhatsApp Business"><span class="np-wa-indicator">●</span><span><b>WhatsApp Kota Nusa</b><small>Hubungi pengelola · Status online tidak dijamin</small></span><span>↗</span></a></div><div class="np-grid">${cards}</div><div class="np-note"><strong>Pesanan Premium · Pembayaran QRIS.</strong> Warga membuat pesanan, lalu membayar QRIS Kotanusa. Presiden memeriksa transaksi di DANA Bisnis sebelum menyetujui dan menyerahkan barang. Verifikasi ini manual, bukan otomatis.</div><button class="np-action np-ghost" id="npBack">← Aktivitas Kota</button></div>`,{sub:'KOTA NUSA · KOLEKSI EKSKLUSIF'});
  document.querySelector('#npBack').onclick=()=>showNusaPlus();
  document.querySelector('#npMyOrders').onclick=()=>window.NusaPremiumOrders?.openMine();
+ document.querySelector('#npGuideBtn').onclick=()=>nkOpenGuide(0);
+ document.querySelector('#npGuideFlashBtn')?.addEventListener('click',()=>nkOpenGuide(0));
  document.querySelectorAll('[data-np-preview]').forEach(b=>b.onclick=()=>showNusaPremiumDetail(b.dataset.npPreview));
+ void nkRefreshPremiumReminder();
 }
 function showNusaPremiumDetail(id){
  const p=NUSA_PREMIUM_CATALOG[id];if(!p)return showNusaPremium();
@@ -3906,7 +3964,8 @@ function nkWaButton(o,label='💬 Chat Admin WhatsApp Business'){
 function nkMineItemHtml(o,label){
  const p=NK_PRODUCTS[o.product]||{};
  const openLabel=o.status==='pending'?'Lanjutkan Pembayaran':'Lihat Status';
- return `<div class="no-item"><div class="no-item-top"><div class="no-item-head"><div class="no-row"><b>${nkEsc(p.name||'Produk')}</b><span class="no-pill ${o.status==='reported'?'no-reported':''}">${nkEsc(label)}</span></div><small>${nkEsc(o.id)} · ${nkFmt(o.price)}</small></div>${o.status==='approved'||o.status==='rejected'?`<button class="no-icon-btn" data-hide-order="${nkEsc(o.id)}" aria-label="Sembunyikan pesanan selesai">×</button>`:''}</div><div class="no-buttons"><button class="no-btn ${o.status==='pending'?'':'ghost'}" data-open-order="${nkEsc(o.id)}">${openLabel}</button></div>${nkWaButton(o,'Hubungi Admin')}</div>`;
+ const extra=o.status==='approved'?`<button class="no-btn ghost" data-open-owned="${nkEsc(o.id)}">🎁 Barang Saya</button>`:'';
+ return `<div class="no-item"><div class="no-item-top"><div class="no-item-head"><div class="no-row"><b>${nkEsc(p.name||'Produk')}</b><span class="no-pill ${o.status==='reported'?'no-reported':''}">${nkEsc(label)}</span></div><small>${nkEsc(o.id)} · ${nkFmt(o.price)}</small></div>${o.status==='approved'||o.status==='rejected'?`<button class="no-icon-btn" data-hide-order="${nkEsc(o.id)}" aria-label="Sembunyikan pesanan selesai">×</button>`:''}</div><div class="no-buttons"><button class="no-btn ${o.status==='pending'?'':'ghost'}" data-open-order="${nkEsc(o.id)}">${openLabel}</button>${extra}</div>${nkWaButton(o,'Hubungi Admin')}</div>`;
 }
 function nkAdminItemHtml(o,label,processed){const p=NK_PRODUCTS[o.product]||{};return `<div class="no-item"><div class="no-item-top"><div class="no-item-head"><div class="no-row"><b>${nkEsc(o.name)} · ${nkEsc(p.name||o.product)}</b><span class="no-pill ${o.status==='reported'?'no-reported':''}">${nkEsc(label)}</span></div><small>${nkFmt(o.price)} · ${nkEsc(o.id)}</small><small>Dibuat ${new Date(o.createdAt||0).toLocaleString('id-ID')}${o.status==='reported'?' · Mengaku bayar '+new Date(o.updatedAt||o.createdAt||0).toLocaleString('id-ID'):''}</small></div>${processed?`<button class="no-icon-btn trash" data-admin-hide="${nkEsc(o.id)}" aria-label="Sembunyikan dari riwayat">🗑</button>`:''}</div>${o.status==='reported'?`<div class="no-box no-warn"><b>Pembeli menekan “Saya Sudah Bayar”.</b> Ini belum bukti uang diterima. Cek nominal ${nkFmt(o.price)}, waktu, serta ID transaksi di DANA Bisnis sebelum memberikan item.</div><label class="no-muted" for="nk-tx-${nkEsc(o.id)}">ID transaksi DANA Bisnis (bukan ID pesanan game)</label><input id="nk-tx-${nkEsc(o.id)}" class="no-input" placeholder="ID transaksi asli dari DANA Bisnis" data-tx="${nkEsc(o.id)}" maxlength="64"><div class="no-buttons"><button class="no-btn" data-ok="${nkEsc(o.id)}">✓ Setujui Setelah Uang Dicek</button><button class="no-btn danger" data-no="${nkEsc(o.id)}">Tolak</button></div>`:o.status==='pending'?`<div class="no-muted">Status: <b>Belum bayar</b>. Pembeli belum melaporkan pembayaran. Jangan setujui pesanan ini dulu.</div>`:`<div class="no-muted">${o.status==='approved'?'Pembayaran sudah diperiksa admin dan item diberikan.':'Pesanan ditolak admin.'}${o.merchantTx?` ID transaksi: <b>${nkEsc(o.merchantTx)}</b>.`:''}</div>`}</div>`}
 function nkQrisUi(p,id){return `<div class="no-box"><div class="no-row"><b>${nkEsc(p.icon)} ${nkEsc(p.name)}</b><b style="color:#ffe5a4;font-size:19px">${nkFmt(p.price)}</b></div><div class="no-muted">ID pesanan: ${nkEsc(id)}</div><span class="no-pill">BELUM BAYAR</span></div><div class="nk-qr"><img src="${NK_QRIS}" alt="QRIS resmi DANA Bisnis Kotanusa" loading="eager"><p>Scan QRIS lewat aplikasi pembayaran. <b>Masukkan nominal tepat ${nkFmt(p.price)}.</b></p><button class="no-btn ghost" id="nkSaveQR">Simpan gambar QRIS</button></div><div class="no-box no-warn">QRIS bersifat <b>statis</b>. Jika <b>belum membayar</b>, biarkan status Belum Bayar. Jika <b>sudah benar-benar membayar</b>, tekan Saya Sudah Bayar. Presiden tetap wajib memeriksa uang di DANA Bisnis sebelum item aktif. Jangan bayar dua kali.</div>`}
@@ -3925,7 +3984,7 @@ function nkOrderStatus(box,o){
  if(o.status==='pending'){nkPayment(box,o);return}
  const heading=o.status==='reported'?'🟡 Laporan “Saya Sudah Bayar” diterima':o.status==='approved'?'✅ Pembayaran disetujui':o.status==='rejected'?'⚠️ Pesanan ditolak':'Status Pesanan';
  const detail=o.status==='reported'?'Admin sedang memeriksa DANA Bisnis. Status ini bukan konfirmasi pembayaran. Jangan membayar ulang.':o.status==='approved'?'Admin sudah mencocokkan pembayaran dan mengaktifkan produk di akun Google ini.':o.status==='rejected'?'Jika kamu merasa sudah membayar, hubungi WhatsApp Admin dengan ID pesanan. Jangan membuat pesanan baru dulu.':'Silakan periksa kembali.';
- box.innerHTML=`<div class="no-box"><b>${nkEsc(p.icon)} ${nkEsc(p.name)}</b><div class="no-muted">${nkFmt(o.price)} · ID ${nkEsc(o.id)}</div></div><div class="no-box ${o.status==='reported'||o.status==='rejected'?'no-warn':'no-success'}"><b>${heading}</b><p style="margin-top:8px">${detail}</p><small>Terakhir diperbarui: ${new Date(o.updatedAt||o.createdAt||Date.now()).toLocaleString('id-ID')}</small></div>${nkWaButton(o)}<div class="no-buttons"><button class="no-btn" id="nkStatusRefresh">🔄 Perbarui Status</button><button class="no-btn ghost" id="nkHistory">Semua Pesanan</button></div>${o.status==='approved'?'<button class="no-btn ghost" id="nkOwned">Buka Koleksi Premium Saya</button>':''}<div id="nkNotice" class="no-status"></div>`;
+ box.innerHTML=`<div class="no-box"><b>${nkEsc(p.icon)} ${nkEsc(p.name)}</b><div class="no-muted">${nkFmt(o.price)} · ID ${nkEsc(o.id)}</div></div><div class="no-box ${o.status==='reported'||o.status==='rejected'?'no-warn':'no-success'}"><b>${heading}</b><p style="margin-top:8px">${detail}</p><small>Terakhir diperbarui: ${new Date(o.updatedAt||o.createdAt||Date.now()).toLocaleString('id-ID')}</small></div>${nkWaButton(o)}<div class="no-buttons"><button class="no-btn" id="nkStatusRefresh">🔄 Perbarui Status</button><button class="no-btn ghost" id="nkHistory">Semua Pesanan</button></div>${o.status==='approved'?'<button class="no-btn ghost attention" id="nkOwned">🎁 Buka Barang Saya</button>':''}<div id="nkNotice" class="no-status"></div>`;
  box.querySelector('#nkStatusRefresh').onclick=()=>nkOpenMineOrder(o.id);
  box.querySelector('#nkHistory').onclick=nkMine;
  box.querySelector('#nkOwned')?.addEventListener('click',nkInventory);
@@ -3936,7 +3995,7 @@ async function nkCreate(product){const p=NK_PRODUCTS[product];if(!p)return;const
   const u=nkGetId(),uid=x.auth.currentUser.uid;
   if(product==='rodAura'){
    const owned=await x.d.get(x.d.ref(x.db,'nusaPremiumGrantsV2/'+uid));
-   if(Object.values(owned.val()||{}).some(g=>g.product==='rodAura'))throw Error('Pancing Aura sudah dimiliki oleh akun Google ini. Buka Koleksi Premium Saya.');
+   if(Object.values(owned.val()||{}).some(g=>g.product==='rodAura'))throw Error('Pancing Aura sudah dimiliki oleh akun Google ini. Buka Barang Saya.');
   }
   // Never strand a pending order: tapping Buy again resumes the SAME Firebase order.
   const existingIdx=await x.d.get(x.d.ref(x.db,'nusaPremiumOrderIndexV2/'+uid));
@@ -3990,11 +4049,16 @@ async function nkMine(){const box=nkPopup('Pesanan Saya','TOKO KOTA NUSA · RIWA
   const hidden=await nkLoadHiddenMine(x,uid),ids=Object.keys(idx.val()||{}).slice(-120).reverse();
   const data=(await Promise.all(ids.map(id=>x.d.get(x.d.ref(x.db,'nusaPremiumOrdersV2/'+id)).then(z=>z.exists()?({...z.val(),id}):null).catch(()=>null)))).filter(o=>o?.product&&!((o.status==='approved'||o.status==='rejected')&&hidden[o.id]));
   const labels={pending:'Belum bayar',reported:'Sudah lapor bayar · menunggu cek',approved:'Disetujui',rejected:'Ditolak'};
-  box.innerHTML=`<div class="no-box">Pesanan <b>Belum Bayar</b> dapat dilanjutkan kapan pun tanpa membuat pesanan baru. Status <b>Sudah lapor bayar</b> harus dicek dulu oleh Presiden dengan transaksi DANA Bisnis. Jangan bayar dua kali.</div><div class="no-list">${data.map(o=>nkMineItemHtml(o,labels[o.status]||nkEsc(o.status))).join('')||'<div class="no-box">Belum ada pesanan yang tampil.</div>'}</div><div class="no-buttons"><button class="no-btn ghost" id="nkReloadOrders">🔄 Perbarui Status</button><button class="no-btn ghost" id="nkOwned">Koleksi Saya</button></div><div id="nkNotice" class="no-status"></div>`;
+  const approvedIds=data.filter(o=>o.status==='approved').map(o=>o.id);
+  await nkMarkApprovedSeen(approvedIds);
+  const approvedNote=approvedIds.length?`<div class="no-box no-success"><b>🎁 Ada ${approvedIds.length} barang yang sudah disetujui.</b><div style="margin-top:8px">Tekan tombol <b>Barang Saya</b> untuk membuka item lalu pakai, tanam, atau masuk ke hadiahmu.</div></div>`:'';
+  box.innerHTML=`<div class="no-box">Pesanan <b>Belum Bayar</b> dapat dilanjutkan kapan pun tanpa membuat pesanan baru. Status <b>Sudah lapor bayar</b> harus dicek dulu oleh Presiden dengan transaksi DANA Bisnis. Jangan bayar dua kali.</div>${approvedNote}<div class="no-list">${data.map(o=>nkMineItemHtml(o,labels[o.status]||nkEsc(o.status))).join('')||'<div class="no-box">Belum ada pesanan yang tampil.</div>'}</div><div class="no-buttons"><button class="no-btn ghost" id="nkReloadOrders">🔄 Perbarui Status</button><button class="no-btn ghost ${approvedIds.length?'attention':''}" id="nkOwned">🎁 Barang Saya</button></div><div id="nkNotice" class="no-status"></div>`;
   box.querySelectorAll('[data-open-order]').forEach(btn=>btn.onclick=()=>nkOpenMineOrder(btn.dataset.openOrder));
+  box.querySelectorAll('[data-open-owned]').forEach(btn=>btn.onclick=nkInventory);
   box.querySelectorAll('[data-hide-order]').forEach(btn=>btn.onclick=async()=>{if(!confirm('Sembunyikan pesanan yang sudah selesai ini dari riwayat?'))return;try{await nkHideMineOrder(x,uid,btn.dataset.hideOrder);nkMine()}catch(e){nkNotice('Gagal menyembunyikan: '+nkError(e))}});
   box.querySelector('#nkOwned').onclick=nkInventory;
   box.querySelector('#nkReloadOrders').onclick=nkMine;
+  void nkRefreshPremiumReminder();
  }catch(e){box.innerHTML=`<div class="no-box no-warn">${nkEsc(nkError(e))}</div>`}
 }
 async function nkLoadGrants(){const x=await nkSigned();if(!x)return {};const uid=x.auth.currentUser.uid;
@@ -4007,9 +4071,9 @@ async function nkLoadGrants(){const x=await nkSigned();if(!x)return {};const uid
  window.NusaFishing?.updatePremium?.();
  return {grants:nkGrants,used};
 }
-async function nkInventory(){const box=nkPopup('Koleksi Premium Saya','KOLEKSI YANG DISETUJUI');
+async function nkInventory(){const box=nkPopup('Barang Saya','KOLEKSI YANG DISETUJUI');
  try{const x=await nkSigned();if(!x){nkLogin(box,nkInventory);return}const {grants,used}=await nkLoadGrants();const ids=Object.keys(grants).reverse();
-  box.innerHTML=`<div class="no-box">Item di bawah berasal dari pesanan yang <b>disetujui Presiden</b>. Barang tetap tercatat pada akun Google yang membeli.</div><div class="no-list">${ids.map(id=>{const g=grants[id],p=NK_PRODUCTS[g.product];return `<div class="no-item"><div class="no-row"><b>${nkEsc(p?.icon||'✦')} ${nkEsc(p?.name||'Item')}</b><span class="no-pill">Dimiliki</span></div><small>Pesanan ${nkEsc(id)}</small><div class="no-buttons">${g.product==='sawit'?`<button class="no-btn" ${used[id]?'data-checkseed':'data-plant'}="${nkEsc(id)}">${used[id]?'Cek Pohon Sawit Emas':'Tanam di Kebun'}</button>`:g.product==='mansion'?'<button class="no-btn" data-mansion="true">Masuk Rumah Sultan</button>':g.product==='rodAura'?'<button class="no-btn" data-fish-aura="true">🎣 Buka Event · Pakai Aura</button>':'<span class="no-muted">Efek Chat Aura aktif saat akun ini login.</span>'}</div></div>`}).join('')||'<div class="no-box">Belum memiliki item premium.</div>'}</div><button class="no-btn ghost" id="nkHistory">Riwayat Pesanan</button>`;
+  box.innerHTML=`<div class="no-box"><b>Barang saya yang sudah disetujui Presiden.</b><div style="margin-top:8px">Jika bingung setelah membeli, cek item di sini. Tekan tombol emas pada item untuk langsung memakai atau mengaktifkannya.</div></div><div class="no-list">${ids.map(id=>{const g=grants[id],p=NK_PRODUCTS[g.product];return `<div class="no-item"><div class="no-row"><b>${nkEsc(p?.icon||'✦')} ${nkEsc(p?.name||'Item')}</b><span class="no-pill">Dimiliki</span></div><small>Pesanan ${nkEsc(id)}</small><div class="no-buttons">${g.product==='sawit'?`<button class="no-btn" ${used[id]?'data-checkseed':'data-plant'}="${nkEsc(id)}">${used[id]?'Cek Pohon Sawit Emas':'🌴 Tanam di Kebun'}</button>`:g.product==='mansion'?'<button class="no-btn" data-mansion="true">🏛️ Masuk Rumah Sultan</button>':g.product==='rodAura'?'<button class="no-btn" data-fish-aura="true">🎣 Buka Event · Pakai Aura</button>':'<span class="no-muted">Efek Chat Aura aktif saat akun ini login.</span>'}</div></div>`}).join('')||'<div class="no-box">Belum memiliki item premium.</div>'}</div><button class="no-btn ghost" id="nkHistory">📦 Riwayat Pesanan</button>`;
   box.querySelector('#nkHistory').onclick=nkMine;
   box.querySelectorAll('[data-plant]').forEach(b=>b.onclick=()=>nkPlant(b.dataset.plant));
   box.querySelectorAll('[data-checkseed]').forEach(b=>b.onclick=()=>nkCheckUsedSeed(b.dataset.checkseed));
@@ -4020,10 +4084,10 @@ async function nkInventory(){const box=nkPopup('Koleksi Premium Saya','KOLEKSI Y
 function nkCheckUsedSeed(orderId){
  const body=nkPopup('Periksa Sawit Emas','PEMULIHAN BIBIT · KEBUN');
  const info=window.NusaPremiumInspect?.(orderId);
- if(!info?.ok){body.innerHTML=`<div class="no-box no-warn">${nkEsc(info?.message||'Data kebun tidak ditemukan di HP ini.')}</div><button id="nkReturn" class="no-btn ghost">← Koleksi Saya</button>`;}
- else if(info.linkedPlot){body.innerHTML=`<div class="no-box">✅ Bibit pesanan ini sudah tertanam di <b>petak ${info.linkedPlot}</b>. Tidak perlu membeli ulang.</div><button id="nkRepairGold" class="no-btn">✨ Tampilkan Sawit Emas di HP Lain</button><div id="nkNotice" class="no-status"></div><button id="nkReturn" class="no-btn ghost">← Koleksi Saya</button>`;}
- else if(info.goldPlots.length){body.innerHTML=`<div class="no-box">🌴 Ada <b>${info.goldPlots.length} Sawit Emas</b> di kebun HP ini, pada petak <b>${info.goldPlots.join(', ')}</b>. Jika tadi muncul error <i>reading plot</i>, pohon kemungkinan sebenarnya sudah tertanam, hanya notifikasinya yang gagal.</div><div class="no-box">Periksa kebun sebelum meminta pemulihan bibit. Jangan membeli ulang.</div><button id="nkRepairGold" class="no-btn">✨ Tampilkan Sawit Emas di HP Lain</button><div id="nkNotice" class="no-status"></div><button id="nkReturn" class="no-btn ghost">← Koleksi Saya</button>`;}
- else{body.innerHTML=`<div class="no-box no-warn">Status Firebase menunjukkan bibit sudah dipakai, tetapi di kebun HP ini tidak ditemukan Sawit Emas. <b>Jangan beli lagi.</b> Perlu pemeriksaan oleh Presiden terhadap catatan pesanan dan data kebun sebelum bibit bisa dipulihkan, supaya tidak muncul bibit ganda.</div><button id="nkReturn" class="no-btn ghost">← Koleksi Saya</button>`;}
+ if(!info?.ok){body.innerHTML=`<div class="no-box no-warn">${nkEsc(info?.message||'Data kebun tidak ditemukan di HP ini.')}</div><button id="nkReturn" class="no-btn ghost">← Barang Saya</button>`;}
+ else if(info.linkedPlot){body.innerHTML=`<div class="no-box">✅ Bibit pesanan ini sudah tertanam di <b>petak ${info.linkedPlot}</b>. Tidak perlu membeli ulang.</div><button id="nkRepairGold" class="no-btn">✨ Tampilkan Sawit Emas di HP Lain</button><div id="nkNotice" class="no-status"></div><button id="nkReturn" class="no-btn ghost">← Barang Saya</button>`;}
+ else if(info.goldPlots.length){body.innerHTML=`<div class="no-box">🌴 Ada <b>${info.goldPlots.length} Sawit Emas</b> di kebun HP ini, pada petak <b>${info.goldPlots.join(', ')}</b>. Jika tadi muncul error <i>reading plot</i>, pohon kemungkinan sebenarnya sudah tertanam, hanya notifikasinya yang gagal.</div><div class="no-box">Periksa kebun sebelum meminta pemulihan bibit. Jangan membeli ulang.</div><button id="nkRepairGold" class="no-btn">✨ Tampilkan Sawit Emas di HP Lain</button><div id="nkNotice" class="no-status"></div><button id="nkReturn" class="no-btn ghost">← Barang Saya</button>`;}
+ else{body.innerHTML=`<div class="no-box no-warn">Status Firebase menunjukkan bibit sudah dipakai, tetapi di kebun HP ini tidak ditemukan Sawit Emas. <b>Jangan beli lagi.</b> Perlu pemeriksaan oleh Presiden terhadap catatan pesanan dan data kebun sebelum bibit bisa dipulihkan, supaya tidak muncul bibit ganda.</div><button id="nkReturn" class="no-btn ghost">← Barang Saya</button>`;}
  body.querySelector('#nkReturn').onclick=nkInventory;
  const repair=body.querySelector('#nkRepairGold');if(repair)repair.onclick=async()=>{
   repair.disabled=true;try{const x=await nkSigned();if(!x)throw Error('Masuk akun Google dulu.');
@@ -4033,7 +4097,7 @@ function nkCheckUsedSeed(orderId){
   }catch(e){nkNotice('Sinkron belum berhasil: '+nkError(e));repair.disabled=false}
  };
 }
-function nkMansion(){const body=nkPopup('Rumah Selebritis','KOLEKSI · RUMAH SULTAN');body.innerHTML=`<div class="nk-mansion"><div class="nk-mansion-house">🏛️</div><strong>THE NUSA GRAND VILLA</strong><small>Grand lobby · Kolam biru · Taman tropis</small></div><div class="no-box">Selamat datang di rumah eksklusifmu! Halaman interior digital ini dapat dibuka setiap kali akunmu terhubung.</div><button id="nkReturn" class="no-btn ghost">← Koleksi Saya</button>`;body.querySelector('#nkReturn').onclick=nkInventory}
+function nkMansion(){const body=nkPopup('Rumah Selebritis','KOLEKSI · RUMAH SULTAN');body.innerHTML=`<div class="nk-mansion"><div class="nk-mansion-house">🏛️</div><strong>THE NUSA GRAND VILLA</strong><small>Grand lobby · Kolam biru · Taman tropis</small></div><div class="no-box">Selamat datang di rumah eksklusifmu! Halaman interior digital ini dapat dibuka setiap kali akunmu terhubung.</div><button id="nkReturn" class="no-btn ghost">← Barang Saya</button>`;body.querySelector('#nkReturn').onclick=nkInventory}
 async function nkPlant(orderId){const body=nkPopup('Tanam Sawit Emas','KOTA NUSA · KEBUN');
  body.innerHTML='<div class="no-box">Bibit emas ditanam pada petak kosong kebun karakter saat ini. Setiap bibit hanya bisa ditanam satu kali.</div><button class="no-btn" id="nkPlantNow">Tanam di Petak Kosong</button><div id="nkNotice" class="no-status"></div>';
  body.querySelector('#nkPlantNow').onclick=async()=>{
@@ -4050,7 +4114,7 @@ async function nkPlant(orderId){const body=nkPopup('Tanam Sawit Emas','KOTA NUSA
    try{
     const applied=await window.NusaPremiumPlantHook?.(orderId);
     if(!applied?.ok)throw Error(applied?.message||'Petak kebun tidak tersedia.');
-    nkNotice('✅ Berhasil! '+applied.message+' Buka Koleksi Premium untuk memeriksa bibit yang sudah ditanam.');
+    nkNotice('✅ Berhasil! '+applied.message+' Buka Barang Saya untuk memeriksa bibit yang sudah ditanam.');
     btn.textContent='Sudah ditanam';
    }catch(e){nkNotice('Bibit telah dicatat sebagai dipakai, tetapi penanaman belum terkonfirmasi: '+nkError(e)+'. Jangan bayar ulang; periksa Sawit Emas di Koleksi Premium.');return}
   }catch(e){nkNotice('Tidak berhasil: '+nkError(e));btn.disabled=false}finally{nkBusy=false}
