@@ -1037,7 +1037,7 @@ if(oldPrice){oldPrice.style.display='inline';oldPrice.textContent='Rp10.000';}if
 if(desc)desc.textContent='GOAT Legends · 5 pemain · klaim setelah verifikasi Presiden';
 if(stock)stock.textContent='ISI PASTI';if(timer){timer.textContent='Promo Rp2.000 · Harga asli Rp10.000';timer.removeAttribute('id');}
 if(button){button.disabled=false;button.removeAttribute('onclick');button.textContent='Beli QRIS';button.onclick=()=>openOrder();}
-const odds=document.querySelector('#shop .box p.muted');if(odds)odds.textContent='Peti Biasa mengikuti peluang yang tercantum. Tiket GOAT gratis berisi 10 pemain termasuk 2 super langka. QRIS Rp2.000 khusus pembelian satu pemain pilihan yang dijamin.';
+const oddsPanel=document.querySelector('#shop .box');if(oddsPanel)oddsPanel.remove(); // remove obsolete and duplicated Daftar peluang / Admin box
 const refill=document.querySelector('#shop button[onclick="refillStock()"]');if(refill)refill.style.display='none';
 const players={neymar:'Neymar Jr',mbappe:'Kylian Mbappé',haaland:'Erling Haaland',ronaldo:'Cristiano Ronaldo',messi:'Lionel Messi',arjuna:'Arjuna Nusa',langit:'Langit Pratama',garda:'Garda Samudra'};
 const admin='3bNsbErpujYgrjxdKUSiHP1sJJ93';const baseKey='nusa_goat_order_v265';let chosen='neymar',current='',scopedKey=baseKey,busy=false,approved=false;
@@ -1047,7 +1047,7 @@ async function connect(){const B=bridge();if(!B||typeof B._session!=='function')
 async function syncLocal(){const {s}=await connect();scopedKey=baseKey+'_'+s.user.uid;current=localStorage.getItem(scopedKey)||'';return s;}
 function selectUI(){document.querySelectorAll('[data-n265-pick]').forEach(x=>x.classList.toggle('selected',x.dataset.n265Pick===chosen));const label=$('n265SelectedName');if(label)label.textContent=players[chosen]||chosen;}
 document.querySelectorAll('[data-n265-pick]').forEach(x=>x.addEventListener('click',()=>{if(current){note('Selesaikan pesanan aktif lebih dulu.');return;}chosen=x.dataset.n265Pick;selectUI();$('n265ChoiceDetails')?.removeAttribute('open');}));
-function showOrder(id){current=id;$('n265Payment').style.display=id?'block':'none';$('n265OrderId').textContent=id||'';$('n265Create').style.display=id?'none':'block';}
+function showOrder(id){current=id;$('n265Payment').style.display=id?'block':'none';$('n265OrderId').textContent=id||'';$('n265Create').style.display=id?'none':'block';if(!id){$('n265NewOrder').style.display='none';$('n265Report').style.display='inline-block';const qr=$('n265Payment').querySelector('.n265QRCode');if(qr)qr.style.display='block';const info=$('n265Payment').querySelector('p.muted');if(info)info.style.display='block';}}
 function renderClaim(show){$('n267ClaimHere').style.display=show?'block':'none';$('n267ClaimInventory').style.display=show?'block':'none';$('n267InventoryNote').style.display=show?'none':'block';approved=show;}
 async function openOrder(){note('');$('n265GoatModal').classList.add('show');$('n265Report').disabled=false;try{await syncLocal();showOrder(current);if(current)await checkStatus();else renderClaim(false);}catch(e){showOrder('');note(e.message||'Tidak bisa membaca akun Google.');}}
 async function checkStatus(){if(!current){note('Buat pesanan dulu.');renderClaim(false);return;}try{
@@ -1055,12 +1055,16 @@ async function checkStatus(){if(!current){note('Buat pesanan dulu.');renderClaim
  if(!snap.exists()){localStorage.removeItem(scopedKey);showOrder('');renderClaim(false);note('Pesanan tidak ditemukan.');return;}
  const o=snap.val();if(o.uid!==s.user.uid)throw Error('Pesanan milik akun Google lain.');
  chosen=o.pick;selectUI();const claimed=(B.wallet()?.claimedGoatIds||[]).includes(current);
+ const pending=o.status==='pending',qr=$('n265Payment').querySelector('.n265QRCode'),qrInfo=$('n265Payment').querySelector('p.muted');
+ if(qr)qr.style.display=pending?'block':'none';if(qrInfo)qrInfo.style.display=pending?'block':'none';
+ $('n265Report').style.display=pending?'inline-block':'none';
  $('n265NewOrder').style.display=(o.status==='rejected'||claimed)?'block':'none';
+ $('n265NewOrder').textContent=o.status==='rejected'?'Buat Pesanan Baru (tanpa menghapus riwayat)':'Buat Pesanan Baru';
  if(o.status==='approved'){
    renderClaim(!claimed);
    note(claimed?'✅ Peti sudah diklaim dan pemain masuk skuad.':'✅ Presiden menyetujui pembayaran. Peti GOAT Legends sudah siap di Persediaan Peti → Klaim.');
    $('n265Report').disabled=true;
- }else if(o.status==='rejected'){renderClaim(false);note('❌ Pesanan ditolak. Jangan membayar ulang tanpa memeriksa pembayaran sebelumnya.');$('n265Report').disabled=true;}
+ }else if(o.status==='rejected'){renderClaim(false);note('❌ Pesanan ini telah ditolak Presiden. QRIS untuk pesanan lama ditutup. Jika belum membayar, gunakan tombol Buat Pesanan Baru. Jika sudah membayar, hubungi admin dahulu dan jangan bayar ulang.');$('n265Report').disabled=true;}
  else if(o.status==='reported'){renderClaim(false);note('⏳ Pembayaran dilaporkan. Menunggu Presiden mengecek transaksi asli.');$('n265Report').disabled=true;}
  else{renderClaim(false);note('Pesanan dibuat. Periksa nominal QRIS Rp2.000; setelah benar-benar membayar, laporkan.');$('n265Report').disabled=false;}
  }catch(e){note('Cek status gagal: '+(e.message||e));}}
@@ -1093,9 +1097,33 @@ $('n265Create').onclick=async()=>{if(busy)return;busy=true;try{
  await s.D.set(ref,{uid:s.user.uid,buyerName:String(identity.name||'Warga').slice(0,24),gameId:String(identity.gameId||''),pick:chosen,price:2000,status:'pending',createdAt:s.D.serverTimestamp(),updatedAt:s.D.serverTimestamp(),transactionId:''});
  localStorage.setItem(scopedKey,ref.key);showOrder(ref.key);note('Pesanan tercatat. QRIS digunakan untuk harga pasti Rp2.000.');
  }catch(e){note('Gagal: '+(e.message||e));}finally{busy=false;}};
-$('n265Report').onclick=async()=>{if(!current||busy)return;busy=true;try{const {s,db}=await connect();const ref=s.D.ref(db,'nusaFootballGoatOrdersV1/'+current);const r=await s.D.runTransaction(ref,o=>{if(!o||o.uid!==s.user.uid||o.status!=='pending')return;return {...o,status:'reported',updatedAt:s.D.serverTimestamp()};},{applyLocally:false});if(!r.committed)throw Error('Pesanan sudah diproses.');await checkStatus();}catch(e){note('Gagal melaporkan: '+(e.message||e));}finally{busy=false;}};
+$('n265Report').onclick=async()=>{if(!current||busy)return;
+ if(!confirm('Tekan OK hanya jika kamu SUDAH BENAR-BENAR membayar Rp2.000 dan memiliki bukti dari aplikasi pembayaran.'))return;
+ busy=true;const reportingId=current;
+ try{
+  const {s,db}=await connect(),ref=s.D.ref(db,'nusaFootballGoatOrdersV1/'+reportingId),snap=await s.D.get(ref);
+  if(!snap.exists())throw Error('Pesanan tidak ditemukan. Periksa daftar pesanan.');
+  const order=snap.val();
+  if(order.uid!==s.user.uid)throw Error('Pesanan ini milik akun lain.');
+  if(order.status!=='pending'){await checkStatus();throw Error('Status pesanan sekarang: '+order.status+'. Baca status terbaru; jangan membayar dua kali.');}
+  // Update both fields atomically. Firebase Rules enforce pending -> reported.
+  await s.D.update(ref,{status:'reported',updatedAt:s.D.serverTimestamp()});
+  await checkStatus();
+ }catch(e){await checkStatus().catch(()=>{});note('Tidak bisa melaporkan pembayaran: '+(e.message||e));}
+ finally{busy=false;}
+};
 $('n265Check').onclick=checkStatus;
-$('n265NewOrder').onclick=()=>{localStorage.removeItem(scopedKey);showOrder('');$('n265NewOrder').style.display='none';renderClaim(false);note('Silakan pilih pemain untuk pesanan baru.');};
+$('n265NewOrder').onclick=async()=>{if(busy)return;busy=true;try{
+ const {s,db}=await connect();if(current){
+  const snap=await s.D.get(s.D.ref(db,'nusaFootballGoatOrdersV1/'+current));
+  const o=snap.val();
+  const claimed=(bridge()?.wallet()?.claimedGoatIds||[]).includes(current);
+  if(o&&o.uid===s.user.uid&&!((o.status==='rejected')||(o.status==='approved'&&claimed)))throw Error('Pesanan masih aktif atau belum diklaim. Gunakan Cek Status.');
+  if(o&&o.uid!==s.user.uid)throw Error('Pesanan bukan milik akun ini.');
+ }
+ localStorage.removeItem(scopedKey);showOrder('');renderClaim(false);
+ note('Siap membuat pesanan baru. Riwayat pesanan sebelumnya tetap tersimpan.');
+ }catch(e){note('Tidak bisa membuat pesanan baru: '+(e.message||e));}finally{busy=false;}};
 $('n265Close').onclick=()=>{$('n265GoatModal').classList.remove('show')};
 $('n265AdminClose').onclick=()=>{$('n265AdminModal').classList.remove('show')};
 async function adminRefresh(){const list=$('n265OrdersList');list.textContent='Memuat…';try{
@@ -1111,13 +1139,15 @@ async function adminRefresh(){const list=$('n265OrdersList');list.textContent='M
  }catch(e){list.textContent='Gagal: '+(e.message||e);}}
 async function review(o,status,tx){if(status==='approved'&&!/^[A-Za-z0-9_-]{5,64}$/.test(tx||'')){alert('Masukkan ID transaksi yang benar dari penyedia QRIS.');return;}
  if(!confirm(status==='approved'?'Pastikan uang Rp2.000 telah masuk ke rekening resmi. Setujui?':'Tolak pesanan ini?'))return;
- try{const {s,db}=await connect();if(s.user.uid!==admin)throw Error('Bukan Presiden.');const r=await s.D.runTransaction(s.D.ref(db,'nusaFootballGoatOrdersV1/'+o.id),v=>{if(!v||(v.status!=='reported'&&!(status==='rejected'&&v.status==='pending')))return;return {...v,status,transactionId:status==='approved'?tx:'',updatedAt:s.D.serverTimestamp()};},{applyLocally:false});if(!r.committed)throw Error('Status sudah berubah.');await adminRefresh();}catch(e){alert('Gagal: '+(e.message||e));}}
+ try{const {s,db}=await connect();if(s.user.uid!==admin)throw Error('Bukan Presiden.');const ref=s.D.ref(db,'nusaFootballGoatOrdersV1/'+o.id),snap=await s.D.get(ref),currentOrder=snap.val();
+ if(!currentOrder||(currentOrder.status!=='reported'&&!(status==='rejected'&&currentOrder.status==='pending')))throw Error('Status pesanan sudah berubah. Muat ulang daftar.');
+ await s.D.update(ref,{status,transactionId:status==='approved'?tx:'',updatedAt:s.D.serverTimestamp()});await adminRefresh();}catch(e){alert('Gagal: '+(e.message||e));}}
 $('n265AdminRefresh').onclick=adminRefresh;
 window.NusaFootballGoatAdmin=async()=>{$('n265AdminModal').classList.add('show');await adminRefresh();};
 const originalRender=window.renderUI;
 if(typeof originalRender==='function')window.renderUI=function(){originalRender();if(stock)stock.textContent='ISI PASTI';};
-const adminButton=document.createElement('button');adminButton.id='n265AdminGoat';adminButton.className='ghost';adminButton.textContent='👑 Pesanan GOAT · Presiden';adminButton.style.display='none';adminButton.onclick=()=>window.NusaFootballGoatAdmin();document.querySelector('#shop .box')?.append(adminButton);
-connect().then(({s})=>{if(s.user.uid===admin)adminButton.style.display='block';}).catch(()=>{});
+// GOAT orders appear in Kota Nusa -> Panel Presiden -> Pesanan Pelanggan.
+ // Legacy football admin modal stays implemented for compatibility, but is no longer duplicated in Toko.
 })();
 </script>
 
