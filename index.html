@@ -1258,7 +1258,7 @@ async function POST(req) {
             if(action==='footballGrantGoatVerified'){
               const orderId=String(b.orderId||'');const pick=String(b.pick||'');
               demand(/^[A-Za-z0-9_-]{12,50}$/.test(orderId),'ID pesanan tidak valid.');
-              const options={arjuna:{name:'Arjuna Nusa',pos:'ST',rating:95,rarity:'Super Legendary',skin:'#c78b68',hair:'#231611'},langit:{name:'Langit Pratama',pos:'AM',rating:94,rarity:'Legendary',skin:'#b98260',hair:'#191310'},garda:{name:'Garda Samudra',pos:'GK',rating:93,rarity:'Legendary',skin:'#966144',hair:'#1e1613'}};
+              const options={arjuna:{name:'Arjuna Nusa',pos:'ST',rating:95,rarity:'Super Legendary',skin:'#c78b68',hair:'#231611'},langit:{name:'Langit Pratama',pos:'AM',rating:94,rarity:'Legendary',skin:'#b98260',hair:'#191310'},garda:{name:'Garda Samudra',pos:'GK',rating:93,rarity:'Legendary',skin:'#966144',hair:'#1e1613'},neymar:{name:'Neymar Jr',pos:'AM',rating:94,rarity:'Legendary',skin:'#c38b67',hair:'#2b211b'},mbappe:{name:'Kylian Mbappé',pos:'ST',rating:96,rarity:'Legendary',skin:'#9c6a4d',hair:'#201815'},haaland:{name:'Erling Haaland',pos:'ST',rating:96,rarity:'Legendary',skin:'#dfb28c',hair:'#c7aa73'},ronaldo:{name:'Cristiano Ronaldo',pos:'ST',rating:99,rarity:'Super Legendary',skin:'#bc8364',hair:'#251b13'},messi:{name:'Lionel Messi',pos:'AM',rating:99,rarity:'Super Legendary',skin:'#d3a079',hair:'#423025'}};
               const chosen=options[pick];demand(chosen,'Pilihan pemain tidak valid.');
               p.football??={normal:0,goat:0,players:[]};p.football.grantedOrders??={};p.football.players??=[];
               if(p.football.grantedOrders[orderId])return {message:'Hadiah sebelumnya sudah diklaim.',footballPrize:p.football.players.find(a=>a.id==='qr_'+orderId)||null};
@@ -4608,7 +4608,7 @@ window.NusaPremiumLocalPlayer=()=>state.me||null;
  CATALOG.places.push({id:'nusa-stadium',name:'Stadion Nusa',sub:'Football Cup 5v5 · Pertandingan & peti',x:-82,z:-121,kind:'stadium'});
  window.NusaRajinRefresh=()=>world?.weather?.(settings.weather);
  window.NusaFootballBridge={
-  wallet(){return {coins:state.me?.coins-(state.me?.held||0)||0,normal:state.me?.football?.normal||0,goat:state.me?.football?.goat||0,players:state.me?.football?.players||[],freeGoatUsed:!!state.me?.football?.goatFreeUsed};},
+  wallet(){return {coins:state.me?.coins-(state.me?.held||0)||0,normal:state.me?.football?.normal||0,goat:state.me?.football?.goat||0,players:state.me?.football?.players||[],freeGoatUsed:!!state.me?.football?.goatFreeUsed,claimedGoatIds:Object.keys(state.me?.football?.grantedOrders||{})};},
   async freeGoatSpin(){if(!entered||!state.me)throw Error('Masuk Kota Nusa dahulu.');const d=await act('footballFreeGoatSpin',{});return {...this.wallet(),prize:d.footballPrize,duplicate:d.footballDuplicate,bonus:d.footballBonus,message:d.message};},
   async buy(qty){if(!entered||!state.me)throw Error('Masuk Kota Nusa dahulu.');const d=await act('footballBuy',{qty});return {...this.wallet(),message:d.message}},
   async open(type){if(!entered||!state.me)throw Error('Masuk Kota Nusa dahulu.');const d=await act('footballOpen',{type});return {...this.wallet(),prize:d.footballPrize,duplicate:d.footballDuplicate,bonus:d.footballBonus};},
