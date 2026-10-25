@@ -5699,9 +5699,40 @@ async function nkAuthorizedStaff(x){
  ]);
  return office.val()?.uid===u.uid && office.val()?.gameId===game && profile.val()?.gameId===game;
 }
+ function nkGoatItemHtml(o){
+ const players={neymar:'Neymar Jr',mbappe:'Kylian Mbappé',haaland:'Erling Haaland',ronaldo:'Cristiano Ronaldo',messi:'Lionel Messi',arjuna:'Arjuna Nusa',langit:'Langit Pratama',garda:'Garda Samudra'};
+ const textStatus={pending:'Belum melapor bayar',reported:'Perlu cek transaksi QRIS',approved:'Disetujui',rejected:'Ditolak'};
+ const state=textStatus[o.status]||'Status tak dikenal',id=nkEsc(o.id);
+ const details='<div class="no-item"><div class="no-item-head"><div class="no-row"><b>⚽ '+nkEsc(o.buyerName||'Warga')+' · '+nkEsc(players[o.pick]||o.pick)+'</b><span class="no-pill '+(o.status==='reported'?'no-reported':'')+'">'+nkEsc(state)+'</span></div><small>Rp2.000 · '+id+'</small><small>Dibuat '+new Date(o.createdAt||0).toLocaleString('id-ID')+'</small></div>';
+ if(o.status==='reported')return details+'<div class="no-box no-warn">Laporan dari pembeli bukan bukti pembayaran. Cocokkan Rp2.000 dan ID transaksi asli sebelum menyetujui.</div><input class="no-input" data-goat-tx="'+id+'" maxlength="64" placeholder="ID transaksi asli dari penyedia QRIS"><div class="no-buttons"><button class="no-btn" data-goat-approve="'+id+'">Setujui jika uang sudah diterima</button><button class="no-btn danger" data-goat-reject="'+id+'">Tolak Pesanan</button></div></div>';
+ if(o.status==='pending')return details+'<div class="no-muted">Belum dilaporkan bayar. Jangan setujui.</div><div class="no-buttons"><button class="no-btn danger" data-goat-reject="'+id+'">Tolak Pesanan</button></div></div>';
+ return details+'<div class="no-muted">Pesanan tersimpan dalam riwayat.'+(o.status==='approved'?' Pemain dapat diklaim oleh pembeli.':' Pembeli boleh memesan lagi setelah memeriksa pembayaran lama.')+'</div></div>';
+}
+async function nkReviewGoat(id,status,body){
+ if(nkBusy)return;nkBusy=true;
+ try{
+  const x=await nkSigned();if(!x||x.auth.currentUser?.uid!==NK_ADMIN)throw Error('Hanya Presiden yang berwenang memeriksa pesanan GOAT.');
+  const ref=x.d.ref(x.db,'nusaFootballGoatOrdersV1/'+id),snap=await x.d.get(ref),order=snap.val();
+  if(!order)throw Error('Pesanan tidak ditemukan. Muat ulang daftar.');
+  if(!(order.status==='reported'||(order.status==='pending'&&status==='rejected')))throw Error('Status sudah berubah. Muat ulang daftar sebelum memproses.');
+  let tx='';
+  if(status==='approved'){
+   tx=String([...body.querySelectorAll('[data-goat-tx]')].find(input=>input.dataset.goatTx===id)?.value||'').trim();
+   if(!/^[A-Za-z0-9_-]{5,64}$/.test(tx))throw Error('Masukkan ID transaksi asli dari penyedia QRIS (5–64 karakter).');
+   const all=(await x.d.get(x.d.ref(x.db,'nusaFootballGoatOrdersV1'))).val()||{};
+   if(Object.entries(all).some(([other,v])=>other!==id&&v.status==='approved'&&v.transactionId===tx))throw Error('ID transaksi tersebut sudah dipakai untuk pesanan GOAT lain. Jangan setujui dua kali.');
+   if(!confirm('Pastikan transaksi Rp2.000 sudah masuk dan cocok dengan ID asli. Setujui hadiah pemain pilihan yang dijamin?'))return;
+  }else if(!confirm('Tolak pesanan ini? Pembeli dapat memesan ulang setelah memeriksa pembayaran sebelumnya. Riwayat tetap disimpan.'))return;
+  // Server-side Rules check old status and authorization. Update both fields as one write.
+  await x.d.update(ref,{status,transactionId:status==='approved'?tx:'',updatedAt:x.d.serverTimestamp()});
+  nkNotice(status==='approved'?'GOAT disetujui. Pembeli dapat mengklaim pemain sesuai pilihan yang dijamin.':'Pesanan GOAT ditolak dan tetap berada di riwayat.');
+ }catch(e){nkNotice('GOAT gagal diproses: '+nkError(e))}
+ finally{nkBusy=false}
+}
+
 async function nkAdmin(){const body=nkPopup('Pesanan Pelanggan','PANEL PRESIDEN · TRANSAKSI');
  try{const x=await nkSigned();if(!x){nkLogin(body,nkAdmin);return}if(!await nkAuthorizedStaff(x))throw Error('Akun ini belum terdaftar sebagai Presiden atau Wakil Presiden resmi.');
-  body.innerHTML=`<div class="no-grid"><div class="no-stat"><small>Semua pesanan</small><strong id="nkTotal">—</strong></div><div class="no-stat"><small>Menunggu cek</small><strong id="nkReviewCount">—</strong></div><div class="no-stat"><small>Disetujui</small><strong id="nkApproved">—</strong></div><div class="no-stat"><small>Ditolak</small><strong id="nkRejected">—</strong></div></div><div class="no-box"><b>🏡 Rumah Selebritis · <span id="nkCelebStock">Memuat…</span></b><div class="no-muted">Hanya 10 kavling. Pembeli lama yang sudah disetujui dapat ditempatkan tanpa bayar ulang.</div><button type="button" class="no-btn ghost" id="nkCelebLegacy" style="margin-top:10px">Tempatkan pembeli lama</button></div><div class="no-box no-warn"><b>Periksa uang sungguhan di aplikasi DANA Bisnis sebelum Setujui.</b> Tombol Saya Sudah Bayar dari pembeli BUKAN bukti pembayaran. Jika tidak ada transaksi yang cocok, jangan setujui.</div><div class="no-box no-row"><div><b>🌴 Stok Sawit Emas</b><div class="no-muted">Maksimum 20 bibit seluruh kota</div></div><b id="nkStock">—</b></div><div class="no-buttons"><button class="no-btn ghost" id="nkRestock">Atur stok menjadi 20</button></div><div class="no-sections"><section class="no-section"><div class="no-section-head"><strong>1) Pesanan belum diproses</strong><span id="nkPendingCount">—</span></div><div id="nkPendingOrders" class="no-list">Mengambil pesanan…</div></section><section class="no-section"><div class="no-section-head"><strong>2) Riwayat sudah diproses</strong><span id="nkDoneCount">—</span></div><div class="no-box no-warn">Tombol <b>🗑</b> hanya menyembunyikan pesanan yang sudah selesai dari panel Presiden. Data pesanan utama tetap tersimpan di database.</div><div id="nkProcessedOrders" class="no-list">Mengambil riwayat…</div></section></div><div id="nkNotice" class="no-status"></div>`;
+  body.innerHTML=`<div class="no-grid"><div class="no-stat"><small>Semua pesanan</small><strong id="nkTotal">—</strong></div><div class="no-stat"><small>Menunggu cek</small><strong id="nkReviewCount">—</strong></div><div class="no-stat"><small>Disetujui</small><strong id="nkApproved">—</strong></div><div class="no-stat"><small>Ditolak</small><strong id="nkRejected">—</strong></div></div><div class="no-box"><b>🏡 Rumah Selebritis · <span id="nkCelebStock">Memuat…</span></b><div class="no-muted">Hanya 10 kavling. Pembeli lama yang sudah disetujui dapat ditempatkan tanpa bayar ulang.</div><button type="button" class="no-btn ghost" id="nkCelebLegacy" style="margin-top:10px">Tempatkan pembeli lama</button></div><div class="no-box no-warn"><b>Periksa uang sungguhan di aplikasi DANA Bisnis sebelum Setujui.</b> Tombol Saya Sudah Bayar dari pembeli BUKAN bukti pembayaran. Jika tidak ada transaksi yang cocok, jangan setujui.</div><div class="no-box no-row"><div><b>🌴 Stok Sawit Emas</b><div class="no-muted">Maksimum 20 bibit seluruh kota</div></div><b id="nkStock">—</b></div><div class="no-buttons"><button class="no-btn ghost" id="nkRestock">Atur stok menjadi 20</button></div><div class="no-sections"><section class="no-section"><div class="no-section-head"><strong>1) Pesanan belum diproses</strong><span id="nkPendingCount">—</span></div><div id="nkPendingOrders" class="no-list">Mengambil pesanan…</div></section><section class="no-section"><div class="no-section-head"><strong>2) Riwayat sudah diproses</strong><span id="nkDoneCount">—</span></div><div class="no-box no-warn">Tombol <b>🗑</b> hanya menyembunyikan pesanan yang sudah selesai dari panel Presiden. Data pesanan utama tetap tersimpan di database.</div><div id="nkProcessedOrders" class="no-list">Mengambil riwayat…</div></section><section class="no-section" id="nkGoatAdminSection"><div class="no-section-head"><strong>3) ⚽ Pesanan Football GOAT</strong><span id="nkGoatCount">—</span></div><div class="no-box no-warn">Pesanan GOAT Rp2.000: hanya setujui setelah pembayaran benar-benar terlihat pada aplikasi penyedia QRIS. Pesanan ditolak tetap tersimpan dalam riwayat.</div><div id="nkGoatOrders" class="no-list">Mengambil pesanan GOAT…</div></section></div><div id="nkNotice" class="no-status"></div>`;
   const stRef=x.d.ref(x.db,'nusaPremiumStockV2/sawit');const hidRef=x.d.ref(x.db,nkHiddenAdminPath());
   const offEstate=x.d.onValue(x.d.ref(x.db,'nusaCelebrityEstateV1/slots'),snap=>{const used=Object.values(snap.val()||{}).filter(Boolean).length;const label=body.querySelector('#nkCelebStock');if(label)label.textContent=(10-used)+' / 10 tersedia';},()=>{const label=body.querySelector('#nkCelebStock');if(label)label.textContent='Rules belum aktif';});
   body.querySelector('#nkCelebLegacy').onclick=()=>window.NusaCelebrity?.adminMigrateLegacy?.();
@@ -5726,7 +5757,26 @@ async function nkAdmin(){const body=nkPopup('Pesanan Pelanggan','PANEL PRESIDEN 
   };
   const offOrders=x.d.onValue(x.d.ref(x.db,'nusaPremiumOrdersV2'),snap=>{allOrders=Object.entries(snap.val()||{}).map(([id,v])=>({...v,id})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,250);render();},e=>nkNotice('Gagal membaca: '+nkError(e)));
   const offHidden=x.d.onValue(hidRef,snap=>{hidden={...(snap.val()||{}),...nkLocalHidden(nkHiddenAdminPath())};render();},e=>{hidden=nkLocalHidden(nkHiddenAdminPath());render();console.info('Daftar hapus cloud tidak tersedia; mode lokal.');});
-  nkUnsub=()=>{try{offOrders&&offOrders()}catch{}try{offHidden&&offHidden()}catch{}try{offEstate&&offEstate()}catch{}};
+  let goatOrders=[],offGoat=null;
+  const renderGoat=()=>{
+   if(!body.isConnected)return;
+   const count=body.querySelector('#nkGoatCount'),list=body.querySelector('#nkGoatOrders');if(!list)return;
+   if(x.auth.currentUser?.uid!==NK_ADMIN){if(count)count.textContent='Presiden saja';list.textContent='Wakil Presiden dapat melihat pesanan premium; pesanan GOAT hanya dikelola oleh Presiden.';return}
+   const active=goatOrders.filter(o=>o.status==='pending'||o.status==='reported');
+   const done=goatOrders.filter(o=>o.status==='approved'||o.status==='rejected');
+   if(count)count.textContent=active.length+' menunggu · '+done.length+' selesai';
+   list.innerHTML=(active.length?'<strong style="color:#ffe5aa">Menunggu</strong>'+active.map(nkGoatItemHtml).join(''):'<div class="no-box">Tidak ada pesanan GOAT yang menunggu.</div>')
+       +(done.length?'<strong style="color:#ffe5aa">Riwayat GOAT ('+done.length+')</strong>'+done.map(nkGoatItemHtml).join(''):'');
+   list.querySelectorAll('[data-goat-approve]').forEach(btn=>btn.onclick=()=>nkReviewGoat(btn.dataset.goatApprove,'approved',body));
+   list.querySelectorAll('[data-goat-reject]').forEach(btn=>btn.onclick=()=>nkReviewGoat(btn.dataset.goatReject,'rejected',body));
+  };
+  if(x.auth.currentUser?.uid===NK_ADMIN){
+   offGoat=x.d.onValue(x.d.ref(x.db,'nusaFootballGoatOrdersV1'),snap=>{
+    goatOrders=Object.entries(snap.val()||{}).map(([id,o])=>({...o,id})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,200);
+    renderGoat();
+   },e=>{const list=body.querySelector('#nkGoatOrders');if(list)list.textContent='GOAT gagal dimuat: '+nkError(e)});
+  }else renderGoat();
+  nkUnsub=()=>{try{offOrders&&offOrders()}catch{}try{offHidden&&offHidden()}catch{}try{offEstate&&offEstate()}catch{}try{offGoat&&offGoat()}catch{}};
  }catch(e){body.innerHTML=`<div class="no-box no-warn">${nkEsc(nkError(e))}</div>`}
 }
 async function nkReview(id,status,body,refreshStock){if(nkBusy)return;nkBusy=true;
