@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#071a2b">
+<meta name="description" content="Nusa FM: pemutar YouTube resmi untuk warga Kota Nusa. Tanpa mengunggah MP3.">
+<title>Nusa FM · Radio Kota Nusa</title>
+<style>
+:root{color-scheme:dark;--bg:#071a2b;--panel:#0b2737;--card:#113446;--stroke:#365260;--gold:#f1cd83;--mint:#96d7b4;--text:#fff9ec;--muted:#a6bdc9;--radius:24px}
+*{box-sizing:border-box}body{margin:0;min-height:100svh;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;background:radial-gradient(ellipse 550px 480px at 5% 0%,#16475a 0%,transparent 72%),radial-gradient(ellipse 380px 400px at 100% 100%,#0a3938 0%,transparent 80%),var(--bg);color:var(--text)}button,input,a{font:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #eecb74;outline-offset:3px}a{color:var(--gold)}.screen{max-width:780px;margin:auto;padding:clamp(12px,3.5vw,26px) 14px calc(26px + env(safe-area-inset-bottom))}.frame{border:1px solid #42616d;border-radius:30px;background:linear-gradient(155deg,#0c2d3e,#071b2b 85%);box-shadow:0 24px 68px #0007;overflow:hidden}.head{padding:22px clamp(16px,4vw,28px) 14px;display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{display:flex;align-items:center;gap:12px;min-width:0}.mark{width:48px;height:48px;border:1px solid #d9b97780;border-radius:16px;background:linear-gradient(135deg,#225768,#0d3040);display:grid;place-items:center;color:var(--gold);font-size:27px;box-shadow:inset 0 1px 0 #ffffff28;flex:none}.head h1{font-size:19px;line-height:1.1;letter-spacing:2px;margin:0;color:#f9d794}.head .sub{margin:4px 0 0;color:var(--muted);font-size:12px}.live{display:flex;gap:6px;align-items:center;border:1px solid #386655;background:#1844376b;color:#b8f6d4;padding:7px 10px;border-radius:100px;font-weight:800;font-size:10px;white-space:nowrap}.dot{width:7px;height:7px;background:#5bea9e;box-shadow:0 0 12px #60ef9e;border-radius:100%}.body{padding:0 clamp(14px,4vw,27px) 25px}.intro{font-size:12px;color:#c8d6de;line-height:1.5;margin:0 0 13px}.now{background:linear-gradient(110deg,#123949,#17413f);border:1px solid #48626c;border-radius:17px;padding:13px 14px;display:flex;align-items:center;gap:13px;margin:0 0 14px}.album{display:grid;place-items:center;width:51px;height:51px;background:radial-gradient(circle at center,#21495d 0 15%,#0a1725 17% 26%,#d8b97e 28% 31%,#112c3c 34% 44%,#e2c387 46% 47%,#061826 49%);border-radius:50%;flex:none;box-shadow:0 0 0 3px #d1b2772a}.songdesc{min-width:0;flex:1}.songdesc small{font-size:10px;color:var(--gold);letter-spacing:1.5px;font-weight:800}.songdesc h2{font-size:17px;line-height:1.35;margin:3px 0 1px;overflow-wrap:anywhere}.songdesc p{margin:0;font-size:12px;color:#adc5cb}.eq{display:flex;align-items:end;gap:3px;height:21px}.eq i{display:block;width:3px;background:#f3d28a;border-radius:8px;height:7px;opacity:.7}.eq.play i{animation:bounce .8s ease-in-out infinite alternate}.eq.play i:nth-child(2){animation-delay:.2s}.eq.play i:nth-child(3){animation-delay:.4s}.eq.play i:nth-child(4){animation-delay:.1s}.eq.play i:nth-child(5){animation-delay:.3s}@keyframes bounce{to{height:20px;opacity:1}}
+.video-shell{border-radius:18px;overflow:hidden;border:1px solid #61747b;background:#05090e;min-height:206px;position:relative}.video-shell #yt-player{width:100%;height:max(200px, min(54vw, 385px));min-height:200px}.video-shell iframe{display:block;width:100%!important;height:100%!important;min-height:200px;border:0}.video-overlay{min-height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px;gap:11px;text-align:center;color:#d7dbe3}.video-overlay .yt{background:#f12e35;color:white;font-weight:900;border-radius:12px;padding:10px 20px}.video-overlay p{font-size:12px;line-height:1.5;margin:0;color:#bbcad1}.video-overlay button{border:1px solid var(--gold);color:var(--gold);background:#193b49;border-radius:12px;padding:11px 17px;font-weight:750}.toolbar{display:flex;align-items:center;justify-content:center;gap:12px;margin:14px 0}.tool{border:1px solid #54727c;border-radius:15px;background:#1a4152;color:#f8f8ef;width:50px;height:45px;display:grid;place-items:center;font-size:23px}.tool.primary{background:linear-gradient(145deg,#ffdf9d,#ddad5b);color:#143042;border-color:#f4dba4;width:65px;height:53px;border-radius:17px;font-size:23px;box-shadow:0 6px 22px #dab26338}.tool:active{transform:scale(.97)}.rowline{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:#c7d9df}.rowline .state{min-width:0;flex:1;overflow-wrap:anywhere}.rowline a{white-space:nowrap;text-decoration:none;border-bottom:1px solid #cfb16e}.pills{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:13px 0}.pill{border:1px solid #4e6a79;background:#17394d;border-radius:100px;padding:10px 14px;color:#e5eaf0;font-size:12px;font-weight:700}.pill.active{border-color:#f0cf80;color:#f0cf80;background:#4b3e27}.headlist{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:19px 0 10px}.headlist h3{font-size:13px;letter-spacing:1px;color:#e6dac4;margin:0}.mini{border:1px solid #4a6673;background:#173e4b;border-radius:11px;color:#f0d898;padding:7px 10px;font-size:12px}.searchbox{width:100%;background:#0a2130;border:1px solid #436371;border-radius:12px;padding:11px 12px;color:#f3f3ee;outline:none;margin-bottom:9px;font-size:13px}.searchbox::placeholder{color:#8ea8b6}.items{display:grid;gap:8px}.track{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid #365766;background:#0f2b3d;color:#f1f7f8;padding:10px 12px;border-radius:14px;min-height:65px;transition:background .15s}.track:hover{background:#1a4657}.track.active{border-color:#d8b878;background:#24454c}.track .num{height:37px;width:37px;display:grid;place-items:center;border:1px solid #54707d;background:#193b4c;border-radius:11px;color:#dfd39f;font-size:14px;font-weight:800;flex:none}.track .info{min-width:0;flex:1}.track .info b{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.track .info small{display:block;color:#9fbcc9;font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.track .symbol{color:#eac779}.end{border-top:1px solid #345767;margin-top:18px;padding-top:12px;color:#9eb6c5;font-size:11px;line-height:1.55}.end strong{color:#e5d0a0}.empty{border:1px dashed #53717b;border-radius:12px;text-align:center;padding:18px;font-size:12px;color:#abbec6}.status{font-size:11px;color:#adc4d1;margin:9px 1px 0;min-height:17px}.shrink .searchbox,.shrink .items,.shrink .headlist h3{display:none}.shrink .headlist{justify-content:flex-end}.shrink .video-shell{display:block}.shrink .footer-hint{display:none}.note{margin:14px 4px;font-size:11px;text-align:center;color:#829da8;line-height:1.5}svg{pointer-events:none}@media(max-width:450px){.head{padding:16px 16px 12px}.body{padding:0 12px 20px}.head h1{font-size:16px}.mark{height:42px;width:42px;border-radius:12px}.toolbar{gap:10px}.tool{width:52px}}
+</style>
+</head>
+<body>
+<main class="screen">
+  <article class="frame" id="radio">
+    <header class="head">
+      <div class="brand"><div class="mark" aria-hidden="true">♫</div><div><h1>NUSA FM</h1><p class="sub">Radio warga • Kota Nusa</p></div></div>
+      <div class="live"><span class="dot"></span> RADIO ONLINE</div>
+    </header>
+    <div class="body">
+      <p class="intro">Pilih lagu, lalu tekan tombol ▶ pada video YouTube. Tidak perlu mengunggah MP3. Video YouTube resmi tetap tampil selama musik dimainkan.</p>
+      <div class="now"><div class="album" aria-hidden="true"></div><div class="songdesc"><small>SEDANG DIPILIH</small><h2 id="nowTitle">Tarot</h2><p id="nowArtist">.Feast · Video Lirik Resmi</p></div><div class="eq" id="equalizer" aria-label="Indikator pemutaran"><i></i><i></i><i></i><i></i><i></i></div></div>
+      <div class="video-shell" id="videoShell"><div id="yt-player"><div class="video-overlay"><div class="yt">▶ YouTube</div><strong>Pemutar video resmi</strong><p>Pemutar akan muncul saat tersambung ke YouTube.</p><button type="button" id="retryBtn">Muat pemutar</button></div></div></div>
+      <p class="status" id="status" role="status">Menyiapkan pemutar YouTube…</p>
+      <div class="toolbar">
+        <button class="tool" id="prevBtn" title="Lagu sebelumnya" aria-label="Lagu sebelumnya">⏮</button>
+        <button class="tool primary" id="playBtn" title="Putar atau jeda" aria-label="Putar atau jeda">▶</button>
+        <button class="tool" id="nextBtn" title="Lagu berikutnya" aria-label="Lagu berikutnya">⏭</button>
+      </div>
+      <div class="rowline"><span class="state" id="state">Tekan Play untuk mulai</span><a id="watchLink" href="https://www.youtube.com/watch?v=w8pjAV8u2OE" target="_blank" rel="noopener noreferrer">Buka di YouTube ↗</a></div>
+      <div class="pills"><button class="pill" id="loopBtn" aria-pressed="false">↻ Ulangi: Mati</button><button class="pill" id="shuffleBtn" aria-pressed="false">⇄ Acak: Mati</button></div>
+      <div class="headlist"><h3>♫ PLAYLIST WARGA · 6 LAGU</h3><button class="mini" id="compactBtn" aria-expanded="true">− Ringkas daftar</button></div>
+      <input class="searchbox" id="search" autocomplete="off" placeholder="Cari lagu di playlist…" aria-label="Cari lagu">
+      <div class="items" id="tracks"></div>
+      <p class="end footer-hint"><strong>Catatan:</strong> Radio ini menayangkan pemutar resmi YouTube, bukan mengunggah ulang musik. Beberapa video bisa menolak penyematan, membatasi wilayah, atau perlu diputar dengan menyentuh tombol Play di dalam video. Saat mode ringkas, videonya tetap terlihat sesuai persyaratan YouTube.</p>
+    </div>
+  </article>
+  <p class="note">NUSA FM V1.0 · File mandiri music.html · Tidak memakai Firebase atau menyimpan MP3</p>
+</main>
+<script>
+(()=>{'use strict';
+  const songs=[
+    {title:'Tarot',artist:'.Feast',kind:'Official Lyric Video',id:'w8pjAV8u2OE'},
+    {title:'Sesi Potret',artist:'eńau feat. Ari Lesmana',kind:'Official Music Video',id:'Nskf70DMR60'},
+    {title:'Jatuh Suka',artist:'TULUS',kind:'Official Lyric Video',id:'2uJut6USftQ'},
+    {title:'Teh Hijau',artist:'TULUS',kind:'Official Music Video',id:'zyLmavBAY7k'},
+    {title:'Kita Lewati Berdua',artist:'Overnight',kind:'Official Lyric Video',id:'SeSAwqq_Kpo'},
+    {title:'Ini Abadi',artist:'Perunggu',kind:'Video Lirik',id:'qQDaxjLReck'}
+  ];
+  const $=id=>document.getElementById(id);
+  const valid=i=>Number.isInteger(i)&&i>=0&&i<songs.length;
+  let idx=0,player=null,ready=false,playing=false,loading=false,loop=false,shuffle=false;
+  try{const saved=Number(localStorage.getItem('nusa-fm-song'));if(valid(saved))idx=saved;}catch(e){}
+  const status=msg=>{$('status').textContent=msg;};
+  function setPlaying(v){playing=!!v;$('equalizer').classList.toggle('play',playing);$('playBtn').textContent=playing?'❚❚':'▶';$('state').textContent=playing?'Sedang diputar melalui YouTube':'Tekan ▶ untuk memutar';}
+  function render(){const s=songs[idx];$('nowTitle').textContent=s.title;$('nowArtist').textContent=s.artist+' · '+s.kind;$('watchLink').href='https://www.youtube.com/watch?v='+s.id;
+    const filter=$('search').value.trim().toLocaleLowerCase('id');
+    $('tracks').replaceChildren();let any=false;
+    songs.forEach((track,i)=>{
+      if(filter && !(track.title+' '+track.artist).toLocaleLowerCase('id').includes(filter))return;
+      any=true;const btn=document.createElement('button');btn.type='button';btn.className='track'+(i===idx?' active':'');btn.setAttribute('aria-current',i===idx?'true':'false');
+      const n=document.createElement('span');n.className='num';n.textContent=i===idx?'♫':String(i+1).padStart(2,'0');
+      const d=document.createElement('span');d.className='info';const b=document.createElement('b');b.textContent=track.title;const sm=document.createElement('small');sm.textContent=track.artist+' · '+track.kind;d.append(b,sm);
+      const sym=document.createElement('span');sym.className='symbol';sym.textContent='▶';btn.append(n,d,sym);btn.addEventListener('click',()=>select(i,true));$('tracks').append(btn);
+    });if(!any){const d=document.createElement('div');d.className='empty';d.textContent='Lagu tidak ditemukan.';$('tracks').append(d);}
+  }
+  function select(i,userTriggered){if(!valid(i))return;idx=i;try{localStorage.setItem('nusa-fm-song',String(idx));}catch(e){}setPlaying(false);render();
+    if(ready){if(userTriggered){player.loadVideoById(songs[idx].id);status('Memuat '+songs[idx].title+'… Bila belum bunyi, ketuk ▶ pada video.');}
+      else {player.cueVideoById(songs[idx].id);status('Lagu dipilih. Tekan ▶ untuk memutar.');}}
+    else {status('Memuat pemutar YouTube…');}
+  }
+  function next(){if(shuffle && songs.length>1){let n=idx;while(n===idx)n=Math.floor(Math.random()*songs.length);select(n,true);}else if(idx<songs.length-1){select(idx+1,true);}else if(loop){select(0,true);}else{setPlaying(false);status('Playlist selesai. Pilih lagu untuk mengulang.');}}
+  function safePlayer(fn){if(!ready||!player){status('Pemutar YouTube belum siap. Coba sentuh tombol ▶ di video.');return;}try{fn();}catch(e){status('Pemutar belum merespons. Coba putar dari video YouTube.');}}
+  $('playBtn').addEventListener('click',()=>safePlayer(()=>{if(playing){player.pauseVideo();}else{player.playVideo();status('Memulai pemutaran…');}}));
+  $('prevBtn').addEventListener('click',()=>select((idx+songs.length-1)%songs.length,true));
+  $('nextBtn').addEventListener('click',next);
+  $('loopBtn').addEventListener('click',()=>{loop=!loop;$('loopBtn').classList.toggle('active',loop);$('loopBtn').setAttribute('aria-pressed',String(loop));$('loopBtn').textContent='↻ Ulangi: '+(loop?'Aktif':'Mati');});
+  $('shuffleBtn').addEventListener('click',()=>{shuffle=!shuffle;$('shuffleBtn').classList.toggle('active',shuffle);$('shuffleBtn').setAttribute('aria-pressed',String(shuffle));$('shuffleBtn').textContent='⇄ Acak: '+(shuffle?'Aktif':'Mati');});
+  $('search').addEventListener('input',render);
+  $('compactBtn').addEventListener('click',()=>{const compact=$('radio').classList.toggle('shrink');$('compactBtn').textContent=compact?'+ Buka daftar':'− Ringkas daftar';$('compactBtn').setAttribute('aria-expanded',String(!compact));});
+  $('retryBtn').addEventListener('click',()=>{if(ready){select(idx,false);return;}loadApi();});
+  window.onYouTubeIframeAPIReady=function(){if(ready)return;try{player=new YT.Player('yt-player',{height:'300',width:'530',videoId:songs[idx].id,
+    playerVars:{autoplay:0,controls:1,playsinline:1,rel:0,hl:'id'},events:{onReady:()=>{ready=true;setPlaying(false);status('Siap! Tekan ▶ pada video atau tombol Play.');},
+    onStateChange:e=>{if(e.data===YT.PlayerState.PLAYING){setPlaying(true);status('Diputar dari YouTube resmi.');}else if(e.data===YT.PlayerState.PAUSED){setPlaying(false);status('Dijeda.');}else if(e.data===YT.PlayerState.ENDED){setPlaying(false);if(loop||idx<songs.length-1||shuffle)next();else status('Playlist selesai.');}else if(e.data===YT.PlayerState.BUFFERING){status('Sedang memuat video…');}},
+    onError:e=>{setPlaying(false);status('Video ini tidak dapat diputar di embed (kode '+e.data+'). Gunakan “Buka di YouTube”.');}}});
+    }catch(e){status('Gagal memulai pemutar. Coba buka video di YouTube.');}};
+  function loadApi(){if(window.YT&&window.YT.Player){window.onYouTubeIframeAPIReady();return;}if(loading)return;loading=true;
+    const tag=document.createElement('script');tag.src='https://www.youtube.com/iframe_api';tag.async=true;tag.onerror=()=>{loading=false;status('YouTube tidak dapat dimuat. Cek internet atau buka tautan video.');};document.head.appendChild(tag);
+    setTimeout(()=>{if(!ready){status('YouTube belum siap. Coba tunggu sebentar atau buka video di YouTube.');}},11000);
+  }
+  render();loadApi();
+})();
+</script>
+</body>
+</html>
