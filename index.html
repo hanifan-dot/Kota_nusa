@@ -1201,6 +1201,30 @@ async function POST(req) {
               if(op==='view')return {privateGarden:structuredClone(f)};
               throw Error('Aksi Kebunku pribadi tidak dikenal.');
             }
+            // V2.66 — satu tiket GOAT gratis (bukan dibeli dengan uang/koin).
+            // Hadiah ini tidak terhubung QRIS, uang asli, atau transaksi berbayar.
+            if(action==='footballFreeGoatSpin'){
+              p.football??={normal:0,goat:0,players:[]};
+              demand(!p.football.goatFreeUsed,'Tiket GOAT gratis akun ini sudah dipakai.');
+              const heroes=[
+                {name:'Neymar Jr',pos:'AM',rating:94,rarity:'Legendary',weight:34,skin:'#c38b67',hair:'#2b211b'},
+                {name:'Kylian Mbappé',pos:'ST',rating:96,rarity:'Legendary',weight:33,skin:'#9c6a4d',hair:'#201815'},
+                {name:'Erling Haaland',pos:'ST',rating:96,rarity:'Legendary',weight:27,skin:'#dfb28c',hair:'#c7aa73'},
+                {name:'Cristiano Ronaldo',pos:'ST',rating:99,rarity:'Super Legendary',weight:3,skin:'#bc8364',hair:'#251b13'},
+                {name:'Lionel Messi',pos:'AM',rating:99,rarity:'Super Legendary',weight:3,skin:'#d3a079',hair:'#423025'}
+              ];
+              const random=(typeof crypto!=='undefined'&&crypto.getRandomValues)?crypto.getRandomValues(new Uint32Array(1))[0]/4294967296:Math.random();
+              let pick=random*100,chosen=heroes[0];
+              for(const h of heroes){if(pick<h.weight){chosen=h;break;}pick-=h.weight;}
+              p.football.goatFreeUsed=true;
+              p.football.players??=[];
+              const duplicated=p.football.players.some(x=>x.name===chosen.name);
+              const bonus=duplicated?250:0;
+              const prize={name:chosen.name,pos:chosen.pos,rating:chosen.rating,rarity:chosen.rarity,skin:chosen.skin,hair:chosen.hair,id:'free_goat_welcome_v266'};
+              if(duplicated)p.coins+=bonus;else p.football.players.push(prize);
+              record(w,'football','Tiket GOAT gratis: '+chosen.name,p.id,bonus,now);
+              return {message:duplicated?'Pemain sudah dimiliki: +250 koin duplikat.':'Mendapat '+chosen.name+' dari tiket gratis.',footballPrize:prize,footballDuplicate:duplicated,footballBonus:bonus};
+            }
             if(action==='footballBuy'){
               const qty=amount(b.qty,1,10),cost=qty*5000;
               demand(p.coins-(p.held||0)>=cost,'Koin utama belum cukup untuk membeli '+qty+' peti.');
@@ -1212,7 +1236,7 @@ async function POST(req) {
             }
              // V2.64: Peti GOAT hadiah PASTI menggunakan koin yang didapat dalam game.
              // Tidak ada pembayaran uang asli dan tidak ada undian hadiah berbayar.
-             if(action==='footballChooseGoat'){
+             if(action==='footballChooseGoat_DISABLED'){
                const cost=20000;
                const options={
                  arjuna:{name:'Arjuna Nusa',pos:'ST',rating:95,rarity:'Super Legendary',skin:'#c78b68',hair:'#231611'},
@@ -1231,6 +1255,19 @@ async function POST(req) {
                record(w,'football','Pilih pasti GOAT: '+chosen.name,p.id,-cost,now);
                return {message:'Berhasil mendapatkan '+chosen.name+' (hadiah pasti).',footballPrize:prize};
              }
+            if(action==='footballGrantGoatVerified'){
+              const orderId=String(b.orderId||'');const pick=String(b.pick||'');
+              demand(/^[A-Za-z0-9_-]{12,50}$/.test(orderId),'ID pesanan tidak valid.');
+              const options={arjuna:{name:'Arjuna Nusa',pos:'ST',rating:95,rarity:'Super Legendary',skin:'#c78b68',hair:'#231611'},langit:{name:'Langit Pratama',pos:'AM',rating:94,rarity:'Legendary',skin:'#b98260',hair:'#191310'},garda:{name:'Garda Samudra',pos:'GK',rating:93,rarity:'Legendary',skin:'#966144',hair:'#1e1613'}};
+              const chosen=options[pick];demand(chosen,'Pilihan pemain tidak valid.');
+              p.football??={normal:0,goat:0,players:[]};p.football.grantedOrders??={};p.football.players??=[];
+              if(p.football.grantedOrders[orderId])return {message:'Hadiah sebelumnya sudah diklaim.',footballPrize:p.football.players.find(a=>a.id==='qr_'+orderId)||null};
+              const prize={...chosen,id:'qr_'+orderId};
+              p.football.grantedOrders[orderId]=pick;
+              if(!p.football.players.some(a=>a.name===chosen.name))p.football.players.push(prize);
+              record(w,'football','GOAT QRIS terverifikasi: '+chosen.name,p.id,0,now);
+              return {message:'GOAT '+chosen.name+' tercatat (QRIS telah disetujui).',footballPrize:prize};
+            }
             if(action==='footballOpen'){
               demand(b.type==='normal','Peti GOAT hanya dapat dibuka setelah pembelian diverifikasi secara resmi.');
               p.football??={normal:0,goat:0,players:[]};
@@ -4571,10 +4608,19 @@ window.NusaPremiumLocalPlayer=()=>state.me||null;
  CATALOG.places.push({id:'nusa-stadium',name:'Stadion Nusa',sub:'Football Cup 5v5 · Pertandingan & peti',x:-82,z:-121,kind:'stadium'});
  window.NusaRajinRefresh=()=>world?.weather?.(settings.weather);
  window.NusaFootballBridge={
-  wallet(){return {coins:state.me?.coins-(state.me?.held||0)||0,normal:state.me?.football?.normal||0,goat:state.me?.football?.goat||0,players:state.me?.football?.players||[]};},
+  wallet(){return {coins:state.me?.coins-(state.me?.held||0)||0,normal:state.me?.football?.normal||0,goat:state.me?.football?.goat||0,players:state.me?.football?.players||[],freeGoatUsed:!!state.me?.football?.goatFreeUsed};},
+  async freeGoatSpin(){if(!entered||!state.me)throw Error('Masuk Kota Nusa dahulu.');const d=await act('footballFreeGoatSpin',{});return {...this.wallet(),prize:d.footballPrize,duplicate:d.footballDuplicate,bonus:d.footballBonus,message:d.message};},
   async buy(qty){if(!entered||!state.me)throw Error('Masuk Kota Nusa dahulu.');const d=await act('footballBuy',{qty});return {...this.wallet(),message:d.message}},
   async open(type){if(!entered||!state.me)throw Error('Masuk Kota Nusa dahulu.');const d=await act('footballOpen',{type});return {...this.wallet(),prize:d.footballPrize,duplicate:d.footballDuplicate,bonus:d.footballBonus};},
    async signGoat(pick){if(!entered||!state.me)throw Error('Masuk Kota Nusa dahulu.');const d=await act('footballChooseGoat',{pick});return {...this.wallet(),prize:d.footballPrize,message:d.message};}
+ };
+ window.NusaFootballBridge.grantGoatVerified=async function(orderId,pick){
+   if(!entered||!state.me)throw Error('Masuk Kota Nusa dahulu.');
+   const s=await this._session();if(!s.user)throw Error('Google belum tersambung.');
+   const db=s.D.getDatabase(s.app),order=(await s.D.get(s.D.ref(db,'nusaFootballGoatOrdersV1/'+orderId))).val();
+   if(!order||order.uid!==s.user.uid||order.status!=='approved'||order.pick!==pick||order.price!==2000)throw Error('Pembayaran belum diverifikasi Presiden untuk akun ini.');
+   const d=await act('footballGrantGoatVerified',{orderId,pick});
+   return {...this.wallet(),prize:d.footballPrize,message:d.message};
  };
  window.NusaGardenActionV262=(op,params={})=>act('privateGardenV262',{op,...params});
  // Jembatan identitas & daftar warga NYATA untuk football.html (sesi Firebase Auth yang sama; tanpa login kedua).
