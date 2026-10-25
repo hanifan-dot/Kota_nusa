@@ -736,8 +736,76 @@ body.in-nusa-football #resetData{display:none}
  buyChest=function(){toast('Pakai Toko Peti resmi, bukan versi tes')};
  resetSave=function(){toast('Data koin utama Kota Nusa tidak boleh direset dari Football Cup')};
  // QRIS premium here is a prototype with no backend order verification.
- for(const b of document.querySelectorAll('button'))if(/Beli QRIS/.test(b.textContent)){b.onclick=()=>toast('QRIS GOAT belum tersambung ke pesanan resmi. Tidak ada pembayaran diproses.')}
+for(const b of document.querySelectorAll('button'))if(/Beli QRIS/.test(b.textContent)){b.onclick=()=>toast('Peti GOAT berbayar masih dinonaktifkan. Belum ada verifikasi transaksi otomatis; jangan lakukan pembayaran untuk peti ini.') ;b.title='Belum tersedia: membutuhkan verifikasi transaksi resmi';b.textContent='Belum tersedia';b.disabled=true;}
  sync();
  setInterval(sync,4000);
 })();
-</script></body></html>
+</script><script id="nusa-football-integration-v1">
+/* Integrasi Kota Nusa: sesi Google yang sama, langsung ke Pilih Lawan, daftar warga NYATA, tanpa simulasi. */
+(function(){
+ let B=null;try{B=window.parent!==window&&window.parent.NusaFootballBridge||null}catch(e){}
+ const inNusa=!!(B&&typeof B.identity==='function'&&typeof B.listPlayers==='function');
+ const q=s=>document.querySelector(s);
+ const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e};
+  let me={signedIn:false,reason:'Football Cup harus dibuka dari dalam Kota Nusa.'},players=[],loadErr='',authLoading=false;
+ async function refreshAuth(){
+  me=inNusa?await B.identity():{signedIn:false,reason:'Football Cup harus dibuka dari dalam Kota Nusa.'};
+   try{save.auth=!!me.signedIn}catch(e){}
+   const chip=q('#authChip');if(chip){chip.textContent=me.signedIn?('● '+me.name):'○ Belum Google';chip.title=me.signedIn?'Masuk otomatis dari Kota Nusa':'Buka KTP/Profil untuk login Google';chip.classList.toggle('on',!!me.signedIn);}
+   const hint=q('#footballAccountHint');if(hint)hint.textContent=me.signedIn?'Terhubung otomatis: '+me.name:(me.reason||'Belum terhubung Google');
+ }
+ function renderPeople(filter){
+  const box=q('#peopleList');if(!box)return;box.textContent='';
+  if(!me.signedIn){box.append(el('p','muted',me.reason||'Belum login Google di Kota Nusa.'));return}
+  if(loadErr){box.append(el('p','muted',loadErr));return}
+  const f=(filter||'').toLowerCase();
+  const list=players.filter(p=>!f||p.name.toLowerCase().includes(f)||String(p.gameId).toLowerCase().includes(f));
+  if(!list.length){box.append(el('p','muted',players.length?'Tidak ada warga yang cocok.':'Belum ada akun warga lain yang terdaftar.'));return}
+  list.slice(0,80).forEach(p=>{
+   const row=el('div','searchPerson');row.append(el('div','miniAvatar'));
+   const mid=el('div');mid.style.flex='1';mid.append(el('b','',p.name));
+   const sm=el('small','muted',(p.online?'● Online':'○ Offline')+(p.gameId?' · ID '+p.gameId:''));sm.style.display='block';mid.append(sm);row.append(mid);
+   const btn=el('button','ghost','Tantang');btn.onclick=()=>challenge(p);row.append(btn);box.append(row);
+  });
+ }
+ function challenge(p){
+  q('#searchResult').style.display='none';
+  const w=q('#waiting');w.style.display='block';w.textContent='';
+  w.append(el('h3','','Tantangan online belum aktif'));
+  w.append(el('p','muted','Pertandingan real-time melawan '+p.name+' membutuhkan server pertandingan yang belum tersedia, sehingga tantangan tidak dikirim. Gunakan VS AI untuk bermain sekarang.'));
+  const b=el('button','mainbtn','Main VS AI');b.onclick=()=>{w.style.display='none';openAI()};w.append(b);
+ }
+ function toCity(){try{window.parent.NusaFootball.close()}catch(e){showScreen('home')}}
+ window.toggleTestLogin=async function(){await refreshAuth();toast(me.signedIn?('Masuk sebagai '+me.name):(me.reason||'Belum login'));if(me.signedIn)load()};
+ window.searchRival=function(){renderPeople((q('#rivalName').value||'').trim())};
+ window.quickChallenge=function(){};window.sendChallenge=function(){};window.acceptChallenge=function(){};window.rejectChallenge=function(){};
+  async function load(){
+   if(authLoading)return;authLoading=true;
+   try{await refreshAuth();loadErr='';players=[];
+    if(me.signedIn){try{players=await B.listPlayers()}catch(e){loadErr='Gagal membaca daftar warga: '+(e&&e.message||e)}}
+    renderPeople(q('#rivalName')&&q('#rivalName').value.trim());
+   }finally{authLoading=false;}
+  }
+ function setup(){
+  const note=q('#online .box .muted');if(note)note.textContent='Daftar berasal dari akun Google warga Kota Nusa yang terdaftar. Status online memakai data kehadiran nyata.';
+  const rv=q('#rivalName');if(rv)rv.addEventListener('input',()=>renderPeople(rv.value.trim()));
+  const back=q('#online .back');if(back)back.onclick=toCity;
+  const sr=q('#searchResult');if(sr)sr.style.display='none';
+  const wt=q('#waiting');if(wt)wt.style.display='none';
+  if(!q('#nusaOnlineActions')){
+   const row=el('div','actions');row.id='nusaOnlineActions';row.style.margin='12px 0';
+   const ai=el('button','mainbtn','🤖 VS AI');ai.onclick=()=>openAI();
+   const bk=el('button','mainbtn red','Kembali ke Kota');bk.onclick=toCity;
+   row.append(ai,bk);const list=q('#peopleList');list.parentNode.insertBefore(row,list.nextSibling);
+  }
+   const hint=el('p','muted','Memeriksa akun Google Kota Nusa…');hint.id='footballAccountHint';hint.style.margin='6px 0 12px';q('#online .box')?.append(hint);
+   if(inNusa)showScreen('online');
+   load();
+   // Sinkron kembali ketika layar terlihat: berguna jika login Google selesai di tab lain.
+   document.addEventListener('visibilitychange',()=>{if(!document.hidden)void load()});
+   window.addEventListener('message',ev=>{if(ev.source===window.parent&&ev.origin===location.origin&&ev.data?.type==='nusa-football-auth-updated')void load();});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
+})();
+</script>
+</body></html>
