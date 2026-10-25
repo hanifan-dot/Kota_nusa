@@ -1282,7 +1282,7 @@
           ".validate": "newData.isString() && newData.val().length <= 64"
         },
         "pick": {
-          ".validate": "newData.val() == 'arjuna' || newData.val() == 'langit' || newData.val() == 'garda'"
+          ".validate": "newData.val() == 'arjuna' || newData.val() == 'langit' || newData.val() == 'garda' || newData.val() == 'neymar' || newData.val() == 'mbappe' || newData.val() == 'haaland' || newData.val() == 'ronaldo' || newData.val() == 'messi'"
         },
         "price": {
           ".validate": "newData.val() == 2000"
