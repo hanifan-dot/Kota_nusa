@@ -1065,17 +1065,36 @@ function selectUI(){document.querySelectorAll('[data-n265-pick]').forEach(x=>x.c
 document.querySelectorAll('[data-n265-pick]').forEach(x=>x.addEventListener('click',()=>{if(current){note('Selesaikan pesanan aktif lebih dulu.');return;}chosen=x.dataset.n265Pick;selectUI();$('n265ChoiceDetails')?.removeAttribute('open');}));
 function showOrder(id){if(id!==current)stopOrderWatcher();current=id;$('n265Payment').style.display=id?'block':'none';$('n265OrderId').textContent=id||'';$('n265Create').style.display=id?'none':'block';if(!id){$('n265NewOrder').style.display='none';$('n265Report').style.display='inline-block';const qr=$('n265Payment').querySelector('.n265QRCode');if(qr)qr.style.display='block';const info=$('n265Payment').querySelector('p.muted');if(info)info.style.display='block';}}
 function renderClaim(show){$('n267ClaimHere').style.display=show?'block':'none';$('n267ClaimInventory').style.display=show?'block':'none';$('n267InventoryNote').style.display=show?'none':'block';approved=show;}
-async function openOrder(){note('');$('n265GoatModal').classList.add('show');$('n265Report').disabled=false;try{await syncLocal();showOrder(current);if(current)await checkStatus();else renderClaim(false);}catch(e){showOrder('');note(e.message||'Tidak bisa membaca akun Google.');}}
+async function openOrder(){note('');$('n265GoatModal').classList.add('show');$('n265Report').disabled=false;try{
+ await syncLocal();showOrder(current);
+ if(current)await checkStatus();
+ else{
+   renderClaim(false);
+   const last=localStorage.getItem(scopedKey+'_lastRejected');
+   if(last)note('Pesanan '+last+' sebelumnya ditolak. Jika belum membayar, kamu dapat membuat pesanan baru. Jika sudah bayar, hubungi admin dan jangan bayar ulang.');
+ }
+ }catch(e){showOrder('');note(e.message||'Tidak bisa membaca akun Google.');}}
 async function checkStatus(){if(!current){note('Buat pesanan dulu.');renderClaim(false);return;}try{
  const {s,B,db}=await connect();const snap=await s.D.get(s.D.ref(db,'nusaFootballGoatOrdersV1/'+current));
  if(!snap.exists()){localStorage.removeItem(scopedKey);showOrder('');renderClaim(false);note('Pesanan tidak ditemukan.');return;}
  const o=snap.val();if(o.uid!==s.user.uid)throw Error('Pesanan milik akun Google lain.');
+ if(o.status==='rejected'){
+   // A rejected server order must NOT keep the buyer's checkout locked on this device.
+   // Keep the order record in Firebase for audit; clear only the local active-order pointer.
+   const oldId=current;
+   stopOrderWatcher();
+   localStorage.setItem(scopedKey+'_lastRejected',oldId);
+   if(localStorage.getItem(scopedKey)===oldId)localStorage.removeItem(scopedKey);
+   showOrder('');renderClaim(false);
+   note('❌ Pesanan '+oldId+' ditolak. Kamu bisa memilih pemain dan membuat pesanan baru jika belum membayar. Jika sudah mengirim uang, hubungi admin dengan ID ini; jangan bayar ulang.');
+   return;
+ }
  lastServerStatus=o.status;startOrderWatcher(s,db,current);
  chosen=o.pick;selectUI();const claimed=(B.wallet()?.claimedGoatIds||[]).includes(current);
  const pending=o.status==='pending',qr=$('n265Payment').querySelector('.n265QRCode'),qrInfo=$('n265Payment').querySelector('p.muted');
  if(qr)qr.style.display=pending?'block':'none';if(qrInfo)qrInfo.style.display=pending?'block':'none';
  $('n265Report').style.display=pending?'inline-block':'none';
- $('n265NewOrder').style.display=(o.status==='rejected'||claimed)?'block':'none';
+ $('n265NewOrder').style.display=claimed?'block':'none';
  $('n265NewOrder').textContent=o.status==='rejected'?'Buat Pesanan Baru (tanpa menghapus riwayat)':'Buat Pesanan Baru';
  if(o.status==='approved'){
    renderClaim(!claimed);
@@ -1120,7 +1139,7 @@ $('n265Create').onclick=async()=>{if(busy)return;busy=true;try{
  if((B.wallet()?.players||[]).some(x=>x.name===players[chosen]))throw Error('Pemain yang dipilih sudah dimiliki. Pilih yang lain.');
  const ref=s.D.push(s.D.ref(db,'nusaFootballGoatOrdersV1'));
  await s.D.set(ref,{uid:s.user.uid,buyerName:String(identity.name||'Warga').slice(0,24),gameId:String(identity.gameId||''),pick:chosen,price:2000,status:'pending',createdAt:s.D.serverTimestamp(),updatedAt:s.D.serverTimestamp(),transactionId:''});
- localStorage.setItem(scopedKey,ref.key);showOrder(ref.key);note('Pesanan tercatat. QRIS digunakan untuk harga pasti Rp2.000.');await checkStatus();
+ localStorage.setItem(scopedKey,ref.key);localStorage.removeItem(scopedKey+'_lastRejected');showOrder(ref.key);note('Pesanan tercatat. QRIS digunakan untuk harga pasti Rp2.000.');await checkStatus();
  }catch(e){note('Gagal: '+(e.message||e));}finally{busy=false;}};
 $('n265Report').onclick=async()=>{if(!current||busy)return;
  if(!confirm('Tekan OK hanya jika kamu SUDAH BENAR-BENAR membayar Rp2.000 dan memiliki bukti dari aplikasi pembayaran.'))return;
