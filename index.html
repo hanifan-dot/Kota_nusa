@@ -5746,15 +5746,14 @@ async function nkAdmin(){const body=nkPopup('Pesanan Pelanggan','PANEL PRESIDEN 
    const visible=allOrders.filter(o=>!hidden[o.id]);
    const pending=visible.filter(o=>o.status==='pending'||o.status==='reported');
    const done=visible.filter(o=>o.status==='approved'||o.status==='rejected');
-   const recentRejected=done.filter(o=>o.status==='rejected').slice(0,3);
-   body.querySelector('#nkTotal').textContent=allOrders.length;
+    body.querySelector('#nkTotal').textContent=allOrders.length;
    body.querySelector('#nkReviewCount').textContent=allOrders.filter(o=>o.status==='reported').length;
    body.querySelector('#nkApproved').textContent=allOrders.filter(o=>o.status==='approved').length;
    body.querySelector('#nkRejected').textContent=allOrders.filter(o=>o.status==='rejected').length;
    body.querySelector('#nkPendingCount').textContent=pending.length+' pesanan';
    body.querySelector('#nkDoneCount').textContent=done.length+' pesanan';
-   body.querySelector('#nkPendingOrders').innerHTML=(pending.map(o=>nkAdminItemHtml(o,labels[o.status]||o.status,false)).join('')||'<div class="no-box">Tidak ada pesanan yang menunggu diproses.</div>')
-    +(recentRejected.length?'<div class="no-box no-warn"><b>🗂️ Baru ditolak · tetap tersimpan di Riwayat</b><div class="no-muted">Pesanan ini sudah selesai. Untuk memesan lagi, pembeli harus membuat pesanan baru; persetujuan lama tidak bisa diulang.</div></div>'+recentRejected.map(o=>nkAdminItemHtml(o,labels[o.status],true)).join(''):'');
+   // Only pending/reported orders belong here. Rejected orders remain in history.
+   body.querySelector('#nkPendingOrders').innerHTML=pending.map(o=>nkAdminItemHtml(o,labels[o.status]||o.status,false)).join('')||'<div class="no-box">Tidak ada pesanan yang menunggu diproses.</div>';
    body.querySelector('#nkProcessedOrders').innerHTML=done.map(o=>nkAdminItemHtml(o,labels[o.status]||o.status,true)).join('')||'<div class="no-box">Belum ada riwayat yang diproses.</div>';
    body.querySelectorAll('[data-ok]').forEach(btn=>btn.onclick=()=>nkReview(btn.dataset.ok,'approved',body,getStock));
    body.querySelectorAll('[data-no]').forEach(btn=>btn.onclick=()=>nkReview(btn.dataset.no,'rejected',body,getStock));
@@ -5809,9 +5808,17 @@ async function nkReview(id,status,body,refreshStock){if(nkBusy)return;nkBusy=tru
     if(o.product==='mansion'){if(celebrityLot===null)throw Error('Kavling selebritis tidak ditemukan.');updates['nusaCelebrityEstateV1/slots/'+celebrityLot]={uid:o.uid,gameId:o.gameId,name:o.name,orderId:id,at:x.d.serverTimestamp()}}
    }
    await x.d.update(x.d.ref(x.db),updates);
+   if(!approved){
+    const verify=await x.d.get(ref);
+    if(verify.val()?.status!=='rejected')throw Error('Firebase belum menyimpan status Ditolak. Pesanan tidak dianggap selesai.');
+   }
   }catch(e){if(reserved){try{await x.d.runTransaction(x.d.ref(x.db,'nusaPremiumStockV2/sawit'),v=>Math.min(20,(typeof v==='number'?v:19)+1))}catch{}}throw e}
   nkNotice(approved?'Pembayaran dicocokkan dan produk diberikan kepada akun pembeli.':'Pesanan ditolak.');await refreshStock?.();
- }catch(e){nkNotice('Gagal memproses: '+nkError(e))}finally{nkBusy=false}
+ }catch(e){
+   const msg='Gagal memproses pesanan: '+nkError(e);
+   nkNotice(msg);
+   alert(msg+'\nJika muncul PERMISSION_DENIED, Rules Firebase aktif harus diperbarui. Pesanan belum ditolak.');
+ }finally{nkBusy=false}
 }
 window.NusaPremiumOrders={openProduct:nkCreate,openMine:nkMine,openAdmin:nkAdmin,openInventory:nkInventory,refreshOwned:nkLoadGrants};
 nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)nkLoadGrants().catch(()=>{window.NusaFishingAuraConfirmed=false;window.NusaFishing?.updatePremium?.()});else{window.NusaFishingAuraConfirmed=false;window.NusaFishingAuraUid='';nkGrants={};window.NusaFishing?.updatePremium?.()}})).catch(()=>{});
