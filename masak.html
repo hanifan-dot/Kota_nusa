@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#f1a44d">
+<title>Masak Nusa</title>
+<style>
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#9ed7ca;font-family:Inter,system-ui,sans-serif;color:#173d42;touch-action:none;-webkit-user-select:none;user-select:none}button{font:inherit}
+#mn-root{position:fixed;inset:0;overflow:hidden;background:linear-gradient(#96d7d2,#f6d38f)}#mn-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.mn-top{position:absolute;z-index:5;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;display:flex;align-items:flex-start;gap:8px;pointer-events:none}.mn-brand{flex:1;padding:9px 12px;border:1px solid #fff9;border-radius:17px;background:#173d42e8;color:#fff;box-shadow:0 6px 18px #173d4255}.mn-brand small{display:block;color:#ffd78e;font-size:9px;font-weight:900;letter-spacing:.14em}.mn-brand b{display:block;margin-top:2px;font-size:19px}.mn-tools{display:flex;gap:7px;pointer-events:auto}.mn-tools button{width:48px;height:48px;border:1px solid #fff9;border-radius:16px;background:#173d42e8;color:#fff;font-size:20px;font-weight:900;box-shadow:0 6px 18px #173d4255}
+.mn-order{position:absolute;z-index:4;left:14px;right:14px;top:calc(79px + env(safe-area-inset-top));display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:18px;background:#fff9e8;border:2px solid #fff;color:#244951;box-shadow:0 7px 22px #173d4233;pointer-events:none}.mn-order i{font-style:normal;font-size:27px}.mn-order span{font-size:12px}.mn-order b{display:block;font-size:15px}.mn-order em{margin-left:auto;font-style:normal;font-size:11px;font-weight:900;color:#a45c2c}
+.mn-prompt{position:absolute;z-index:4;left:50%;bottom:calc(30px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(360px,90vw);padding:12px 15px;border:2px solid #fff;border-radius:999px;background:#173d42e8;color:#fff;text-align:center;font-size:13px;font-weight:900;box-shadow:0 7px 24px #173d4255;pointer-events:none}.mn-prompt.ready{background:#e97832;animation:mn-pulse .7s ease-in-out infinite alternate}@keyframes mn-pulse{to{transform:translateX(-50%) scale(1.035)}}
+.mn-float{position:absolute;z-index:6;left:50%;top:43%;transform:translate(-50%,-50%) scale(.5);opacity:0;color:#fff2a0;font-size:38px;font-weight:1000;text-shadow:0 3px 0 #bd5428,0 8px 20px #0018;pointer-events:none}.mn-float.on{animation:mn-pop .72s cubic-bezier(.2,1.5,.4,1)}@keyframes mn-pop{20%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}75%{opacity:1;transform:translate(-50%,-60%) scale(1)}100%{opacity:0;transform:translate(-50%,-85%) scale(.9)}}
+.mn-loader,.mn-fallback{position:absolute;z-index:20;inset:0;display:grid;place-items:center;padding:24px;background:#f8f4df}.mn-loader article,.mn-fallback article{width:min(390px,100%);padding:26px 22px;border-radius:28px;background:#fff;color:#244951;text-align:center;box-shadow:0 20px 65px #173d4244}.mn-loader h1,.mn-fallback h2{margin:5px 0}.mn-loader p,.mn-fallback p{line-height:1.5;color:#61787b}.mn-loader button,.mn-fallback button{width:100%;min-height:52px;border:0;border-radius:15px;background:#e97832;color:#fff;font-weight:900}.mn-loader[hidden],.mn-fallback[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main id="mn-root">
+  <canvas id="mn-canvas" aria-label="Dapur tiga dimensi Masak Nusa"></canvas>
+  <header class="mn-top"><div class="mn-brand"><small>PEKERJAAN · TAHAP A</small><b>🍳 Masak Nusa</b></div><div class="mn-tools"><button id="mnQuality" aria-label="Ubah kualitas">HD</button><button id="mnClose" aria-label="Kembali ke kota">×</button></div></header>
+  <div class="mn-order"><i>🍅</i><span><b>Latihan stasiun potong</b>Ketuk talenan atau bahan</span><em>TAHAP 1/6</em></div>
+  <div class="mn-float">PAS!</div>
+  <div class="mn-prompt ready">👆 KETUK TALENAN UNTUK MENCOBA</div>
+  <section class="mn-loader"><article><div style="font-size:54px">🍳</div><h1>Menyiapkan dapur…</h1><p>Three.js hanya dimuat untuk pekerjaan Masak.</p></article></section>
+  <section class="mn-fallback" hidden><article><div style="font-size:54px">😅</div><h2>Dapur 3D belum bisa dibuka</h2><p>Browser atau HP ini tidak menyediakan WebGL. Coba Chrome terbaru atau aktifkan akselerasi grafis.</p><button id="mnFallbackClose">Kembali ke kota</button></article></section>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(()=>{'use strict';
+window.MASAK_EMBED=window.self!==window.top;
+let scene,camera,renderer,raf=0,last=0,active=false,paused=false,quality='high',tapAnim=0,shake=0,knife,knifePivot,board,ingredient,stationHit=[],meshes=[],geometries=[],materials=[],audio=null;
+const root=document.getElementById('mn-root'),canvas=document.getElementById('mn-canvas'),loader=root.querySelector('.mn-loader'),fallback=root.querySelector('.mn-fallback'),prompt=root.querySelector('.mn-prompt'),floatText=root.querySelector('.mn-float');
+const ray=new (window.THREE?THREE.Raycaster:function(){})(),pointer=window.THREE?new THREE.Vector2():null;
+function geo(g){geometries.push(g);return g}function mat(color,extra){const m=new THREE.MeshLambertMaterial(Object.assign({color},extra||{}));materials.push(m);return m}
+function mesh(g,m,x,y,z,cast=true){const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=cast;o.receiveShadow=true;scene.add(o);meshes.push(o);return o}
+function box(w,h,d,color,x,y,z){return mesh(geo(new THREE.BoxGeometry(w,h,d)),mat(color),x,y,z)}
+function cylinder(r1,r2,h,color,x,y,z,segments=12){return mesh(geo(new THREE.CylinderGeometry(r1,r2,h,segments)),mat(color),x,y,z)}
+function sphere(r,color,x,y,z){return mesh(geo(new THREE.SphereGeometry(r,12,8)),mat(color),x,y,z)}
+function init(){if(!window.THREE){showFallback();return}try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});renderer.setClearColor(0x9edbd8);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(38,innerWidth/innerHeight,.1,80);camera.position.set(8.8,10.5,12.5);camera.lookAt(0,1,0);buildLights();buildKitchen();resize();addEventListener('resize',resize,{passive:true});document.addEventListener('visibilitychange',visibility);canvas.addEventListener('pointerup',tap,{passive:true});loader.hidden=true;active=true;last=0;raf=requestAnimationFrame(loop)}catch(e){showFallback()}}
+function buildLights(){const hemi=new THREE.HemisphereLight(0xe8ffff,0x8a684a,1.05);scene.add(hemi);const sun=new THREE.DirectionalLight(0xfff2d2,1.15);sun.position.set(7,12,8);sun.castShadow=true;sun.shadow.mapSize.set(512,512);sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;scene.add(sun);scene.userData.sun=sun}
+function buildKitchen(){
+  // Diorama dasar, lantai, dinding dan lis.
+  box(13,.55,10,0xe0b879,0,-.35,0);box(12.4,.18,9.4,0xf1d39a,0,0,0);for(let x=-5.7;x<6;x+=1.4)for(let z=-4.2;z<4.3;z+=1.4){const t=box(1.3,.025,1.3,((x+z)*10|0)%2?0xf5deb1:0xebc98e,x,.11,z);t.castShadow=false}
+  box(12.5,4.8,.3,0xf7e8c5,0,2.35,-4.55);box(.3,4.8,9.2,0xf2d9ad,-6.1,2.35,0);
+  // Meja dapur berbentuk L dengan kabinet dan pegangan.
+  box(8.2,1.55,1.55,0x69a58f,1.8,.85,-3.55);box(8.5,.22,1.78,0xf7eee0,1.8,1.68,-3.55);for(let x=-1.5;x<5.4;x+=1.7){box(1.5,1.25,.08,0x4f8878,x,.82,-2.75);box(.32,.08,.11,0xf3c15f,x,1.05,-2.68)}
+  box(1.65,1.55,5.3,0xdda05e,-5.05,.85,-.5);box(1.88,.22,5.55,0xf7eee0,-5.05,1.68,-.5);
+  // Kompor, wajan, panci dan rak sebagai latar stasiun berikutnya.
+  const stove=box(2.5,.35,1.55,0x394d52,2.5,1.95,-3.48);for(const x of [1.75,3.25]){const ring=mesh(geo(new THREE.TorusGeometry(.4,.08,8,18)),mat(0x1b272b),x,2.17,-3.46);ring.rotation.x=Math.PI/2}const pan=mesh(geo(new THREE.CylinderGeometry(.72,.62,.18,18)),mat(0x384b50),2.5,2.35,-3.45);pan.rotation.x=Math.PI/2;box(.22,.18,1.4,0x5b4638,2.5,2.36,-2.38);
+  box(2.2,.16,.75,0xd78d54,-3.0,3.25,-4.2);for(let i=0;i<4;i++){const jar=cylinder(.25,.25,.58,[0xf18b6f,0xf0c75e,0x77b9a4,0x8a77ad][i],-3.75+i*.5,3.62,-4.08,10);sphere(.27,0xf5eee2,-3.75+i*.5,3.95,-4.08)}
+  // Stasiun potong utama.
+  board=box(3.4,.25,2.45,0xd58d4e,-1.6,1.93,.55);board.name='talenan';stationHit.push(board);ingredient=cylinder(.58,.72,.65,0xe85842,-1.6,2.42,.55,12);ingredient.rotation.z=Math.PI/2;ingredient.name='tomat';stationHit.push(ingredient);
+  const leaf1=box(.55,.09,.25,0x4a9b56,-1.5,2.73,.49);leaf1.rotation.z=.5;const leaf2=leaf1.clone();leaf2.position.set(-1.72,2.73,.6);leaf2.rotation.z=-.55;scene.add(leaf2);meshes.push(leaf2);
+  knifePivot=new THREE.Group();knifePivot.position.set(.0,2.55,.55);scene.add(knifePivot);knife=box(1.75,.12,.42,0xdfe8e6,0,0,0);scene.remove(knife);meshes.splice(meshes.indexOf(knife),1);knife.geometry=geometries[geometries.length-1];knife.material=materials[materials.length-1];knife.position.set(-.88,0,0);knifePivot.add(knife);const handle=box(.8,.24,.48,0x35484b,0,0,0);scene.remove(handle);meshes.splice(meshes.indexOf(handle),1);handle.position.set(.35,0,0);knifePivot.add(handle);knifePivot.rotation.z=-.28;
+  // Koki low-poly di belakang talenan.
+  cylinder(.4,.52,1.35,0xffffff,-1.5,1.02,2.5,10);sphere(.48,0xb97852,-1.5,2.03,2.5);cylinder(.56,.7,.36,0xffffff,-1.5,2.47,2.5,12);box(.85,.12,.2,0xffffff,-1.5,2.33,2.15);sphere(.055,0x1d3033,-1.66,2.08,2.08);sphere(.055,0x1d3033,-1.34,2.08,2.08);
+  // Pelanggan latihan dan meja saji.
+  box(3.2,1.05,1.3,0xf0c76e,3.7,.58,2.8);cylinder(.38,.48,1.15,0x65a5c7,3.7,.65,4.0,10);sphere(.43,0x9b674a,3.7,1.52,4.0);sphere(.06,0x162e31,3.54,1.58,3.63);sphere(.06,0x162e31,3.86,1.58,3.63);
+}
+function tap(e){if(!active||tapAnim>0)return;const r=canvas.getBoundingClientRect();pointer.x=(e.clientX-r.left)/r.width*2-1;pointer.y=-(e.clientY-r.top)/r.height*2+1;ray.setFromCamera(pointer,camera);const hit=ray.intersectObjects(stationHit,false)[0];if(!hit){prompt.textContent='Ketuk talenan kayu atau tomat';prompt.classList.remove('ready');setTimeout(()=>{if(active){prompt.textContent='👆 KETUK TALENAN UNTUK MENCOBA';prompt.classList.add('ready')}},700);return}tapAnim=1;shake=.12;feedback('PAS!');sound();navigator.vibrate?.(18)}
+function feedback(text){floatText.textContent=text;floatText.classList.remove('on');void floatText.offsetWidth;floatText.classList.add('on');prompt.textContent='🔪 Potongan latihan berhasil!';prompt.classList.remove('ready')}
+function sound(){try{if(!audio)audio=new (AudioContext||webkitAudioContext)();if(audio.state==='suspended')audio.resume();const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type='triangle';o.frequency.setValueAtTime(390,t);o.frequency.exponentialRampToValueAtTime(720,t+.07);g.gain.setValueAtTime(.07,t);g.gain.exponentialRampToValueAtTime(.001,t+.11);o.connect(g).connect(audio.destination);o.start(t);o.stop(t+.12)}catch(_){}}
+function update(dt){if(tapAnim>0){tapAnim=Math.max(0,tapAnim-dt*2.9);const p=1-tapAnim;knifePivot.rotation.z=-.28-Math.sin(p*Math.PI)*1.0;ingredient.scale.y=1-Math.sin(p*Math.PI)*.32;if(!tapAnim){knifePivot.rotation.z=-.28;ingredient.scale.set(1,1,1);setTimeout(()=>{if(active){prompt.textContent='👆 KETUK LAGI UNTUK LATIHAN';prompt.classList.add('ready')}},350)}}shake=Math.max(0,shake-dt*.7);camera.position.x=8.8+(shake?(Math.random()-.5)*shake:0);camera.lookAt(0,1,0)}
+function loop(now){raf=0;if(!active||paused)return;const dt=last?Math.min(.04,(now-last)/1000):0;last=now;update(dt);renderer.render(scene,camera);raf=requestAnimationFrame(loop)}
+function resize(){if(!renderer)return;const ratio=quality==='high'?Math.min(2,devicePixelRatio||1):1;renderer.setPixelRatio(ratio);renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}
+function setQuality(){quality=quality==='high'?'low':'high';renderer.shadowMap.enabled=quality==='high';scene.userData.sun.castShadow=quality==='high';document.getElementById('mnQuality').textContent=quality==='high'?'HD':'LOW';resize()}
+function visibility(){paused=document.hidden;last=0;if(paused){cancelAnimationFrame(raf);raf=0;audio?.suspend?.()}else if(active&&!raf){audio?.resume?.();raf=requestAnimationFrame(loop)}}
+function showFallback(){loader.hidden=true;fallback.hidden=false}
+function buka(){if(active)return;if(!renderer)init();else{active=true;paused=false;last=0;raf=requestAnimationFrame(loop)}}
+function tutup(){active=false;cancelAnimationFrame(raf);raf=0;document.removeEventListener('visibilitychange',visibility);removeEventListener('resize',resize);audio?.suspend?.();if(renderer){scene.traverse(o=>{if(o.isMesh){o.geometry?.dispose?.();if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material?.dispose?.()}});renderer.dispose();renderer.forceContextLoss?.();renderer=null;scene=null}if(window.MASAK_EMBED)parent.postMessage({type:'masaknusa:tutup'},location.origin);else{root.innerHTML='<section class="mn-fallback"><article><div style="font-size:54px">🍳</div><h2>Dapur ditutup</h2><p>Kembali ke Kota Nusa untuk memulai pekerjaan.</p><button onclick="location.reload()">Buka lagi</button></article></section>'}}
+document.getElementById('mnQuality').onclick=setQuality;document.getElementById('mnClose').onclick=tutup;document.getElementById('mnFallbackClose').onclick=tutup;
+window.MasakNusa={buka,tutup};buka();
+})();
+</script>
+</body>
+</html>
