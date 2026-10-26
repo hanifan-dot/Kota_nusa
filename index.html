@@ -1719,6 +1719,18 @@ async function chatLocal(body){const p=W.players[uid],now=Date.now();demand(p,'B
 function snapshot(){
  refresh(W,Date.now());
  const me=W.players[uid];
+ const host=String(location.hostname||''),testHost=host==='kota-nusa-tes-rumahku.netlify.app'||/^deploy-preview-\d+--kota-nusa-tes-rumahku\.netlify\.app$/.test(host);
+ let visitBot=null;
+ if(testHost){
+  visitBot=W.players['bot-dimas-test-v1'];
+  if(!visitBot){
+   visitBot=makePlayer('Dimas','#4f8fb8',Date.now());
+   visitBot.id='bot-dimas-test-v1';visitBot.personalHouseLevel=4;visitBot.coins=25000;
+   visitBot.decor='blue';visitBot.bio='BOT percobaan untuk menguji fitur kunjungan Rumahku.';
+   visitBot.memories=['BOT percobaan Kota Nusa · Rumah Level 4'];
+   W.players['bot-dimas-test-v1']=visitBot;
+  }
+ }
  // Bonus sekali untuk pemilik yang SUDAH membuka mode Presiden di browser ini.
  // Bukan saldo cloud dan tidak diberikan pada seluruh pengunjung.
  if(me&&ownerOK()&&role(W,me.id)==='president'&&!me.ownerBonus100kV24){
@@ -1726,7 +1738,7 @@ function snapshot(){
   record(W,'owner_bonus','Bonus pribadi Presiden +100.000 koin (sekali)',me.id,100000);
   v2Post(W,me,'Bonus Presiden +100.000','Bonus satu kali masuk dompet game lokal milikmu. Tidak memengaruhi saldo warga lain.');
  }
-  persist();return {...view(W,uid),online:[],tips:[],rajinLocal:W.rajinWeeks?.[nusaWeekKey()]||{}};
+  persist();return {...view(W,uid),online:visitBot?[{id:visitBot.id,x:-18,z:18,yaw:0,emote:'wave',bot:true}]:[],tips:[],rajinLocal:W.rajinWeeks?.[nusaWeekKey()]||{}};
 }
 return {claimGoogleWelcomeBonus(googleUid){
  const p=W.players[uid];
@@ -7393,6 +7405,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
 <script>window.NusaHomeBridge={
  player:()=>window.NusaRumahkuTest?.viewPlayer(state.me)||state.me,
  citizens:()=>state.citizens||[],
+ isOnline:id=>(state.online||[]).some(person=>person.id===id),
  identity:p=>ktpData(p,p.id===state.me?.id),
  levels:()=>PRIVATE_HOUSE_STEPS,
  buyHouse:()=>window.NusaRumahkuTest?.enabled?window.NusaRumahkuTest.buyHouse():act('buyPrivateHouse'),
@@ -7401,7 +7414,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
  land:()=>window.NusaRumahku?.open(),
  decorate:color=>window.NusaRumahkuTest?.enabled?window.NusaRumahkuTest.decorate(color):act('decorate',{decor:color},true),
  toast
-};</script><script src="rumahku.js?v=20261026-upgrade6"></script>
+};</script><script src="rumahku.js?v=20261026-visit7"></script>
 
 <style id="nusa-no-zeppelin">#nusaScarvAirship{display:none!important;pointer-events:none!important}</style>
 <!-- Rumahku Tahap 1: hanya render halaman (tanpa mengubah fitur lain) -->
@@ -7731,8 +7744,8 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     }
   }
   function miniGarden(g) {
-    var garden=window.NusaHomeBridge && window.NusaHomeBridge.player &&
-      window.NusaHomeBridge.player();
+    var garden=window.NusaRumahku?.displayed?.()||
+      (window.NusaHomeBridge && window.NusaHomeBridge.player && window.NusaHomeBridge.player());
     var plants=(garden && garden.privateGardenV262 && garden.privateGardenV262.plots)||[];
     for(var i=0;i<4;i++) {
       var gx=2.58+(i%2)*1.05,gz=1.15+Math.floor(i/2)*1.05;

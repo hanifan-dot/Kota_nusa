@@ -30,6 +30,12 @@ assert.match(html, /spend\(next\.price\);p\.coins-=next\.price;p\.personalHouseL
 assert.match(html, /async function mutate[\s\S]*W=original;throw e/);
 assert.match(rumahku, /if\(busy\|\|!mine\(\)\)return/);
 assert.match(rumahku, /actual!==next\.level&&returned!==next\.level/);
+assert.match(rumahku, /window\.NusaRumahku\.open\(people\.find/);
+assert.match(rumahku, /displayed:\(\)=>current\(\)/);
+assert.match(html, /bot-dimas-test-v1/);
+assert.match(html, /visitBot\.personalHouseLevel=4/);
+assert.match(html, /isOnline:id=>\(state\.online\|\|\[\]\)\.some/);
+assert.match(html, /window\.NusaRumahku\?\.displayed\?\.\(\)/);
 assert.match(html, /action===['"]grantTestCoins['"]/);
 assert.match(html, /target=1000000000/);
 assert.match(html, /Saldo percobaan hanya tersedia di situs Netlify tes/);
