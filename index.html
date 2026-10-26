@@ -7563,6 +7563,8 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     tree(g,-3.95,-2.35,1.0,night);
     tree(g,3.95,-3.55,.85,night);
     tree(g,-4.6,.1,.65,night);
+    // Pohon samping dijauhkan dari empat petak kebun agar tidak menutupinya.
+    tree(g,4.75,-.65,.72,night);
     // Elemen belakang tidak boleh menutupi pondasi.
     home(g,scene.querySelector(".rh-paint")?.style.backgroundColor,night);
     // Akses depan rumah: jalan kecil dan batu setapak.
@@ -7578,13 +7580,11 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     shrub(g,1.85,2.76,16,["#328345","#3b9547","#57ac54"]);
     lamp(g,-2.72,3.5,night);
     mailbox(g,-1.5,4.47);
-    tree(g,4.4,1.75,.75,night);
     // Pagar depan diletakkan paling atas sebagai pembatas lahan.
     for(var f=-5.1;f<=5.1;f+=.62){
       if(Math.abs(f)>.72) shrub(g,f,5.4,12.7,hedge);
       shrub(g,5.4,f,12.7,hedge);
     }
-    person(g,-.65,3.25);
     // Cahaya jendela hangat dan lampu lebih tampak saat malam.
     if(night) {
       var haze=g.createLinearGradient(0,0,0,H);
@@ -7632,6 +7632,275 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
   var originalClose=api.close;
   api.close=function(){detach();return originalClose.apply(this,arguments);};
   api.__visualTahap1=true;
+})();
+</script>
+
+<!-- Rumahku Tahap 2: gerak karakter dan jalur aman halaman -->
+<style id="rh-visual-tahap2">#rumahkuRoot .rh-scene>canvas.rh-stage2-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;pointer-events:auto}</style>
+<script>
+(function() {
+  "use strict";
+  // Tahap 2 hanya memengaruhi gambar dan ketukan tanah di halaman Rumahku.
+  // Semua tombol, data KTP, uang, Firebase, toko, radio dan peta tetap terpisah.
+  var house=window.NusaRumahku;
+  if(!house || house.__walkingTahap2)return;
+  var W=864,H=790, originX=432,originY=391;
+  var actor={x:-.65,z:3.25,walk:false,phase:0,face:1,way:[]};
+  var root=null,observer=null,raf=0,lastTime=0,lastDraw=0,groundCanvas=null;
+  var step=.28,MIN=-5.02,MAX=5.02,gridN=Math.floor((MAX-MIN)/step)+1;
+  var obstacles=[
+    {kind:"kotak",x0:-2.56,x1:2.38,z0:-2.56,z1:2.38,nama:"Rumah"},
+    {kind:"kotak",x0:2.40,x1:4.88,z0:.96,z1:3.43,nama:"Kebun"},
+    {kind:"lingkaran",x:-3.95,z:-2.35,r:.52,nama:"Pohon"},
+    {kind:"lingkaran",x:3.95,z:-3.55,r:.55,nama:"Pohon"},
+    {kind:"lingkaran",x:-4.60,z:.10,r:.44,nama:"Pohon"},
+    {kind:"lingkaran",x:4.75,z:-.65,r:.47,nama:"Pohon"},
+    {kind:"lingkaran",x:-1.90,z:2.77,r:.46,nama:"Tanaman"},
+    {kind:"lingkaran",x:1.85,z:2.76,r:.47,nama:"Tanaman"},
+    {kind:"lingkaran",x:-2.72,z:3.50,r:.26,nama:"Lampu taman"},
+    {kind:"lingkaran",x:-1.50,z:4.47,r:.29,nama:"Kotak surat"}
+  ];
+  function iso(x,z){return {x:originX+(x-z)*34.5,y:originY+(x+z)*18};}
+  function fromScreen(x,y){
+    var u=(x-originX)/34.5,v=(y-originY)/18;
+    return {x:(u+v)/2,z:(v-u)/2};
+  }
+  function blocked(x,z){
+    if(x<MIN+.07||x>MAX-.07||z<MIN+.07||z>MAX-.07)return true;
+    for(var i=0;i<obstacles.length;i++){
+      var o=obstacles[i];
+      if(o.kind==="kotak"){
+        if(x>=o.x0&&x<=o.x1&&z>=o.z0&&z<=o.z1)return true;
+      } else {
+        var dx=x-o.x,dz=z-o.z;
+        if(dx*dx+dz*dz<=o.r*o.r)return true;
+      }
+    }
+    return false;
+  }
+  function unobstructed(a,b){
+    var dx=b.x-a.x,dz=b.z-a.z,d=Math.hypot(dx,dz);
+    var count=Math.max(1,Math.ceil(d/.09));
+    for(var i=1;i<=count;i++)if(blocked(a.x+dx*i/count,a.z+dz*i/count))return false;
+    return true;
+  }
+  function closestGrid(x,z){
+    var cx=Math.round((x-MIN)/step),cy=Math.round((z-MIN)/step),best=null,score=Infinity;
+    for(var r=0;r<=4;r++) {
+      for(var i=cx-r;i<=cx+r;i++)for(var j=cy-r;j<=cy+r;j++){
+        if(Math.max(Math.abs(i-cx),Math.abs(j-cy))!==r)continue;
+        if(i<0||j<0||i>=gridN||j>=gridN)continue;
+        var gx=MIN+i*step,gz=MIN+j*step;
+        if(blocked(gx,gz))continue;
+        var d=(gx-x)*(gx-x)+(gz-z)*(gz-z);
+        if(d<score){score=d;best={i:i,j:j,x:gx,z:gz};}
+      }
+      if(best)return best;
+    }
+    return null;
+  }
+  function findPath(tx,tz){
+    var target={x:tx,z:tz},start={x:actor.x,z:actor.z};
+    if(blocked(tx,tz))return null;
+    if(unobstructed(start,target))return [target];
+    var a=closestGrid(start.x,start.z),b=closestGrid(tx,tz);
+    if(!a||!b)return null;
+    var total=gridN*gridN,visited=new Uint8Array(total);
+    var parents=new Int32Array(total);parents.fill(-1);
+    var qi=new Int16Array(total),qj=new Int16Array(total);
+    var front=0,end=0;
+    function id(i,j){return i*gridN+j;}
+    var initial=id(a.i,a.j),goal=id(b.i,b.j);
+    visited[initial]=1;qi[end]=a.i;qj[end]=a.j;end++;
+    var dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+    while(front<end&&!visited[goal]){
+      var ix=qi[front],iz=qj[front],cur=id(ix,iz);front++;
+      for(var k=0;k<8;k++){
+        var dx=dirs[k][0],dz=dirs[k][1],nx=ix+dx,nz=iz+dz;
+        if(nx<0||nz<0||nx>=gridN||nz>=gridN)continue;
+        var nid=id(nx,nz);
+        if(visited[nid]||blocked(MIN+nx*step,MIN+nz*step))continue;
+        // Mencegah memotong sudut rumah, pagar dan kebun secara diagonal.
+        if(dx&&dz&&(blocked(MIN+(ix+dx)*step,MIN+iz*step)||
+                    blocked(MIN+ix*step,MIN+(iz+dz)*step)))continue;
+        visited[nid]=1;parents[nid]=cur;
+        qi[end]=nx;qj[end]=nz;end++;
+      }
+    }
+    if(!visited[goal])return null;
+    var chain=[],cursor=goal,guard=0;
+    while(cursor!==initial && guard++<total){
+      var gi=Math.floor(cursor/gridN),gj=cursor%gridN;
+      chain.push({x:MIN+gi*step,z:MIN+gj*step});
+      cursor=parents[cursor];
+      if(cursor<0)return null;
+    }
+    chain.push({x:a.x,z:a.z});
+    chain.reverse();
+    var raw=[start].concat(chain);
+    if(unobstructed(raw[raw.length-1],target))raw.push(target);
+    else {
+      // Goal jatuh dekat halangan: cari sel bebas terdekat yang tetap
+      // memiliki garis lurus ke posisi ketukan sebenarnya.
+      var alternative=null,best=Infinity;
+      for(var q=0;q<raw.length;q++){
+        if(unobstructed(raw[q],target)){
+          var d=Math.hypot(raw[q].x-tx,raw[q].z-tz);
+          if(d<best){best=d;alternative=q;}
+        }
+      }
+      if(alternative===null)return null;
+      raw=raw.slice(0,alternative+1).concat([target]);
+    }
+    var path=[],i=0,hardLimit=0;
+    while(i<raw.length-1 && hardLimit++<total){
+      var next=i+1;
+      for(var j=raw.length-1;j>i+1;j--){
+        if(unobstructed(raw[i],raw[j])){next=j;break;}
+      }
+      path.push(raw[next]);i=next;
+    }
+    return path.length?path:null;
+  }
+  function stroke(g,x1,y1,x2,y2,width,color){
+    g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);
+    g.lineWidth=width;g.lineCap="round";g.strokeStyle=color;g.stroke();
+  }
+  function oval(g,x,y,w,h,color){
+    g.beginPath();g.ellipse(x,y,w,h,0,0,2*Math.PI);g.fillStyle=color;g.fill();
+  }
+  function dot(g,x,y,r,color){
+    g.beginPath();g.arc(x,y,r,0,2*Math.PI);g.fillStyle=color;g.fill();
+  }
+  function paintPerson(g){
+    var p=iso(actor.x,actor.z);
+    var swing=actor.walk?Math.sin(actor.phase):0;
+    var bounce=actor.walk?Math.abs(swing)*2.4:0;
+    // Bayangan tidak bergerak ke atas saat karakter mengangkat kaki.
+    oval(g,p.x+4,p.y+3,22,8,"#183b2f61");
+    g.save();g.translate(p.x,p.y-bounce);g.scale(1.17,1.17);
+    stroke(g,-8,-23,-9+swing*9,-3,8,"#313d43");
+    stroke(g,8,-23,9-swing*9,-3,8,"#394852");
+    oval(g,-9+swing*9,-2,5,3,"#293539");
+    oval(g,9-swing*9,-2,5,3,"#293539");
+    stroke(g,-14,-38,-18-swing*7,-23,7,"#bc835f");
+    stroke(g,14,-38,19+swing*7,-23,7,"#bc835f");
+    g.beginPath();g.moveTo(-15,-43);g.lineTo(15,-43);
+    g.lineTo(12,-18);g.lineTo(-13,-18);g.closePath();
+    g.fillStyle="#995bd8";g.fill();
+    oval(g,0,-60,21,22,"#b87955");
+    oval(g,-1,-71,22,12,"#382d29");
+    dot(g,actor.face<0?-8:-9,-59,2.1,"#292827");
+    dot(g,actor.face<0?9:8,-59,2.1,"#292827");
+    stroke(g,-3,-48,4,-48,1.7,"#783f39");
+    g.restore();
+  }
+  function draw(){
+    if(!groundCanvas||!groundCanvas.isConnected)return;
+    var g=groundCanvas.getContext("2d");if(!g)return;
+    g.clearRect(0,0,W,H);
+    paintPerson(g);
+  }
+  function walkFrame(time){
+    raf=0;
+    if(!root||!root.isConnected){detach();return;}
+    var dt=lastTime?Math.min(.05,(time-lastTime)/1000):0;
+    lastTime=time;
+    if(actor.walk&&actor.way.length){
+      var distance=dt*2.25;
+      while(distance>0&&actor.way.length){
+        var p=actor.way[0],dx=p.x-actor.x,dz=p.z-actor.z;
+        var length=Math.hypot(dx,dz);
+        if(length<=.025||length<=distance){
+          actor.x=p.x;actor.z=p.z;actor.way.shift();
+          distance-=length;
+        }else{
+          actor.x+=dx/length*distance;
+          actor.z+=dz/length*distance;
+          distance=0;
+        }
+        if(Math.abs(dx)>1e-5)actor.face=dx<0?-1:1;
+      }
+      actor.phase+=dt*12;
+      if(!actor.way.length){actor.walk=false;actor.phase=0;}
+    }
+    if(time-lastDraw>30||!actor.walk){draw();lastDraw=time;}
+    if(actor.walk)raf=requestAnimationFrame(walkFrame);
+  }
+  function walkTo(screenX,screenY){
+    var target=fromScreen(screenX,screenY);
+    // Ketukan pada ruang kosong di luar petak atau benda tidak memulai jalan.
+    if(blocked(target.x,target.z))return;
+    var path=findPath(target.x,target.z);
+    if(!path || !path.length)return;
+    actor.way=path;actor.walk=true;
+    lastTime=0;
+    if(!raf)raf=requestAnimationFrame(walkFrame);
+  }
+  function ensure(){
+    if(!root||!root.isConnected)return;
+    var scene=root.querySelector(".rh-scene");
+    if(!scene)return;
+    var visual=scene.querySelector(".rh-stage1-canvas");
+    if(!visual)return;
+    var existing=scene.querySelector(".rh-stage2-canvas");
+    if(existing){groundCanvas=existing;return;}
+    var overlay=document.createElement("canvas");
+    overlay.className="rh-stage2-canvas";
+    overlay.width=W;overlay.height=H;
+    overlay.setAttribute("aria-label","Halaman rumah: ketuk tanah untuk berjalan");
+    overlay.setAttribute("role","img");
+    overlay.style.cssText="position:absolute;inset:0;width:100%;height:100%;touch-action:pan-y;pointer-events:auto;";
+    var hotspot=scene.querySelector(".rh-hotspot");
+    if(hotspot)scene.insertBefore(overlay,hotspot);
+    else scene.append(overlay);
+    groundCanvas=overlay;
+    var pointer=null;
+    overlay.addEventListener("pointerdown",function(e) {
+      if(!e.isPrimary)return;
+      pointer={x:e.clientX,y:e.clientY,id:e.pointerId};
+    },{passive:true});
+    overlay.addEventListener("pointercancel",function(){pointer=null;},{passive:true});
+    overlay.addEventListener("pointerup",function(e) {
+      if(!pointer||e.pointerId!==pointer.id)return;
+      var moved=Math.hypot(e.clientX-pointer.x,e.clientY-pointer.y);
+      pointer=null;
+      if(moved>14)return;
+      var box=overlay.getBoundingClientRect();
+      if(!box.width||!box.height)return;
+      walkTo((e.clientX-box.left)*W/box.width,
+             (e.clientY-box.top)*H/box.height);
+    },{passive:true});
+    draw();
+  }
+  function detach(){
+    if(observer)observer.disconnect();
+    if(raf)cancelAnimationFrame(raf);
+    observer=null;raf=0;root=null;groundCanvas=null;
+    lastTime=0;lastDraw=0;
+  }
+  function attach(){
+    var next=document.getElementById("rumahkuRoot");
+    if(!next)return;
+    if(root!==next){
+      detach();root=next;
+      // Penempatan ulang kanvas tetap dilakukan saat Hias merender ulang halaman.
+      observer=new MutationObserver(ensure);
+      observer.observe(root,{childList:true,subtree:true});
+    }
+    ensure();
+  }
+  var initialOpen=house.open;
+  house.open=function(){
+    actor.x=-.65;actor.z=3.25;actor.walk=false;actor.way=[];
+    actor.phase=0;
+    var result=initialOpen.apply(this,arguments);
+    attach();
+    return result;
+  };
+  var initialClose=house.close;
+  house.close=function(){detach();return initialClose.apply(this,arguments);};
+  house.__walkingTahap2=true;
 })();
 </script>
 </body></html>
