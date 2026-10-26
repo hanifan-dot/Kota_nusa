@@ -2836,7 +2836,7 @@ function createWorld(canvas,places,callbacks={}){
  function makeScene(){sceneKey=mode();g=staticContext;g.clearRect(0,0,atlas.width,atlas.height);buildings.length=trees.length=hits.length=props.length=0;
   seaAndShore();tile(23,-2,288,328,'#0c3a4a22',-3.4);box(20,-5,280,320,3,'#c9b58a',-3);tile(20,-5,280,320,'#8cc06c');
   meadow();beachBands();runway();
-  neighborhoods();
+  // Akses jalan bekas kavling dihilangkan; jalan utama dan fasilitas kota tetap.
   for(let x=-114;x<=155;x+=8)for(let z=-157;z<150;z+=9){if((Math.round(x+z)%3)===0)tile(x,z,.7,.7,'#94b782');}
   for(const z of [-58,-10,11,34,60])roadX(z);for(const x of [-65,-11,11,65])roadZ(x);
   for(const x of [-65,-11,11,65])for(const z of [-58,-10,11,34,60])for(let i=-2;i<=2;i++){tile(x+i*.8,z+4,.4,1.8,'#f6f0dc',.09);tile(x+4,z+i*.8,1.8,.4,'#f6f0dc',.09);}
@@ -7371,7 +7371,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
  land:()=>window.NusaRumahku?.open(),
  decorate:color=>act('decorate',{decor:color},true),
  toast
-};</script><script src="rumahku.js?v=1"></script>
+};</script><script src="rumahku.js?v=3"></script>
 
 <style id="nusa-no-zeppelin">#nusaScarvAirship{display:none!important;pointer-events:none!important}</style>
 <!-- Rumahku Tahap 1: hanya render halaman (tanpa mengubah fitur lain) -->
@@ -7487,10 +7487,15 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     polygon(g,[iso(x,z-.03,bottom-2),iso(x,z+.63,bottom-2),
       iso(x+.065,z+.65,bottom-6),iso(x+.065,z-.03,bottom-6)],"#ddd7c8");
   }
-  function home(g, decor, night) {
+  function home(g, decor, night, level) {
     var x0=-2.25,x1=2.05,z0=-2.25,z1=2.0, h=134;
     var color=decor || "";
     var front="#fae8ca", side="#e1c9a8";
+    if(level<=2){front="#e4caac";side="#baa28a";}
+    else if(level<=4){front="#e9d1b8";side="#c8af91";}
+    else if(level<=6){front="#f3e2c5";side="#d3b996";}
+    else if(level<=8){front="#e9eadf";side="#c0cfc9";}
+    else {front="#f3eee0";side="#c8d9cf";}
     if(color.indexOf("227, 173, 148")!==-1){front="#f4c0a7";side="#ce977e";}
     else if(color.indexOf("168, 203, 216")!==-1){front="#c4e6f0";side="#91baca";}
     else if(color.indexOf("228, 208, 168")!==-1){front="#f0d7a8";side="#c9ae7e";}
@@ -7525,7 +7530,8 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     polygon(g,[a,b,c,d],night?"#566872":"#788c91");g.restore();
     polygon(g,[d,c,iso(rx1,rz1,h+2),iso(rx0,rz1,h+2)],"#536a71");
     polygon(g,[b,c,iso(rx1,rz1,h+2),iso(rx1,rz0,h+2)],"#425960");
-    polygon(g,[a,b,c,d],night?"#637681":"#81959a","#4f646a",2);
+    var roofColors=level>=9?["#3a5d68","#4b7480"]:level>=7?["#466c77","#5c8791"]:level>=5?["#855a42","#a77758"]:level>=3?["#6e7370","#87938b"]:["#718388","#82959a"];
+    polygon(g,[a,b,c,d],night?roofColors[0]:roofColors[1],"#4f646a",2);
     polygon(g,[iso(rx0+.24,rz0+.22,h+14),iso(rx1-.25,rz0+.22,h+14),
       iso(rx1-.63,rz0+.62,h+14),iso(rx0+.64,rz0+.62,h+14)],"#d0e3e041");
     // Ventilasi atap sebagai kubus kecil.
@@ -7638,7 +7644,13 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     // Pohon samping dijauhkan dari empat petak kebun agar tidak menutupinya.
     tree(g,4.75,-.65,.72,night);
     // Elemen belakang tidak boleh menutupi pondasi.
-    home(g,scene.querySelector(".rh-paint")?.style.backgroundColor,night);
+    var citizen=window.NusaHomeBridge?.player?.();
+    var level=Math.min(10,Math.max(1,citizen?.personalHouseLevel||(citizen?.home!=null?citizen.houseLevel||1:1)));
+    home(g,scene.querySelector(".rh-paint")?.style.backgroundColor,night,level);
+    if(level>=3)shrub(g,-3.1,2.3,14,["#347c45","#4c9e57","#5dbd64"]);
+    if(level>=5)shrub(g,3.4,3.5,13,["#35804a","#4ca360","#6ec476"]);
+    if(level>=7)lamp(g,4.3,2.7,night);
+    if(level>=9)shrub(g,-4.0,3.5,19,["#37954b","#58aa5f","#83d97a"]);
     // Akses depan rumah: jalan kecil dan batu setapak.
     tile(g,-.7,2.35,1.4,2.7,night?"#b3a887":"#e8cea4");
     for(var q=0;q<4;q++){
