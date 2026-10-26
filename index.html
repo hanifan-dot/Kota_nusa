@@ -1405,6 +1405,18 @@ async function POST(req) {
                 record(w, 'received', 'Dari ' + p.name, to.id, n, now);
                 return { message: n + ' koin terkirim ke ' + to.name };
             }
+            if(action==='grantTestCoins'){
+                const host=String(location.hostname||'');
+                const testHost=host==='kota-nusa-tes-rumahku.netlify.app'||/^deploy-preview-\d+--kota-nusa-tes-rumahku\.netlify\.app$/.test(host);
+                demand(testHost,'Saldo percobaan hanya tersedia di situs Netlify tes.');
+                if(!p.testWalletBillionV1){
+                    const target=1000000000,gain=Math.max(0,target-Math.floor(Number(p.coins)||0));
+                    p.coins=Math.max(target,Math.floor(Number(p.coins)||0));
+                    p.testWalletBillionV1={grantedAt:now,host};
+                    if(gain>0)record(w,'test_wallet','Saldo percobaan Netlify',p.id,gain,now);
+                }
+                return {message:'Saldo tes tersedia: 1.000.000.000 koin.'};
+            }
             if(action==='buyPrivateHouse'){
                 demand(!p.personalHouseLevel&&p.home==null,'Kamu sudah mempunyai rumah.');
                 const cost=PRIVATE_HOUSE_STEPS[0].price;
@@ -7313,10 +7325,13 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
 })();
 </script><script src="city-life.js?v=1" defer></script>
 <script>
-/* Simulasi rumah khusus domain Netlify tes; tidak mengubah dompet game. */
+/* Saldo khusus Netlify tes. Transaksi Rumahku tetap memakai dompet utama lokal
+   agar pembelian, pengurangan saldo, dan persistensi bisa diuji sungguhan. */
 (function(){
  "use strict";
- const enabled=location.hostname==="kota-nusa-tes-rumahku.netlify.app";
+ const host=String(location.hostname||'');
+ const testHost=host==="kota-nusa-tes-rumahku.netlify.app"||/^deploy-preview-\d+--kota-nusa-tes-rumahku\.netlify\.app$/.test(host);
+ const enabled=false;
  const storageKey=()=> "nusa-rumah-pribadi-tes-v2:"+String(state?.me?.id||"tamu");
  function read(){
   if(!enabled||!state?.me?.id)return 0;
@@ -7360,10 +7375,18 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
    return {message:'Warna demo diperbarui'};
  }
  window.NusaRumahkuTest={enabled,viewPlayer,buyHouse,upgradeHouse,decorate};
- if(enabled){
-  const update=()=>{const el=document.getElementById('coins');if(!el)return;el.textContent='∞';const caption=el.nextElementSibling;if(caption)caption.textContent='Koin TES rumah';};
-  setInterval(update,1000);
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',update,{once:true});else update();
+ if(testHost){
+  let granting=false,grantedFor='';
+  const grant=async()=>{
+   const player=state?.me;
+   if(!player||granting||grantedFor===player.id||player.testWalletBillionV1)return;
+   granting=true;
+   try{await act('grantTestCoins',{},true);grantedFor=player.id;toast('🧪 Saldo tes 1.000.000.000 koin sudah aktif.');}
+   catch(e){console.warn('Saldo tes belum dapat diberikan:',e);}
+   finally{granting=false;}
+  };
+  setInterval(grant,1000);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',grant,{once:true});else grant();
  }
 })();
 </script>

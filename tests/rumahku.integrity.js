@@ -30,6 +30,10 @@ assert.match(html, /spend\(next\.price\);p\.coins-=next\.price;p\.personalHouseL
 assert.match(html, /async function mutate[\s\S]*W=original;throw e/);
 assert.match(rumahku, /if\(busy\|\|!mine\(\)\)return/);
 assert.match(rumahku, /actual!==next\.level&&returned!==next\.level/);
+assert.match(html, /action===['"]grantTestCoins['"]/);
+assert.match(html, /target=1000000000/);
+assert.match(html, /Saldo percobaan hanya tersedia di situs Netlify tes/);
+assert.match(html, /const enabled=false/);
 
 assert.doesNotMatch(html, /\['land',25,22,11,9,5/);
 assert.match(html, /CATALOG\.places=CATALOG\.places\.filter\(place=>place\.id!==['"]land['"]\)/);
