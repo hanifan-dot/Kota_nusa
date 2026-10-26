@@ -1,0 +1,67 @@
+/* Kota Nusa: Kota Hidup NPC activities — mobile-first, isolated styles */
+#nusaCityLifeRoot{position:fixed;inset:0;z-index:75000;display:flex;align-items:center;justify-content:center;background:rgba(3,17,28,.87);padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom));color:#f7f1df;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+#nusaCityLifeRoot *{box-sizing:border-box}
+#nusaCityLifeRoot button{cursor:pointer;font:inherit}
+#nusaCityLifeRoot button:focus-visible{outline:3px solid #f9dd88;outline-offset:2px}
+#nusaCityLifeRoot .ncl-shell{width:min(100%,540px);max-height:94dvh;min-height:min(590px,88dvh);display:flex;flex-direction:column;overflow:hidden;border-radius:22px;border:1px solid #cfb373;background:linear-gradient(180deg,#133450,#0a243b);box-shadow:0 24px 80px #0009}
+#nusaCityLifeRoot .ncl-head{display:flex;justify-content:space-between;gap:12px;padding:16px 18px;background:linear-gradient(125deg,#245273,#122d4b);border-bottom:1px solid #e5c57b55;flex:none}
+#nusaCityLifeRoot .ncl-head>div{display:flex;flex-direction:column;gap:2px}
+#nusaCityLifeRoot .ncl-head small{font-size:10px;letter-spacing:2px;color:#f4d591;font-weight:800}
+#nusaCityLifeRoot .ncl-head strong{font:800 26px Georgia,serif;color:#ffe3a2}
+#nusaCityLifeRoot .ncl-head span{font-size:11px;color:#c3dce2}
+#nusaCityLifeRoot #nclClose{border:1px solid #a5b6c1;background:#ffffff16;color:#fff;border-radius:50%;width:40px;height:40px;flex:none}
+#nusaCityLifeRoot .ncl-content{overflow-y:auto;overscroll-behavior:contain;flex:1;padding:17px 17px 24px}
+#nusaCityLifeRoot .ncl-intro,#nusaCityLifeRoot .ncl-hint{line-height:1.55;font-size:13px;color:#d0e3eb;margin:0 0 14px}
+#nusaCityLifeRoot .ncl-intro b,#nusaCityLifeRoot .ncl-hint b{color:#ffe0a3}
+#nusaCityLifeRoot .ncl-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+#nusaCityLifeRoot .ncl-meta span{background:#315b6b66;border:1px solid #71949d66;border-radius:999px;padding:8px 10px;font-size:11px}
+#nusaCityLifeRoot .ncl-roster{display:flex;gap:9px;overflow-x:auto;padding-bottom:9px;scroll-snap-type:x mandatory}
+#nusaCityLifeRoot .ncl-person{min-width:93px;max-width:95px;display:flex;align-items:center;flex-direction:column;text-align:center;gap:3px;scroll-snap-align:start;border:1px solid #87b3b544;background:linear-gradient(160deg,#345c6b8c,#153650);border-radius:14px;padding:12px 6px}
+#nusaCityLifeRoot .ncl-person>span{font-size:28px;animation:nclBob 3.2s ease-in-out infinite}
+#nusaCityLifeRoot .ncl-person:nth-child(2n)>span{animation-delay:.8s}
+@keyframes nclBob{50%{transform:translateY(-3px)}}
+#nusaCityLifeRoot .ncl-person strong{font-size:12px}
+#nusaCityLifeRoot .ncl-person small{font-size:9px;color:#b9d0d5}
+#nusaCityLifeRoot .ncl-section-title{font-size:15px;color:#f6d48c;margin:17px 0 11px}
+#nusaCityLifeRoot .ncl-cards{display:grid;gap:10px}
+#nusaCityLifeRoot .ncl-card{display:flex;align-items:center;text-align:left;gap:12px;border-radius:15px;border:1px solid #b3c7be77;background:#204a62;padding:14px;color:#fff;width:100%;min-height:70px}
+#nusaCityLifeRoot .ncl-card>span{font-size:25px}
+#nusaCityLifeRoot .ncl-card>div{flex:1}
+#nusaCityLifeRoot .ncl-card strong{display:block;font-size:14px;color:#fff0c7;margin-bottom:4px}
+#nusaCityLifeRoot .ncl-card small{display:block;color:#c5dbe5;font-size:11px;line-height:1.4}
+#nusaCityLifeRoot .ncl-card em{font:700 10px system-ui,sans-serif;color:#f7daa5;white-space:nowrap}
+#nusaCityLifeRoot .ncl-disclaimer{color:#99b4c1;font-size:10px;line-height:1.6;margin:14px 0 0}
+#nusaCityLifeRoot .ncl-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:#092439;border-top:1px solid #6b919977;flex:none}
+#nusaCityLifeRoot .ncl-foot span{font-size:10px;color:#acc2d0}
+#nusaCityLifeRoot .ncl-foot button{background:#f6d07c;color:#273743;font-weight:800;border:0;padding:9px 12px;border-radius:10px;font-size:12px}
+#nusaCityLifeRoot .ncl-level{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;margin-bottom:16px}
+#nusaCityLifeRoot .ncl-level b{color:#f4dc9b;font-size:17px}
+#nusaCityLifeRoot .ncl-level span{color:#cfdae0;font-size:12px}
+#nusaCityLifeRoot .ncl-customer{border:1px solid #73a8a288;border-radius:16px;background:#1c4852;padding:15px;text-align:center;margin-bottom:15px}
+#nusaCityLifeRoot .ncl-customer>span{display:block;font-size:34px}
+#nusaCityLifeRoot .ncl-customer h3{margin:5px 0;font-size:17px}
+#nusaCityLifeRoot .ncl-customer h3 small{font-size:10px;color:#d2e8d2}
+#nusaCityLifeRoot .ncl-customer p{margin:9px 0 0;font-size:14px;color:#f6e8c8;line-height:1.5}
+#nusaCityLifeRoot .ncl-choices{display:grid;gap:10px}
+#nusaCityLifeRoot .ncl-choices button{border:1px solid #e0cc8e88;background:#2b5370;padding:14px;text-align:left;color:white;border-radius:11px;font-size:14px}
+#nusaCityLifeRoot .ncl-choices button:active{background:#467c7b}
+#nusaCityLifeRoot .ncl-msg{min-height:38px;color:#ffe2a3;font-size:12px;line-height:1.55;margin-top:14px}
+#nusaCityLifeRoot .ncl-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:13px auto;max-width:440px}
+#nusaCityLifeRoot .ncl-cell{display:grid;place-items:center;aspect-ratio:1;font-size:17px;border-radius:8px;min-width:0}
+#nusaCityLifeRoot .ncl-cell.road{background:#527988;border:1px solid #a7c9bb5a;color:#dcebe9}
+#nusaCityLifeRoot .ncl-cell.wall{background:#152f41;border:1px solid #50637d}
+#nusaCityLifeRoot .ncl-cell.current{background:#f7d587;color:#1e3442;box-shadow:0 0 0 2px #fff0b6}
+#nusaCityLifeRoot .ncl-dpad{width:184px;display:grid;grid-template-columns:repeat(3,55px);gap:7px;margin:13px auto}
+#nusaCityLifeRoot .ncl-dpad button{height:48px;background:#f4ce7d;color:#1c3750;border-radius:12px;border:0;font-weight:900;font-size:18px;touch-action:manipulation}
+#nusaCityLifeRoot .ncl-lights{display:grid;grid-template-columns:repeat(2, minmax(0,1fr));gap:13px;max-width:300px;margin:28px auto}
+#nusaCityLifeRoot .ncl-light{min-height:96px;border:2px solid var(--glow);border-radius:19px;background:#102e46;color:white;font-size:39px;transition:background .15s,box-shadow .15s,transform .15s}
+#nusaCityLifeRoot .ncl-light.lit{background:var(--glow);box-shadow:0 0 27px var(--glow);transform:scale(1.04)}
+#nusaCityLifeRoot .ncl-primary{display:block;margin:12px auto;background:#f2cc79;color:#172e41;border:0;border-radius:12px;padding:12px 20px;font-weight:900}
+#nusaCityLifeRoot .ncl-primary:disabled{opacity:.6}
+#nusaCityLifeRoot .ncl-win{text-align:center;padding:35px 8px}
+#nusaCityLifeRoot .ncl-trophy{font-size:65px}
+#nusaCityLifeRoot .ncl-win h2{color:#ffe0a3;font-size:23px}
+#nusaCityLifeRoot .ncl-win p{color:#d6e6ec;font-size:14px;line-height:1.5}
+#nusaCityLifeRoot .ncl-bonus{font-size:12px;background:#1a5049;padding:10px 12px;border-radius:10px;border:1px solid #77c8a1}
+@media(max-width:380px){#nusaCityLifeRoot .ncl-person{min-width:81px;max-width:81px}#nusaCityLifeRoot .ncl-card{padding:11px}#nusaCityLifeRoot .ncl-cell{font-size:14px}#nusaCityLifeRoot .ncl-head{padding:12px}}
+@media(prefers-reduced-motion:reduce){#nusaCityLifeRoot *,#nusaCityLifeRoot *::before,#nusaCityLifeRoot *::after{animation:none!important;transition:none!important}}
