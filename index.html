@@ -1879,10 +1879,11 @@ return {claimGoogleWelcomeBonus(googleUid){
   return {...snapshot(),message:'Kebun petak '+(lot+1)+' dipulihkan dari Firebase. '+cloudCount+' pohon online terpasang. Arsip pohon lama disimpan terpisah; saldo dan EXP tidak diubah.'};
  }
  if(body.action==='reviewDiscipline'){demand(['president','vice'].includes(role(W,W.players[uid]?.id)),'Khusus Presiden/Wakil.');const p=byId(W,body.to);demand(p,'Warga tidak ditemukan.');p.mutedUntil=0;p.bannedUntil=0;p.banned=false;p.expelled=false;p.chatWarnings=0;p.chatSanctions=[];record(W,'moderation','Presiden memulihkan akses '+p.name,W.players[uid].id);persist();return {...snapshot(),message:'Akses dipulihkan; catatan tindakan tetap tersimpan.'}}if(body.action==='activate'){const p=W.players[uid];demand(p,'Buat warga dahulu.');demand(body.role==='citizen'||ownerOK(),'Khusus pemilik kota.');for(const r of ['president','vice','mayor'])if(W[r]===p.id)W[r]=null;demand(['president','citizen'].includes(body.role),'Pilih peran.');if(body.role!=='citizen')W[body.role]=p.id;if(body.role==='president'&&!p.localGrant){p.coins+=6000;p.localGrant=true}refresh(W,Date.now());persist();return {...snapshot(),message:'Peran diubah.'}}const data=await POST({text:async()=>JSON.stringify(body)});if(data.error)throw Error(data.error);return {...data,online:[]}},backup:()=>JSON.stringify({version:1,world:W},null,2),async restore(text){const d=JSON.parse(text);demand(d.version===1&&d.world&&typeof d.world.players==='object','Bukan cadangan Kota Nusa TrebEdit.');const w=d.world;for(const k of ['news','events','projects','ledger','reports'])demand(Array.isArray(w[k]),'Cadangan tidak lengkap.');for(const p of Object.values(w.players)){demand(typeof p.name==='string'&&typeof p.id==='string'&&Number.isFinite(p.coins)&&Number.isFinite(p.xp),'Data warga rusak.');for(const k of ['memories','friends','requests','blocks'])demand(Array.isArray(p[k]),'Data warga tidak lengkap.');demand(p.skills&&p.inventory,'Data pekerjaan tidak lengkap.');}const old=W;try{W=w;persist();loadError=''}catch(e){W=old;throw e}},initialError:()=>loadError};})();
-const LAND_COUNT=240;
-const DISTRICTS=[{name:'Pusat Kota',start:0,count:24},{name:'Taman Utara',start:24,count:72},{name:'Pesisir Timur',start:96,count:72},{name:'Kebun Selatan',start:168,count:72}];
+const LAND_COUNT=288;
+const DISTRICTS=[{name:'Pusat Kota',start:0,count:24},{name:'Taman Utara',start:24,count:72},{name:'Pesisir Timur',start:96,count:72},{name:'Kebun Selatan',start:168,count:72},{name:'Pulau Harapan (Tes)',start:240,count:48}];
 function plotPosition(i){
  // IDs remain unchanged to preserve player land ownership on existing saves.
+ if(i>=240&&i<288){const n=i-240;return {x:206+(n%8)*10,z:-96+Math.floor(n/8)*15};}
  if(i<24){const col=i%4,row=Math.floor(i/4);return {x:70+col*8,z:91+row*9};}
  if(i<96){const n=i-24,col=n%12,row=Math.floor(n/12);const rows=[-146,-138.5,-131,-111,-103.5,-96];return {x:-44+col*8,z:rows[row]};}
  if(i<168){const n=i-96,col=n%6,row=Math.floor(n/6);const cols=[98,106,114,130,138,146];const rows=[-83,-75,-67,-59,-51,-43,-24,-16,-8,0,8,16];return {x:cols[col],z:rows[row]};}
@@ -2842,7 +2843,16 @@ function createWorld(canvas,places,callbacks={}){
   for(let i=0;i<6;i++)buildings.push({x:-48+(i%2)*13,z:-21+Math.floor(i/2)*22,w:8,d:8,h:4+i%3,color:['#dedcbe','#e2c39f','#d3e0d1'][i%3]});
   buildings.push({x:43,z:-25,w:9,d:13,h:15,color:'#dce3dc',roof:'#6494ac',kind:'tower',id:'apt:6'},{x:55,z:-25,w:8,d:13,h:10,color:'#e8c7a4',roof:'#a97764',kind:'tower',id:'apt:7'});
   for(let i=0;i<8;i++){const x=-52+i*15,p=projects.find(p=>p.slot===i);tile(x,-71,12,12,'#c0d1a2');if(p){const complete=Date.now()>=p.ready;buildings.push({x,z:-71,w:10,d:9,h:complete?8:3,color:complete?'#e5d7b7':'#bfa079',roof:'#6d918c',kind:'tower',id:'project:'+i});}else{tile(x,-71,10,10,'#a5c292');text('＋',x,-71,.1,14,'#73986b');}}
-  for(let i=0;i<LAND_COUNT;i++){const p=plotPosition(i),owner=citizens.find(c=>c.home===i&&!Object.values(celebritySlots).some(v=>v&&v.gameId===c.id)),w=i<24?5.2:6.7,d=i<24?4.2:6.7;
+  // Pulau Harapan: 48 kavling tambahan untuk pengujian. Tidak memindahkan
+  // koordinat 240 kavling lama, perkebunan, atau bangunan kota.
+  box(243,-58,103,111,2.4,'#b99c72',-2.4);
+  tile(243,-58,103,111,'#e5cf9d',.01);
+  tile(243,-58,99,107,'#98c47f',.08);
+  for(let row=0;row<7;row++){tile(243,-103.5+row*15,101,2.8,'#e7e4da',.12);}
+  for(let col=0;col<9;col++){tile(201+col*10,-58,2.8,108,'#e7e4da',.12);}
+  tile(191,-49,24,9,'#c1d6cc',.11);
+  tile(191,-49,24,6.2,'#889fa0',.15);
+  for(let i=0;i<LAND_COUNT;i++){const p=plotPosition(i),owner=citizens.find(c=>c.home===i&&!Object.values(celebritySlots).some(v=>v&&v.gameId===c.id))||window.NusaRumahkuTest?.previewOwner(i),w=i<24?5.2:6.7,d=i<24?4.2:6.7;
    if(owner){tile(p.x,p.z,w+.5,d+.5,'#dfd8b9');tile(p.x,p.z,w,d,'#bad29b');buildings.push({...p,w:i<24?4:5.2,d:i<24?3.2:4.8,h:4.5+Math.max(0,(owner.houseLevel||1)-9)*1.2,color:({sage:'#bad1a5',coral:'#e3ad94',blue:'#a8cbd8',sand:'#e4d0a8'})[owner.decor]||'#d6ddba',id:'plot:'+i,houseLevel:owner.houseLevel||1});}
    else {registerHit({...p,id:'plot:'+i},w,d,0);
      // An unowned parcel stays green until selected; no 200+ bright squares across town.
@@ -3188,7 +3198,7 @@ function createWorld(canvas,places,callbacks={}){
  }
  function navigate(x,z){location={x,z,yaw:0,emote:''};selected={x,z};zoom=Math.max(4.2,zoom);scale=Math.min((width-26)/3020,(height-95)/1510)*zoom;const p=P(x,z);panX=-(p.x-ox)*scale;panY=-(p.y-oy)*scale;invalidate();}
  makeScene();invalidate();
- return {syncCelebrity(slots){const incoming=slots&&typeof slots==='object'?slots:{};const val=JSON.stringify(incoming);if(val!==JSON.stringify(celebritySlots)){celebritySlots=JSON.parse(val);makeScene();invalidate();}},celebrityPosition,debugPaths:()=>({paths:walkPaths,buildings,trees}),housePreview(canvas,level){const savedG=g;g=canvas.getContext('2d');canvas.width=560;canvas.height=400;g.setTransform(1,0,0,1,0,0);g.fillStyle='#e6eddc';g.fillRect(0,0,560,400);const scale=level>16?4.4:level>10?5:6;g.setTransform(scale,0,0,scale,280-ox*scale,320-oy*scale);residence({x:0,z:0,w:5.2,d:4.8,houseLevel:level});g=savedG;},enter(){playing=true;callbacks.mode?.(true);invalidate();},navigate,position:()=>({...location}),stop(){},pause(v){paused=v;pointers.clear();start=null;invalidate();},setStick(){},emote(){},sync(online,people,myId,cityProjects=[]){people=SOCIAL.merge(people);localPlayerId=myId;const sig=JSON.stringify([myId,people.map(p=>[p.id,p.name,p.home,p.decor,p.houseLevel,p.ig,p.orchard?.lot??null,p.orchard?.occupied??0,p.orchard?.mainType??'',p.orchard?.ready??0,p.orchard?.lastHarvest??0,JSON.stringify(p.orchard?.trees||[])]),cityProjects.map(p=>[p.id,p.slot,Date.now()>=p.ready])]);if(sig!==signature){signature=sig;citizens=JSON.parse(JSON.stringify(people));projects=cityProjects;makeScene();invalidate();}},home(){zoom=1.4;panX=panY=0;selected=null;callbacks.mode?.(true);invalidate();},photo(v){photo=v;invalidate();},zoom(d){changeZoom(d<0?1.25:.8);},weather(v){weather=v;makeScene();invalidate();},quality(v){quality=v;invalidate();},respawn(){location={x:-22,z:22,yaw:0,emote:''};selected=null;invalidate();},plotPosition,focusOrchards,focusCity(){zoom=2.1;panX=panY=0;selected=null;invalidate();}};
+ return {reloadScene(){makeScene();invalidate();},syncCelebrity(slots){const incoming=slots&&typeof slots==='object'?slots:{};const val=JSON.stringify(incoming);if(val!==JSON.stringify(celebritySlots)){celebritySlots=JSON.parse(val);makeScene();invalidate();}},celebrityPosition,debugPaths:()=>({paths:walkPaths,buildings,trees}),housePreview(canvas,level){const savedG=g;g=canvas.getContext('2d');canvas.width=560;canvas.height=400;g.setTransform(1,0,0,1,0,0);g.fillStyle='#e6eddc';g.fillRect(0,0,560,400);const scale=level>16?4.4:level>10?5:6;g.setTransform(scale,0,0,scale,280-ox*scale,320-oy*scale);residence({x:0,z:0,w:5.2,d:4.8,houseLevel:level});g=savedG;},enter(){playing=true;callbacks.mode?.(true);invalidate();},navigate,position:()=>({...location}),stop(){},pause(v){paused=v;pointers.clear();start=null;invalidate();},setStick(){},emote(){},sync(online,people,myId,cityProjects=[]){people=SOCIAL.merge(people);localPlayerId=myId;const sig=JSON.stringify([myId,people.map(p=>[p.id,p.name,p.home,p.decor,p.houseLevel,p.ig,p.orchard?.lot??null,p.orchard?.occupied??0,p.orchard?.mainType??'',p.orchard?.ready??0,p.orchard?.lastHarvest??0,JSON.stringify(p.orchard?.trees||[])]),cityProjects.map(p=>[p.id,p.slot,Date.now()>=p.ready])]);if(sig!==signature){signature=sig;citizens=JSON.parse(JSON.stringify(people));projects=cityProjects;makeScene();invalidate();}},home(){zoom=1.4;panX=panY=0;selected=null;callbacks.mode?.(true);invalidate();},photo(v){photo=v;invalidate();},zoom(d){changeZoom(d<0?1.25:.8);},weather(v){weather=v;makeScene();invalidate();},quality(v){quality=v;invalidate();},respawn(){location={x:-22,z:22,yaw:0,emote:''};selected=null;invalidate();},plotPosition,focusOrchards,focusCity(){zoom=2.1;panX=panY=0;selected=null;invalidate();}};
 }
 
 const paths={arrow:'M5 12h14m-6-6 6 6-6 6',close:'m6 6 12 12M6 18 18 6',home:'m3 10 9-7 9 7v10H3Z M9 20v-7h6v7',map:'m3 5 6-2 6 3 6-2v15l-6 2-6-3-6 2Z M9 3v15M15 6v15',work:'M4 7h16v13H4Z M8 7V4h8v3M4 12h16M10 12v3h4v-3',people:'M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M2 21v-2a6 6 0 0 1 12 0v2 M16 5a3 3 0 0 1 0 6M17 15a5 5 0 0 1 5 5',chat:'M3 4h18v13H9l-6 4Z M7 8h10M7 12h6',hall:'m2 8 10-5 10 5Z M4 10v9M9 10v9M15 10v9M20 10v9M2 21h20',wallet:'M3 6h18v14H3Z M3 6V4h15v2M16 11h5v5h-5ZM18 13h1',sun:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M12 2v2M12 20v2M2 12h2M20 12h2m-3-8-1 1M5 19l-1 1M4 4l1 1m14 14 1 1',moon:'M20 15A8 8 0 0 1 9 4a8 8 0 1 0 11 11Z',rain:'M5 15a5 5 0 1 1 2-9 6 6 0 0 1 11 1 4 4 0 0 1 0 8M8 17l-1 3m5-3-1 3m5-3-1 3',volume:'M3 9h4l5-4v14l-5-4H3Z M16 8a6 6 0 0 1 0 8M19 5a10 10 0 0 1 0 14',mute:'M3 9h4l5-4v14l-5-4H3Z m13 0 5 6m0-6-5 6',fullscreen:'M3 9V3h6m6 0h6v6M3 15v6h6m6 0h6v-6',plus:'M12 5v14M5 12h14',minus:'M5 12h14',compass:'m16 8-3 6-5 2 2-5Z M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20',food:'M4 3v6c0 3 6 3 6 0V3M7 3v18M19 3c-5 4-5 9 0 9v9V3',drop:'M12 2s-7 8-7 13a7 7 0 0 0 14 0c0-5-7-13-7-13Z',heart:'M12 21 3 12a5 5 0 0 1 9-7 5 5 0 0 1 9 7Z',book:'M3 3h8l1 2 1-2h8v17h-8l-1 1-1-1H3Z M12 5v16',cup:'M4 8h13v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4Z M17 9h2a3 3 0 0 1 0 6h-2M7 3v2m4-2v2m4-2v2',scissors:'M5 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6M19 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6M7 16 19 3M17 16 5 3',music:'M9 18V5l11-2v13M9 9l11-2M5 16a3 3 0 1 0 0 6 3 3 0 0 0 0-6M16 14a3 3 0 1 0 0 6 3 3 0 0 0 0-6',camera:'M3 7h4l2-3h6l2 3h4v14H3Z M12 10a4 4 0 1 0 0 8 4 4 0 0 0 0-8',leaf:'M20 3C4 1 1 15 9 19c8 5 13-5 11-16ZM5 22 16 9',bread:'M5 10C-1 3 7 1 12 4c5-3 13-1 7 6v11H5ZM9 10v5m6-5v5',paw:'M12 12c-5 0-9 7-5 9 2 1 3-1 5-1s3 2 5 1c4-2 0-9-5-9ZM5 4a2 3 0 1 0 0 6 2 3 0 0 0 0-6M11 2a2 3 0 1 0 0 6 2 3 0 0 0 0-6M18 4a2 3 0 1 0 0 6 2 3 0 0 0 0-6',wrench:'M21 3l-5 3-3-3 3-2a6 6 0 0 0-7 8L2 17l5 5 8-9a6 6 0 0 0 6-10Z',package:'m3 6 9-4 9 4v13l-9 4-9-4Z M3 6l9 5 9-5M12 11v12M7 4l10 5v5',bus:'M5 3h14v16H5Z M5 11h14M9 3v8M8 19v3m8-3v3M8 15h1m6 0h1',hammer:'m12 3 9 6-4 5-4-3L6 22l-4-3 8-10-2-2Z',fish:'M3 12C8 3 16 4 19 9l4-4v14l-4-4C16 20 8 21 3 12Z M8 10h.1',tower:'M10 3h4l5 19H5ZM8 10h8M6 17h12M10 3l6 14M14 3 8 17',bolt:'m13 2-9 12h7l-1 8 10-13h-8Z',pick:'M3 8c8-9 13-6 19 1L13 7l-2 4ZM12 8 5 22',anchor:'M12 8v14M5 12h14M3 16c0 8 18 8 18 0M3 16v4m18-4v4M12 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6',flame:'M13 2c1 7-8 6-7 13-5-3-4 8 6 8s13-9 7-14c1 7-5 4-4 0 0-2-1-5-2-7Z',mountain:'m2 21 8-16 4 8 3-5 6 13Z M7 11l3 2 3-2',shield:'m12 2 9 4v7c0 5-9 9-9 9S3 18 3 13V6Z m-5 10 4 4 6-7',bell:'M5 16V9a7 7 0 0 1 14 0v7l2 3H3ZM9 22h6',settings:'m9 3 6 0 1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1ZM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8',check:'m5 12 4 4L20 5',gift:'M3 8h18v5H3ZM5 13h14v9H5ZM12 8v14M12 8C0 8 5-4 12 8c7-12 12 0 0 0Z',send:'m2 3 20 9-20 9 4-9Z M6 12h16',person:'M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8M4 22v-3a8 8 0 0 1 16 0v3',plane:'m2 12 8-2V4c0-3 4-3 4 0v6l8 2v3l-8-1v5l3 2v1l-5-1-5 1v-1l3-2v-5l-8 1Z',lock:'M5 10h14v12H5ZM8 10V6a4 4 0 0 1 8 0v4M12 15v3',clock:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20M12 6v6l4 3',play:'m8 4 12 8-12 8Z',logout:'M10 3H3v18h7M8 12h13m-4-4 4 4-4 4'};
@@ -3293,13 +3303,13 @@ function showHomeManage(){if(window.NusaCelebrity?.hasLocalHome?.()){window.Nusa
 function showHouseLevels(chosen=1){const p=state.me,own=p.home===null?0:(p.houseLevel||1),l=HOUSE_LEVELS[chosen-1];panel('20 tahap rumah',`<canvas id="levelPortrait" style="width:100%;height:190px;object-fit:contain;border-radius:14px"></canvas><h3>${l.name}</h3><p class="intro">Tingkat ${chosen}. ${chosen===1?'Termasuk pembelian tanah.':'Biaya dari tingkat sebelumnya: '+fmt(l.cost)+' koin.'}<br>Harus naik satu tingkat setiap pembelian. Koin didapat dari bekerja; rumah tidak menghasilkan koin pasif.</p><div class="cards">${HOUSE_LEVELS.map(v=>`<button class="btn" data-house-stage="${v.level}" style="text-align:left">${v.level}. ${esc(v.name)}<br><small>${v.level===1?'Termasuk tanah':fmt(v.cost)+' koin'} · ${v.level<=own?'Tercapai':'Terkunci'}</small></button>`).join('')}</div><button class="btn primary wide" id="backHouse" style="margin-top:12px">Kembali ke rumah</button>`,{sub:'DARI GUBUK HINGGA ISTANA'});world.housePreview($('#levelPortrait'),chosen);$$('[data-house-stage]').forEach(b=>b.onclick=()=>showHouseLevels(Number(b.dataset.houseStage)));$('#backHouse').onclick=showHome;}
 
 function showLand(district=0,page=0){
- const p=state.me,d=DISTRICTS[district]||DISTRICTS[0],pages=Math.ceil(d.count/24);page=Math.max(0,Math.min(pages-1,page));
- const free=LAND_COUNT-state.citizens.filter(c=>c.home!==null).length;
- panel('Pilih lingkungan rumahmu',`<p class="intro">240 petak di empat kawasan. Rumah lama tetap milik pemiliknya; lahan baru mulai 420 koin termasuk rumah tingkat 1.</p><div class="row spread"><span class="tag">${free} petak tersedia</span><span class="tag">Satu rumah per warga</span></div><div class="chips" style="margin-top:16px">${DISTRICTS.map((x,i)=>`<button class="chip ${i===district?'active':''}" data-district="${i}">${x.name} · ${x.count}</button>`).join('')}</div><div class="row spread land-pagination"><button class="btn small" id="landPrev" ${page===0?'disabled':''}>← Sebelumnya</button><span>${page+1} / ${pages}</span><button class="btn small" id="landNext" ${page===pages-1?'disabled':''}>Berikutnya →</button></div><div class="cards">${Array.from({length:Math.min(24,d.count-page*24)},(_,n)=>{const i=d.start+page*24+n,owner=state.citizens.find(c=>c.home===i);return `<article class="card"><div class="job-art" style="background:${owner?'#b5c5aa':'#b9d2a1'}">${icon('home')}</div><h3>Petak ${String(i+1).padStart(3,'0')}</h3><p>${owner?'Milik '+esc(owner.name):d.name}</p><div class="card-meta"><strong>${owner?'Terisi':plotPrice(i)+' koin'}</strong><span class="tag">${owner?'Milik warga':'Tersedia'}</span></div><button class="btn small wide" data-view-plot="${i}">Lihat lokasi</button><button class="btn wide" data-plot="${i}" ${owner||p.home!==null?'disabled':''}>${owner?'Ditempati':p.home!==null?'Sudah punya rumah':'Beli tanah & rumah Lv.1'}</button></article>`;}).join('')}</div>`,{sub:d.name.toUpperCase()});
+ const p=window.NusaRumahkuTest?.viewPlayer(state.me)||state.me,d=DISTRICTS[district]||DISTRICTS[0],pages=Math.ceil(d.count/24);page=Math.max(0,Math.min(pages-1,page));
+ const free=LAND_COUNT-new Set(state.citizens.filter(c=>Number.isInteger(c.home)).map(c=>c.home).concat(window.NusaRumahkuTest?.ownedPlot()??[])).size;
+ panel('Pilih lingkungan rumahmu',`<p class="intro">288 petak di lima kawasan (48 kavling baru di Pulau Harapan). Rumah warga lama tidak dipindah. Dalam situs tes, pembelian rumah hanya simulasi lokal dengan koin ∞; saldo Firebase asli tidak berubah.</p><div class="row spread"><span class="tag">${free} petak tersedia</span><span class="tag">Satu rumah per warga</span></div><div class="chips" style="margin-top:16px">${DISTRICTS.map((x,i)=>`<button class="chip ${i===district?'active':''}" data-district="${i}">${x.name} · ${x.count}</button>`).join('')}</div><div class="row spread land-pagination"><button class="btn small" id="landPrev" ${page===0?'disabled':''}>← Sebelumnya</button><span>${page+1} / ${pages}</span><button class="btn small" id="landNext" ${page===pages-1?'disabled':''}>Berikutnya →</button></div><div class="cards">${Array.from({length:Math.min(24,d.count-page*24)},(_,n)=>{const i=d.start+page*24+n,owner=state.citizens.find(c=>c.home===i)||window.NusaRumahkuTest?.previewOwner(i);return `<article class="card"><div class="job-art" style="background:${owner?'#b5c5aa':'#b9d2a1'}">${icon('home')}</div><h3>Petak ${String(i+1).padStart(3,'0')}</h3><p>${owner?'Milik '+esc(owner.name):d.name}</p><div class="card-meta"><strong>${owner?'Terisi':window.NusaRumahkuTest?.enabled?'∞ koin demo':plotPrice(i)+' koin'}</strong><span class="tag">${owner?'Milik warga':'Tersedia'}</span></div><button class="btn small wide" data-view-plot="${i}">Lihat lokasi</button><button class="btn wide" data-plot="${i}" ${owner||p.home!==null?'disabled':''}>${owner?'Ditempati':p.home!==null?'Sudah punya rumah':window.NusaRumahkuTest?.enabled?'Coba beli rumah · GRATIS':'Beli tanah & rumah Lv.1'}</button></article>`;}).join('')}</div>`,{sub:d.name.toUpperCase()});
  $$('[data-district]').forEach(b=>b.onclick=()=>showLand(Number(b.dataset.district)));
  $('#landPrev').onclick=()=>showLand(district,page-1);$('#landNext').onclick=()=>showLand(district,page+1);
  $$('[data-view-plot]').forEach(b=>b.onclick=()=>{const pos=world.plotPosition(Number(b.dataset.viewPlot));closePanel();world.navigate(pos.x,pos.z);});
- $$('[data-plot]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.plot),cost=plotPrice(i);confirmBox('Beli petak '+(i+1)+'?',`Harga tanah dan rumah: <b>${cost} koin</b>.<br>Lokasi: ${districtFor(i).name}.<br>Sisa saldo: ${fmt(state.me.coins-state.me.held-cost)} koin.`,async()=>{await SOCIAL.claimPlot(i);await act('buyLand',{plot:i});closePanel();const pos=world.plotPosition(i);world.navigate(pos.x,pos.z);},'Beli rumah');});
+ $$('[data-plot]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.plot),cost=plotPrice(i);if(window.NusaRumahkuTest?.enabled){window.NusaRumahkuTest.buy(i);return;}confirmBox('Beli petak '+(i+1)+'?',`Harga tanah dan rumah: <b>${cost} koin</b>.<br>Lokasi: ${districtFor(i).name}.<br>Sisa saldo: ${fmt(state.me.coins-state.me.held-cost)} koin.`,async()=>{await SOCIAL.claimPlot(i);await act('buyLand',{plot:i});closePanel();const pos=world.plotPosition(i);world.navigate(pos.x,pos.z);},'Beli rumah');});
 }
 function showWallet(){const p=state.me;panel('Dompet warga',`<div class="eyebrow">SALDO TERSEDIA</div><div class="balance-number">${fmt(p.coins-p.held)} <small style="font:15px system-ui;color:#8c997f">koin</small></div><p class="intro">${p.held?fmt(p.held)+' koin ditahan untuk pembangunan.':'Uang permainan. Tidak dapat diuangkan atau ditukar menjadi saldo DANA.'} Koin transfer ONLINE yang sudah diterima akan diklaim sekali lalu masuk ke saldo belanja utama. Hubungkan Google dan karakter yang sama; klaim memerlukan koneksi Firebase.</p><div class="notice">💡 Transfer memakai voucher koin ONLINE. Voucher yang <b>berhasil diklaim</b> akan ditukar menjadi koin belanja game dan tidak bisa ditransfer online lagi. Periksa status klaim di Dompet Transfer.</div><button class="btn wide" id="cloudWalletOpen">${icon('wallet')} Kirim / Terima Koin Antar-HP</button><h3 class="section-title">${icon('send')} Transfer lokal dalam HP</h3><label class="field"><span>Penerima</span><select id="transferTo"><option value="">Pilih warga</option>${state.citizens.filter(x=>x.id!==p.id&&!x.remote).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label><label class="field"><span>Jumlah koin</span><input class="input" id="transferAmount" type="number" inputmode="numeric" min="1" placeholder="Contoh: 50"></label><button class="btn primary wide" id="transferBtn">Periksa transfer ${icon('arrow')}</button><h3 class="section-title">Riwayat transaksi</h3>${state.ledger.filter(x=>x.actor===p.id).map(x=>`<div class="ledger-row"><div>${esc(x.text)}<span>${niceDate(x.time)}</span></div><strong class="${x.amount<0?'negative':''}">${x.amount>0?'+':''}${fmt(x.amount)}</strong></div>`).join('')||'<div class="empty">Belum ada transaksi.</div>'}`,{sub:'SEMUA TRANSAKSI TERCATAT',narrow:true});$('#cloudWalletOpen').onclick=()=>window.NusaCloudCoins?window.NusaCloudCoins.open('wallet'):toast('Modul koin online belum siap.',true);$('#transferBtn').onclick=()=>{const to=$('#transferTo').value,n=Number($('#transferAmount').value),target=state.citizens.find(p=>p.id===to);if(!target||!Number.isInteger(n)||n<=0)return toast('Pilih penerima dan jumlah koin yang valid.',true);confirmBox('Kirim koin?',`Penerima: <b>${esc(target.name)}</b><br>Jumlah: <b>${fmt(n)} koin</b><br>Sisa saldo tersedia: ${fmt(state.me.coins-state.me.held-n)} koin.`,async()=>{await act('transfer',{to,amount:n});showWallet();},'Kirim sekarang');};}
 function showCitizens(friendsOnly=false){const p=state.me;panel('Tetangga & teman',`<div class="chips"><button class="chip ${!friendsOnly?'active':''}" id="allCitizens">Semua warga · ${state.citizens.length}</button><button class="chip ${friendsOnly?'active':''}" id="friendCitizens">Teman · ${p.friends.length}</button></div>${p.requests.length?'<div class="notice">Ada '+p.requests.length+' permintaan pertemanan. Pilih Terima pada kartu warga.</div>':''}${state.citizens.filter(x=>!friendsOnly||p.friends.includes(x.id)).map(c=>`<div class="citizen-card"><div class="citizen-avatar" style="background:${c.color}">${esc(c.name[0])}</div><div class="grow"><h3>${esc(c.name)}${badge(c.role)}</h3><p>${state.online.some(x=>x.id===c.id)?'● Online':'Offline'} · ${c.jobs} tugas · Kehidupan ${c.life}</p></div>${c.id!==p.id?`<button class="btn small" data-citizen="${c.id}">Lihat</button>`:'<span class="tag">Kamu</span>'}</div>`).join('')||'<div class="empty">Belum ada teman. Kenalan dengan warga di kota.</div>'}`,{sub:'KOMUNITAS NUSA'});$('#allCitizens').onclick=()=>showCitizens(false);$('#friendCitizens').onclick=()=>showCitizens(true);$$('[data-citizen]').forEach(b=>b.onclick=()=>showCitizen(b.dataset.citizen));}
@@ -7310,7 +7320,81 @@ document.addEventListener('click',e=>{if(e.target.closest?.('#nusaV253Garden,#nu
 window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
 })();
 </script><script src="city-life.js?v=1" defer></script>
-<script>window.NusaHomeBridge={player:()=>state.me,citizens:()=>state.citizens||[],identity:p=>ktpData(p,p.id===state.me?.id),manage:showHomeManage,land:showLand,decorate:color=>act('decorate',{decor:color},true),toast};</script><script src="rumahku.js?v=1"></script>
+<script>
+/* Pulau Harapan: simulasi kepemilikan dan koin TANPA menulis Firebase.
+   Hanya aktif di domain pratinjau; tidak memberikan koin sungguhan. */
+(function(){
+ "use strict";
+ const enabled=location.hostname==="kota-nusa-tes-rumahku.netlify.app";
+ const PREFIX="nusa-rumahku-tes-v1:";
+ function my(){return typeof state!=="undefined"?state.me:null;}
+ function key(){return PREFIX+String(my()?.id||"tamu");}
+ function saved(){
+  if(!enabled||!my()?.id)return null;
+  try{const a=JSON.parse(localStorage.getItem(key())||"null");
+    if(!a||!Number.isInteger(a.plot)||a.plot<0||a.plot>=288||a.ver!==1)return null;
+    return a;
+  }catch{return null;}
+ }
+ function viewPlayer(p){
+  if(!p||!enabled||p.home!=null)return p;
+  const r=saved();return r?{...p,home:r.plot,houseLevel:r.level||1,decor:r.decor||p.decor||"sage"}:p;
+ }
+ function previewOwner(i) {
+  if(!enabled)return null;const p=my(),r=saved();
+  if(!p||!r||r.plot!==i||p.home!=null)return null;
+  return {...p,home:i,houseLevel:r.level||1,decor:r.decor||p.decor||"sage"};
+ }
+ function ownedPlot(){const r=saved();return r?[r.plot]:[];}
+ function refresh(){
+  // Angka demo tidak menyentuh p.coins atau dompet transaksi asli.
+  if(!enabled)return;
+  const badge=document.getElementById("coins");
+  if(badge){
+    if(badge.textContent!=="∞")badge.textContent="∞";
+    const label=badge.nextElementSibling;
+    if(label && label.textContent!=="Koin TES rumah")label.textContent="Koin TES rumah";
+  }
+ }
+ function buy(i){
+  if(!enabled)return;
+  const p=my();
+  if(!p)return toast("Masuk ke Kota Nusa dahulu.",true);
+  if(p.home!=null)return toast("Akun ini sudah mempunyai tanah asli.",true);
+  if(saved())return toast("Kamu sudah membeli satu rumah tes.",true);
+  if(!Number.isInteger(i)||i<0||i>=288)return toast("Nomor petak tidak valid.",true);
+  if(state.citizens.some(c=>c.home===i))return toast("Petak sudah ditempati warga lain.",true);
+  if(!window.confirm("Beli Petak "+(i+1)+" memakai ∞ koin DEMO?\nTidak memotong saldo dan tidak memberi tanah asli di Firebase."))return;
+  try{localStorage.setItem(key(),JSON.stringify({ver:1,plot:i,level:1,decor:p.decor||"sage"}));}
+  catch(e){return toast("Penyimpanan demo gagal: "+e.message,true);}
+  toast("Rumah percobaan di Petak "+(i+1)+" berhasil dibuat! (Simulasi)");
+  world?.reloadScene?.();
+  const where=world?.plotPosition?.(i);
+  if(where)world.navigate(where.x,where.z);
+  closePanel();
+  window.NusaRumahku?.open();
+ }
+ function upgrade(){
+  if(!enabled||!saved())return;
+  const old=saved();
+  const level=old.level||1;
+  if(level>=20)return toast("Rumah demo sudah tingkat 20.");
+  if(!window.confirm("Naikkan rumah DEMO dari tingkat "+level+" ke "+(level+1)+" tanpa biaya asli?"))return;
+  const next={...old,level:level+1};
+  try{localStorage.setItem(key(),JSON.stringify(next));}catch(e){return toast("Gagal menyimpan demo.",true);}
+  world?.reloadScene?.();
+  window.NusaRumahku?.open();
+  toast("Tingkat rumah DEMO menjadi "+next.level);
+ }
+ window.NusaRumahkuTest={enabled,viewPlayer,previewOwner,ownedPlot,hasDemo:()=>!!saved(),buy,upgrade};
+ if(enabled) {
+  setInterval(refresh,1000);
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",refresh,{once:true});
+  else refresh();
+ }
+})();
+</script>
+<script>window.NusaHomeBridge={player:()=>window.NusaRumahkuTest?.viewPlayer(state.me)||state.me,citizens:()=>state.citizens||[],identity:p=>ktpData(p,p.id===state.me?.id),manage:()=>window.NusaRumahkuTest?.hasDemo()?window.NusaRumahkuTest.upgrade():showHomeManage(),land:showLand,decorate:color=>act('decorate',{decor:color},true),toast};</script><script src="rumahku.js?v=1"></script>
 
 <!-- Rumahku Tahap 1: hanya render halaman (tanpa mengubah fitur lain) -->
 <style id="rh-visual-tahap1">#rumahkuRoot .rh-scene>canvas.rh-stage1-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}#rumahkuRoot .rh-scene .rh-paint{display:none}</style>
@@ -7553,6 +7637,16 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
       tile(g,u,v,1,1,night?(hash<3?"#58985d":"#619e62"):(hash<3?"#87d861":hash<5?"#80ce58":"#91db65"));
     }
     g.restore();
+    if(scene.closest(".rh-shell")?.querySelector(".rh-meta")?.textContent.includes("Belum punya rumah pribadi")){
+      // Belum membeli tanah: tidak ada rumah, avatar, atau kebun milik pribadi.
+      var sign=iso(-.4,.8);
+      polygon(g,[xy(sign.x-55,sign.y-19),xy(sign.x+56,sign.y-19),
+                 xy(sign.x+56,sign.y+12),xy(sign.x-55,sign.y+12)],"#d8b581","#7f6246",2);
+      line(g,xy(sign.x,sign.y+12),xy(sign.x,sign.y+36),7,"#876544");
+      g.font="bold 15px system-ui,sans-serif";g.textAlign="center";
+      g.fillStyle="#375348";g.fillText("BELUM ADA RUMAH",sign.x,sign.y+2);
+      return;
+    }
     // Batas pagar tanaman bulat, bukan balok kubus.
     var hedge=["#297943","#358b45","#459f4b"];
     for(var t=-5.3;t<=5.3;t+=.62) {
@@ -7867,6 +7961,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     if(!scene)return;
     var visual=scene.querySelector(".rh-stage1-canvas");
     if(!visual)return;
+    if(root.querySelector(".rh-meta")?.textContent.includes("Belum punya rumah pribadi"))return;
     var existing=scene.querySelector(".rh-stage2-canvas");
     if(existing){groundCanvas=existing;return;}
     var overlay=document.createElement("canvas");
