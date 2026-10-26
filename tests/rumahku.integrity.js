@@ -12,6 +12,11 @@ for (const [i, match] of classicScripts.entries()) {
   if (!match[1].trim()) continue;
   new vm.Script(match[1], { filename: `index.inline.${i + 1}.js` });
 }
+const moduleScripts = [...html.matchAll(/<script[^>]*type=["']module["'][^>]*>([\s\S]*?)<\/script>/gi)];
+for (const [i, match] of moduleScripts.entries()) {
+  const withoutImports = match[1].replace(/^import\s+[^;]+;\s*$/gm, '');
+  new vm.Script(`(async()=>{${withoutImports}\n})()`, { filename: `index.module.${i + 1}.js` });
+}
 
 const priceMatch = html.match(/const PRIVATE_HOUSE_STEPS=(\[[^;]+\]);/);
 assert.ok(priceMatch, 'Katalog Rumahku harus tersedia');
@@ -36,6 +41,13 @@ assert.match(html, /bot-dimas-test-v1/);
 assert.match(html, /visitBot\.personalHouseLevel=4/);
 assert.match(html, /isOnline:id=>\(state\.online\|\|\[\]\)\.some/);
 assert.match(html, /window\.NusaRumahku\?\.displayed\?\.\(\)/);
+assert.match(html, /const TEST_HOST=location\.hostname===['"]kota-nusa-tes-rumahku\.netlify\.app/);
+assert.match(html, /const CACHE=['"]nusaCelebrityEstateCacheV1['"]/);
+assert.match(html, /const mapSlots=\(\)=>/);
+assert.match(html, /MODE TES: seluruh vila dapat dipreview/);
+assert.match(html, /localStorage\.setItem\(CACHE,JSON\.stringify\(slots\)\)/);
+assert.doesNotMatch(html, /function stopEstate\(\)[^}]*slots=\{\}/);
+assert.match(html, /Mansion premium bertingkat/);
 assert.match(html, /action===['"]grantTestCoins['"]/);
 assert.match(html, /target=1000000000/);
 assert.match(html, /Saldo percobaan hanya tersedia di situs Netlify tes/);
@@ -60,6 +72,7 @@ assert.match(html, /function skyLife[\s\S]*if\(m!==['"]night['"]&&m!==['"]rain['
 
 console.log(JSON.stringify({
   classicScriptsChecked: classicScripts.length,
+  moduleScriptsChecked: moduleScripts.length,
   houseLevels: levels.length,
   distinctHouseGeometries: new Set(styles.map(v => `${v.w}/${v.d}/${v.h}/${v.roof}`)).size,
   privateGardenStages: 3,
