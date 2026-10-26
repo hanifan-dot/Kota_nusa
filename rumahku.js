@@ -16,20 +16,45 @@ function close(){closeSheet();root?.remove();root=null;person=null;document.remo
 function keys(e){if(e.key==='Escape'){e.preventDefault();sheet?closeSheet():close()}if(e.key==='Tab'){const scope=sheet||root;if(!scope)return;const a=[...scope.querySelectorAll('button:not(:disabled),input,select')].filter(x=>x.getClientRects().length);if(!a.length)return;const first=a[0],last=a[a.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}}
 function open(target){if(!me())return;previous=document.activeElement;close();person=target||me();root=document.createElement('section');root.id='rumahkuRoot';root.role='dialog';root.setAttribute('aria-modal','true');root.setAttribute('aria-label','Rumahku');document.body.append(root);document.addEventListener('keydown',keys);render();root.querySelector('.rh-back').focus()}
 function render(){if(!root)return;const p=current(),own=mine(),vip=celebrity(p),has=houseLevel(p)>0||vip;const name=B().identity(p).name;root.innerHTML=`<div class="rh-shell"><header class="rh-head"><button class="rh-back" aria-label="${own?'Kembali ke kota':'Kembali ke rumahku'}">‹</button><div class="rh-title"><h1>${own?'Rumahku':'Bertamu'}</h1><small>Rumah ${esc(name)}</small></div><button class="rh-share" aria-label="Bagikan Kota Nusa">↥</button></header><div class="rh-meta">${vip?'✦ Rumah Selebritis · Mansion Premium':has?'Rumah pribadi · Level '+houseLevel(p)+' / 10':'Belum punya rumah pribadi'}</div><div class="rh-scene" data-house-level="${houseLevel(p)}" data-house-celebrity="${vip?'true':'false'}" data-house-decor="${esc(p.decor||'sage')}"><img src="assets/rumahku-reference.png" alt="Ilustrasi halaman rumah low-poly, pagar hijau, pohon dan kebun empat petak" width="864" height="1536" draggable="false"><div class="rh-paint" style="background:${({coral:'#e3ad94',blue:'#a8cbd8',sand:'#e4d0a8'})[p.decor]||'transparent'}"></div>${own?'<button class="rh-hotspot" data-rh="garden" aria-label="Buka empat petak kebun">Kebun</button>':''}</div><footer class="rh-deck"><nav class="rh-dock" aria-label="Menu rumah">${['Kebun','Hias','Upgrade','Kunjungi'].map((n,i)=>`<button data-rh="${['garden','decor','upgrade','visit'][i]}" ${!own&&i<3?'disabled':''}><i><svg viewBox="0 0 32 32" aria-hidden="true">${icons[i]}</svg></i><span>${n}</span></button>`).join('')}</nav></footer></div>`;
-// Info level bisa dibuka dalam layar Rumahku tanpa berpindah ke peta.
-const holder=document.createElement('section');
-holder.className='rh-progression';
-holder.style.cssText='color:#254534;background:#e9f2e7;border:1px solid #bdd3bc;border-radius:16px;margin:6px 18px 4px;padding:12px;font-size:13px';
-const ownLevel=houseLevel(p),next=levels()[ownLevel],level=levels()[Math.max(0,ownLevel-1)];
-holder.innerHTML=vip?'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><b>✦ Rumah Selebritis</b><span>PREMIUM</span></div><p style="margin:5px 0;color:#4c6856">Mansion putih–hitam tiga lantai, balkon, kolam renang dan air mancur di depan, serta kebun pribadi di halaman belakang. Hak rumah aktif setelah disetujui Presiden.</p>':
-'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><b>'+(ownLevel?'🏡 Level '+ownLevel+' · '+esc(level?.name||'Rumah'):'🏡 Belum memiliki rumah')+'</b><span>'+(ownLevel>=10?'MAX':ownLevel?'Lv.'+(ownLevel+1):'Mulai dari 500 koin')+'</span></div>'+
- '<p style="margin:5px 0;color:#4c6856">'+esc(ownLevel?(level?.desc||'Rumah pribadi'):'Beli rumah Level 1 tanpa perlu lahan atau kavling di peta.')+'</p>'+
- (own?'<button type="button" data-rh="upgrade" '+(ownLevel>=10?'disabled':'')+' style="border:0;padding:9px 12px;background:#1d6047;color:#fff;border-radius:10px;width:100%;font-weight:700;margin:5px 0;cursor:pointer">'+(ownLevel===0?'Beli rumah Level 1 · 500 koin':next?'Upgrade sekarang → '+esc(next.name)+' · '+money(next.price)+' koin':'✓ Rumah sudah Level 10')+'</button>':'')+
- '<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:700">Lihat nama, deskripsi & harga Level 1–10</summary><div style="max-height:195px;overflow:auto;margin-top:7px">'+
- levels().map(v=>'<div style="padding:9px 2px;border-bottom:1px solid #c9ddca"><b>Lv.'+v.level+' · '+esc(v.name)+'</b><span style="float:right;font-weight:700">'+money(v.price)+' koin</span><div style="font-size:12px;clear:both;color:#456453">'+esc(v.desc)+'</div></div>').join('')+
- '</div></details>';
-root.querySelector('.rh-deck')?.before(holder);
-root.querySelector('.rh-back').onclick=()=>own?close():window.NusaRumahku.open();root.querySelector('.rh-share').onclick=async()=>{try{await navigator.share({title:'Kota Nusa',text:'Kunjungi rumah '+name+' di Kota Nusa!',url:location.href.split('#')[0]})}catch(e){if(e.name==='AbortError')return;try{await navigator.clipboard.writeText(location.href.split('#')[0]);B().toast('Tautan Kota Nusa disalin.')}catch{B().toast('Bagikan alamat game dari browser.')}}};root.querySelectorAll('[data-rh]').forEach(b=>b.onclick=()=>({garden,decor,upgrade,visit}[b.dataset.rh])());}
+
+root.querySelector('.rh-back').onclick=()=>own?close():window.NusaRumahku.open();root.querySelector('.rh-share').onclick=async()=>{try{await navigator.share({title:'Kota Nusa',text:'Kunjungi rumah '+name+' di Kota Nusa!',url:location.href.split('#')[0]})}catch(e){if(e.name==='AbortError')return;try{await navigator.clipboard.writeText(location.href.split('#')[0]);B().toast('Tautan Kota Nusa disalin.')}catch{B().toast('Bagikan alamat game dari browser.')}}};root.querySelectorAll('[data-rh]').forEach(b=>b.onclick=()=>({garden,decor,upgrade,visit}[b.dataset.rh])());enableHorizontalPan();}
+
+/* Kamera geser kanan/kiri di halaman Rumahku. Tidak mengubah dunia, level, saldo,
+   hak Premium, atau logika ketukan untuk berjalan. */
+let housePan=0;
+function enableHorizontalPan(){
+ const scene=root?.querySelector('.rh-scene');
+ if(!scene||scene.dataset.panReady==='1')return;
+ scene.dataset.panReady='1';
+ scene.setAttribute('aria-label','Halaman rumah. Geser ke kanan atau kiri untuk melihat sisi halaman; ketuk tanah untuk berjalan.');
+ const apply=()=>{
+  const cv=scene.querySelector('.rh-stage2-canvas')||scene.querySelector('.rh-stage1-canvas');
+  if(!cv)return;
+  const extra=Math.max(0,(cv.getBoundingClientRect().width-scene.clientWidth)/2);
+  housePan=Math.max(-extra,Math.min(extra,housePan));
+  scene.style.setProperty('--rh-pan-x',housePan+'px');
+ };
+ let drag=null;
+ scene.addEventListener('pointerdown',e=>{
+  if(!e.isPrimary||e.target.closest('button'))return;
+  drag={id:e.pointerId,x:e.clientX,y:e.clientY,start:housePan,active:false};
+ },{passive:true});
+ scene.addEventListener('pointermove',e=>{
+  if(!drag||e.pointerId!==drag.id)return;
+  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+  if(!drag.active && Math.abs(dx)>10 && Math.abs(dx)>Math.abs(dy)*1.2)drag.active=true;
+  if(!drag.active)return;
+  const cv=scene.querySelector('.rh-stage2-canvas')||scene.querySelector('.rh-stage1-canvas');
+  const extra=cv?Math.max(0,(cv.getBoundingClientRect().width-scene.clientWidth)/2):0;
+  housePan=Math.max(-extra,Math.min(extra,drag.start+dx));
+  scene.style.setProperty('--rh-pan-x',housePan+'px');
+  scene.classList.add('rh-camera-used');
+ },{passive:true});
+ const end=e=>{if(drag && (!e||e.pointerId===drag.id))drag=null;};
+ scene.addEventListener('pointerup',end,{passive:true});
+ scene.addEventListener('pointercancel',end,{passive:true});
+ window.requestAnimationFrame(apply);
+}
 function panel(title,html){closeSheet();sheet=document.createElement('div');sheet.className='rh-sheet';sheet.innerHTML=`<article role="dialog" aria-modal="true" aria-label="${esc(title)}"><header><h2>${esc(title)}</h2><button aria-label="Tutup menu">×</button></header>${html}<p class="rh-msg" role="status"></p></article>`;root.append(sheet);sheet.querySelector('header button').onclick=closeSheet;sheet.addEventListener('click',e=>{if(e.target===sheet)closeSheet()});sheet.querySelector('header button').focus();return sheet}
 function msg(s){const e=sheet?.querySelector('.rh-msg');if(e)e.textContent=s}
 async function run(button,action,done){if(busy)return;busy=true;button.disabled=true;try{const r=await action();done(r)}catch(e){msg(e.message||'Belum berhasil. Coba lagi.')}finally{busy=false;if(button.isConnected)button.disabled=false}}
