@@ -1040,20 +1040,37 @@ if(button){button.disabled=false;button.removeAttribute('onclick');button.textCo
 const oddsPanel=document.querySelector('#shop .box');if(oddsPanel)oddsPanel.remove(); // remove obsolete and duplicated Daftar peluang / Admin box
 const refill=document.querySelector('#shop button[onclick="refillStock()"]');if(refill)refill.style.display='none';
 const players={neymar:'Neymar Jr',mbappe:'Kylian Mbappé',haaland:'Erling Haaland',ronaldo:'Cristiano Ronaldo',messi:'Lionel Messi',arjuna:'Arjuna Nusa',langit:'Langit Pratama',garda:'Garda Samudra'};
-const admin='3bNsbErpujYgrjxdKUSiHP1sJJ93';const baseKey='nusa_goat_order_v265';let chosen='neymar',current='',scopedKey=baseKey,busy=false,approved=false;
+const admin='3bNsbErpujYgrjxdKUSiHP1sJJ93';const baseKey='nusa_goat_order_v265';let chosen='neymar',current='',scopedKey=baseKey,busy=false,approved=false,orderWatcher=null,watchedOrder='',lastServerStatus='';
 const note=s=>{$('n265GoatStatus').textContent=s;};
+// Keep restart button visible above old payment details, instead of below a long QRIS.
+const restartButton=$('n265NewOrder'),paymentNode=$('n265Payment');
+if(restartButton&&paymentNode)paymentNode.parentNode.insertBefore(restartButton,paymentNode);
 const bridge=()=>{try{return window.parent.NusaFootballBridge}catch(e){return null}};
+function stopOrderWatcher(){if(orderWatcher){try{orderWatcher()}catch(e){}orderWatcher=null;}watchedOrder='';lastServerStatus='';}
+function startOrderWatcher(s,db,id){
+ if(watchedOrder===id||!id)return;
+ stopOrderWatcher();watchedOrder=id;
+ try{orderWatcher=s.D.onValue(s.D.ref(db,'nusaFootballGoatOrdersV1/'+id),snapshot=>{
+  if(current!==id)return;
+  const state=snapshot.val()?.status||'missing';
+  if(state===lastServerStatus)return;
+  lastServerStatus=state;
+  if($('n265GoatModal').classList.contains('show'))void checkStatus();
+ },error=>note('Sinkronisasi status terhenti: '+(error.message||error)+'. Tekan Cek Status.'));
+ }catch(e){stopOrderWatcher();note('Cek status manual masih tersedia: '+(e.message||e));}
+}
 async function connect(){const B=bridge();if(!B||typeof B._session!=='function')throw Error('Buka Football Cup dari Kota Nusa, gunakan akun Google.');const s=await B._session();if(!s.user)throw Error('Login Google belum tersedia.');return {s,B,db:s.D.getDatabase(s.app)};}
 async function syncLocal(){const {s}=await connect();scopedKey=baseKey+'_'+s.user.uid;current=localStorage.getItem(scopedKey)||'';return s;}
 function selectUI(){document.querySelectorAll('[data-n265-pick]').forEach(x=>x.classList.toggle('selected',x.dataset.n265Pick===chosen));const label=$('n265SelectedName');if(label)label.textContent=players[chosen]||chosen;}
 document.querySelectorAll('[data-n265-pick]').forEach(x=>x.addEventListener('click',()=>{if(current){note('Selesaikan pesanan aktif lebih dulu.');return;}chosen=x.dataset.n265Pick;selectUI();$('n265ChoiceDetails')?.removeAttribute('open');}));
-function showOrder(id){current=id;$('n265Payment').style.display=id?'block':'none';$('n265OrderId').textContent=id||'';$('n265Create').style.display=id?'none':'block';if(!id){$('n265NewOrder').style.display='none';$('n265Report').style.display='inline-block';const qr=$('n265Payment').querySelector('.n265QRCode');if(qr)qr.style.display='block';const info=$('n265Payment').querySelector('p.muted');if(info)info.style.display='block';}}
+function showOrder(id){if(id!==current)stopOrderWatcher();current=id;$('n265Payment').style.display=id?'block':'none';$('n265OrderId').textContent=id||'';$('n265Create').style.display=id?'none':'block';if(!id){$('n265NewOrder').style.display='none';$('n265Report').style.display='inline-block';const qr=$('n265Payment').querySelector('.n265QRCode');if(qr)qr.style.display='block';const info=$('n265Payment').querySelector('p.muted');if(info)info.style.display='block';}}
 function renderClaim(show){$('n267ClaimHere').style.display=show?'block':'none';$('n267ClaimInventory').style.display=show?'block':'none';$('n267InventoryNote').style.display=show?'none':'block';approved=show;}
 async function openOrder(){note('');$('n265GoatModal').classList.add('show');$('n265Report').disabled=false;try{await syncLocal();showOrder(current);if(current)await checkStatus();else renderClaim(false);}catch(e){showOrder('');note(e.message||'Tidak bisa membaca akun Google.');}}
 async function checkStatus(){if(!current){note('Buat pesanan dulu.');renderClaim(false);return;}try{
  const {s,B,db}=await connect();const snap=await s.D.get(s.D.ref(db,'nusaFootballGoatOrdersV1/'+current));
  if(!snap.exists()){localStorage.removeItem(scopedKey);showOrder('');renderClaim(false);note('Pesanan tidak ditemukan.');return;}
  const o=snap.val();if(o.uid!==s.user.uid)throw Error('Pesanan milik akun Google lain.');
+ lastServerStatus=o.status;startOrderWatcher(s,db,current);
  chosen=o.pick;selectUI();const claimed=(B.wallet()?.claimedGoatIds||[]).includes(current);
  const pending=o.status==='pending',qr=$('n265Payment').querySelector('.n265QRCode'),qrInfo=$('n265Payment').querySelector('p.muted');
  if(qr)qr.style.display=pending?'block':'none';if(qrInfo)qrInfo.style.display=pending?'block':'none';
@@ -1090,12 +1107,20 @@ window.openInventory=function(){if(typeof legacyOpenInventory==='function')legac
 async function refreshInventory(){try{await syncLocal();if(current)await checkStatus();else renderClaim(false);}catch(e){renderClaim(false);}}
 $('n265Create').onclick=async()=>{if(busy)return;busy=true;try{
  const {s,db,B}=await connect();scopedKey=baseKey+'_'+s.user.uid;
- if(localStorage.getItem(scopedKey))throw Error('Selesaikan pesanan sebelumnya atau cek statusnya lebih dulu.');
+ const previous=localStorage.getItem(scopedKey);
+ if(previous){
+   const snap=await s.D.get(s.D.ref(db,'nusaFootballGoatOrdersV1/'+previous));
+   const old=snap.val();
+   const claimed=(B.wallet()?.claimedGoatIds||[]).includes(previous);
+   if(old&&old.uid!==s.user.uid)throw Error('Pesanan sebelumnya milik akun lain.');
+   if(old&&old.status!=='rejected'&&!(old.status==='approved'&&claimed))throw Error('Pesanan lama masih menunggu atau belum diklaim. Tekan Cek Status dulu, jangan buat pembayaran kedua.');
+   localStorage.removeItem(scopedKey);
+ }
  const identity=await B.identity();if(!identity?.signedIn)throw Error('Akun belum tersambung.');
  if((B.wallet()?.players||[]).some(x=>x.name===players[chosen]))throw Error('Pemain yang dipilih sudah dimiliki. Pilih yang lain.');
  const ref=s.D.push(s.D.ref(db,'nusaFootballGoatOrdersV1'));
  await s.D.set(ref,{uid:s.user.uid,buyerName:String(identity.name||'Warga').slice(0,24),gameId:String(identity.gameId||''),pick:chosen,price:2000,status:'pending',createdAt:s.D.serverTimestamp(),updatedAt:s.D.serverTimestamp(),transactionId:''});
- localStorage.setItem(scopedKey,ref.key);showOrder(ref.key);note('Pesanan tercatat. QRIS digunakan untuk harga pasti Rp2.000.');
+ localStorage.setItem(scopedKey,ref.key);showOrder(ref.key);note('Pesanan tercatat. QRIS digunakan untuk harga pasti Rp2.000.');await checkStatus();
  }catch(e){note('Gagal: '+(e.message||e));}finally{busy=false;}};
 $('n265Report').onclick=async()=>{if(!current||busy)return;
  if(!confirm('Tekan OK hanya jika kamu SUDAH BENAR-BENAR membayar Rp2.000 dan memiliki bukti dari aplikasi pembayaran.'))return;
@@ -1124,7 +1149,7 @@ $('n265NewOrder').onclick=async()=>{if(busy)return;busy=true;try{
  localStorage.removeItem(scopedKey);showOrder('');renderClaim(false);
  note('Siap membuat pesanan baru. Riwayat pesanan sebelumnya tetap tersimpan.');
  }catch(e){note('Tidak bisa membuat pesanan baru: '+(e.message||e));}finally{busy=false;}};
-$('n265Close').onclick=()=>{$('n265GoatModal').classList.remove('show')};
+$('n265Close').onclick=()=>{stopOrderWatcher();$('n265GoatModal').classList.remove('show')};
 $('n265AdminClose').onclick=()=>{$('n265AdminModal').classList.remove('show')};
 async function adminRefresh(){const list=$('n265OrdersList');list.textContent='Memuat…';try{
  const {s,db}=await connect();if(s.user.uid!==admin)throw Error('Hanya Presiden yang bisa menyetujui.');
