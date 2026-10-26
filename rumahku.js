@@ -82,11 +82,12 @@ async function upgrade(){
 function visit(){
  const q=panel('Kunjungi rumah',`<input class="rh-search" aria-label="Cari nama KTP warga" placeholder="Cari nama KTP warga…"><div id="rhPeople"></div><small>Semua rumah, termasuk Rumah Selebritis, dibuka langsung lewat Rumahku.</small>`);
  const draw=()=>{
-  const search=q.querySelector('input').value.toLocaleLowerCase();
-  const people=B().citizens().filter(p=>p.id!==me().id&&(houseLevel(p)>0||window.NusaCelebrity?.hasGameHome?.(p.id))&&String(p.name).toLocaleLowerCase().includes(search));
+  const search=q.querySelector('input').value.trim().toLocaleLowerCase('id-ID');
+  const nameFor=p=>String(B().identity(p)?.name||p.name||'');
+  const people=B().citizens().filter(p=>p.id!==me().id&&(houseLevel(p)>0||window.NusaCelebrity?.hasGameHome?.(p.id))&&(nameFor(p)+' '+String(p.name||'')).toLocaleLowerCase('id-ID').includes(search));
   const list=q.querySelector('#rhPeople');
-  list.innerHTML=people.length?people.map(p=>{const celebrity=window.NusaCelebrity?.hasGameHome?.(p.id);return `<div class="rh-person"><span>${esc(p.name)}<small>${B().isOnline?.(p.id)?'● Online · ':''}${esc(B().identity(p).addr)} · ${celebrity?'✦ Rumah Selebritis':'Level '+houseLevel(p)}</small></span><button data-person="${esc(p.id)}">Kunjungi</button></div>`}).join(''):'<p>Belum ada rumah warga yang cocok.</p>';
-  list.querySelectorAll('[data-person]').forEach(b=>b.onclick=()=>{const target=people.find(p=>p.id===b.dataset.person);if(target)window.NusaRumahku.open(target)});
+  list.innerHTML=people.length?people.map(p=>{const celebrity=window.NusaCelebrity?.hasGameHome?.(p.id);return `<div class="rh-person"><span>${esc(nameFor(p))}<small>${B().isOnline?.(p.id)?'● Online · ':''}${esc(B().identity(p).addr)} · ${celebrity?'✦ Rumah Selebritis':'Level '+houseLevel(p)}</small></span><button data-person="${esc(p.id)}">Kunjungi</button></div>`}).join(''):'<p>Belum ada rumah warga yang cocok.</p>';
+  list.querySelectorAll('[data-person]').forEach(b=>b.onclick=()=>{const target=people.find(p=>String(p.id)===b.dataset.person);if(target)window.NusaRumahku.open(target)});
  };
  q.querySelector('input').oninput=draw;draw();
 }
