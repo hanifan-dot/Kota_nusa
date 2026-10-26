@@ -76,6 +76,16 @@ async function upgrade(){
   for(const b of buttons)if(b.isConnected){b.disabled=false;b.removeAttribute('aria-busy');if(b.dataset.label)b.textContent=b.dataset.label;}
  }
 }
-function visit(){const q=panel('Kunjungi rumah',`<input class="rh-search" aria-label="Cari nama KTP warga" placeholder="Cari nama KTP warga…"><div id="rhPeople"></div><small>Hanya warga yang sudah memiliki rumah. Rumah pribadi mengikuti level warga. Sistem kavling peta tidak diperlukan.</small>`);const draw=()=>{const search=q.querySelector('input').value.toLocaleLowerCase();const people=B().citizens().filter(p=>p.id!==me().id&&houseLevel(p)>0&&String(p.name).toLocaleLowerCase().includes(search));const list=q.querySelector('#rhPeople');list.innerHTML=people.length?people.map(p=>`<div class="rh-person"><span>${esc(p.name)}<small>${B().isOnline?.(p.id)?'● Online · ':''}${esc(B().identity(p).addr)} · Level ${houseLevel(p)}</small></span><button data-person="${esc(p.id)}">Kunjungi</button></div>`).join(''):'<p>Belum ada rumah warga yang cocok.</p>';list.querySelectorAll('[data-person]').forEach(b=>b.onclick=()=>window.NusaRumahku.open(people.find(p=>p.id===b.dataset.person)))};q.querySelector('input').oninput=draw;draw()}
+function visit(){
+ const q=panel('Kunjungi rumah',`<input class="rh-search" aria-label="Cari nama KTP warga" placeholder="Cari nama KTP warga…"><div id="rhPeople"></div><small>Rumah Selebritis dibuka di kompleks VIP; rumah warga lain mengikuti level Rumahku.</small>`);
+ const draw=()=>{
+  const search=q.querySelector('input').value.toLocaleLowerCase();
+  const people=B().citizens().filter(p=>p.id!==me().id&&(houseLevel(p)>0||window.NusaCelebrity?.hasGameHome?.(p.id))&&String(p.name).toLocaleLowerCase().includes(search));
+  const list=q.querySelector('#rhPeople');
+  list.innerHTML=people.length?people.map(p=>{const celebrity=window.NusaCelebrity?.hasGameHome?.(p.id);return `<div class="rh-person"><span>${esc(p.name)}<small>${B().isOnline?.(p.id)?'● Online · ':''}${esc(B().identity(p).addr)} · ${celebrity?'✦ Rumah Selebritis':'Level '+houseLevel(p)}</small></span><button data-person="${esc(p.id)}">Kunjungi</button></div>`}).join(''):'<p>Belum ada rumah warga yang cocok.</p>';
+  list.querySelectorAll('[data-person]').forEach(b=>b.onclick=()=>{const target=people.find(p=>p.id===b.dataset.person);if(!target)return;if(window.NusaCelebrity?.hasGameHome?.(target.id)){close();window.NusaCelebrity.visitGameHome(target.id);return}window.NusaRumahku.open(target)});
+ };
+ q.querySelector('input').oninput=draw;draw();
+}
 window.NusaRumahku={open,close,displayed:()=>current()};
 })();

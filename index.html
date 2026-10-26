@@ -1733,11 +1733,14 @@ function snapshot(){
   faniBot=W.players['bot-fani-celebrity-test-v1'];
   if(!faniBot){
    faniBot=makePlayer('Fani','#d98ba6',Date.now());
-   faniBot.id='bot-fani-celebrity-test-v1';faniBot.personalHouseLevel=10;faniBot.coins=1000000000;
+   faniBot.id='bot-fani-celebrity-test-v1';faniBot.coins=1000000000;
    faniBot.decor='rose';faniBot.bio='BOT percobaan pemilik Rumah Selebritis.';
    faniBot.memories=['BOT percobaan Kota Nusa · Pemilik Rumah Selebritis'];
    W.players['bot-fani-celebrity-test-v1']=faniBot;
   }
+  // Rumah pribadi lama Fani dipensiunkan secara visual karena tujuan kunjungan
+  // sekarang adalah mansion Selebritis di kompleks VIP.
+  faniBot.personalHouseLevel=0;faniBot.home=null;
  }
  // Bonus sekali untuk pemilik yang SUDAH membuka mode Presiden di browser ini.
  // Bukan saldo cloud dan tidak diberikan pada seluruh pengunjung.
@@ -7009,6 +7012,8 @@ function overlay(title,sub){document.getElementById('nusaCelebOverlay')?.remove(
  el.innerHTML=`<div class="cv-dialog"><div class="cv-header"><div><small>${namesafe(sub||'KOMPLEKS EKSKLUSIF · KOTA NUSA')}</small><h2>${namesafe(title)}</h2></div><button class="cv-close" type="button" aria-label="Tutup" id="cvClose">×</button></div><div class="cv-scroll" id="cvBody"></div></div>`;
  document.body.appendChild(el);el.querySelector('#cvClose').onclick=()=>el.remove();el.addEventListener('pointerdown',ev=>{if(ev.target===el)el.remove()});return el.querySelector('#cvBody')}
 function viewUnit(i){const k=String(i),v=mapSlots()[k];const p=pos(i);window.NusaCelebrityMap?.visit(i);const out=document.getElementById('nusaCelebOverlay');out?.remove();return {p,owner:v};}
+const gameUnit=gameId=>Object.entries(mapSlots()).find(([,v])=>String(v?.gameId)===String(gameId))||null;
+function visitGameHome(gameId){const found=gameUnit(gameId);if(!found)return false;const [i,v]=found;viewUnit(Number(i));celebrityToast('✦ Bertamu di Rumah Selebritis '+String(v.name||'Warga').slice(0,24)+' · Vila '+(Number(i)+1),false);return true}
 function contentHero(){return `<div class="cv-hero"><strong>THE NUSA CELEBRITY ESTATE</strong><small>10 mansion low-poly · tiga sayap · balkon · kolam biru · taman tropis · lampu keemasan saat malam<br>${TEST_HOST?'MODE TES: seluruh vila dapat dipreview tanpa mengubah pemilik atau data pembayaran.':'Stok dibatasi per kavling dan tersinkron untuk pemain online.'}</small></div><div class="cv-pills"><div class="cv-pill"><b>${stockLabel()}</b> tersedia</div><div class="cv-pill"><b>${estateLoaded?10-stock():'…'} / 10</b> ditempati</div></div>`}
 function openEstateAt(index){openEstate(Number.isInteger(index)?index:null)}
 function openEstate(highlight=null){const body=overlay('Kompleks Rumah Selebritis');const mine=myUnit(),shown=mapSlots();const cards=Array.from({length:10},(_,i)=>{const v=shown[String(i)],owned=mine&&Number(mine[0])===i;return `<div class="cv-unit ${v?'taken':''}" ${highlight===i?'style="outline:2px solid #ffdda0"':''}><b>Vila ${String(i+1).padStart(2,'0')} ${owned?'· MILIKMU':''}</b><small>${v?.testOwner?'Ditempati: Fani · BOT TES':v&&!v.preview?'Ditempati: '+namesafe(v.name):TEST_HOST?'Terbuka untuk preview tes':estateLoaded?'Tersedia untuk pembeli berikutnya':'Memuat status kavling…'}</small><button type="button" data-visit="${i}">${TEST_HOST?'Preview mansion':'Lihat lokasi'}</button></div>`}).join('');
@@ -7032,7 +7037,7 @@ async function adminMigrateLegacy(){const body=overlay('Penempatan Pembeli Lama'
    }catch(e){btn.disabled=false;alert('Penempatan gagal: '+errorText(e))}});
  }catch(e){const node=body.querySelector('#cvLegacy');if(node)node.textContent='Tidak dapat membaca pesanan lama: '+errorText(e)}
 }
-window.NusaCelebrity={openEstate,openEstateAt,openMyHome,adminMigrateLegacy,isChatVip:isVip,hasLocalHome:()=>!!myUnit(),stock,getSlots:()=>({...slots})};
+window.NusaCelebrity={openEstate,openEstateAt,openMyHome,adminMigrateLegacy,isChatVip:isVip,hasLocalHome:()=>!!myUnit(),hasGameHome:gameId=>!!gameUnit(gameId),visitGameHome,stock,getSlots:()=>({...slots})};
 const obs=new MutationObserver(()=>{
  // Observe DOM insertions only. Modifying the button itself must NOT trigger a new mutation loop.
  if(!document.getElementById('nusaCelebrityLaunch'))renderButton();
