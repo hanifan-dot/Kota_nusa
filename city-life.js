@@ -27,9 +27,10 @@ function completed(){const obj=read();return obj.day===day()&&Array.isArray(obj.
 function countTotal(){const obj=read();return Math.max(0,Math.min(9999,Number(obj.total)||0))}
 function finish(id,description){
  const obj=read(),done=obj.day===day()&&Array.isArray(obj.done)?obj.done:[];
- if(!done.includes(id)){done.push(id);obj.total=countTotal()+1}
+ const awarded=!done.includes(id);
+ if(awarded){done.push(id);obj.total=countTotal()+1}
  obj.day=day();obj.done=done;try{localStorage.setItem(playerKey(),JSON.stringify(obj))}catch{}
- game={kind:'done',id,description};screen='done';render();
+ game={kind:'done',id,description,awarded};screen='done';render();
 }
 function escape(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;','\'':'&#39;'}[m]))}
 function clearPark(){parkTimer.forEach(clearTimeout);parkTimer=[]}
@@ -59,7 +60,7 @@ function render(){
  root.querySelectorAll('[data-game]').forEach(el=>el.onclick=()=>start(el.dataset.game));return;
  }
  if(screen==='done'){
- shell('<div class="ncl-win"><div class="ncl-trophy">🎊</div><h2>Terima kasih, warga!</h2><p>'+escape(game?.description||'Kegiatan berhasil.')+'</p><div class="ncl-bonus">+1 Bantuan Warga (koleksi lokal, sekali tiap aktivitas/hari)</div><button class="ncl-primary" id="nclAgain">Main aktivitas lain</button></div>');
+ shell('<div class="ncl-win"><div class="ncl-trophy">🎊</div><h2>Terima kasih, warga!</h2><p>'+escape(game?.description||'Kegiatan berhasil.')+'</p><div class="ncl-bonus">'+(game?.awarded?'+1 Bantuan Warga (koleksi lokal)':'Aktivitas ini sudah dihitung hari ini. Main ulang tetap gratis.')+'</div><button class="ncl-primary" id="nclAgain">Main aktivitas lain</button></div>');
  $('#nclAgain').onclick=()=>{screen='home';game=null;render()};return;
  }
  if(screen==='market')return marketRender();
