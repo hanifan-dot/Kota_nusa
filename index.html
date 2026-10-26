@@ -1720,7 +1720,7 @@ function snapshot(){
  refresh(W,Date.now());
  const me=W.players[uid];
  const host=String(location.hostname||''),testHost=host==='kota-nusa-tes-rumahku.netlify.app'||/^deploy-preview-\d+--kota-nusa-tes-rumahku\.netlify\.app$/.test(host);
- let visitBot=null;
+ let visitBot=null,faniBot=null;
  if(testHost){
   visitBot=W.players['bot-dimas-test-v1'];
   if(!visitBot){
@@ -1730,6 +1730,14 @@ function snapshot(){
    visitBot.memories=['BOT percobaan Kota Nusa · Rumah Level 4'];
    W.players['bot-dimas-test-v1']=visitBot;
   }
+  faniBot=W.players['bot-fani-celebrity-test-v1'];
+  if(!faniBot){
+   faniBot=makePlayer('Fani','#d98ba6',Date.now());
+   faniBot.id='bot-fani-celebrity-test-v1';faniBot.personalHouseLevel=10;faniBot.coins=1000000000;
+   faniBot.decor='rose';faniBot.bio='BOT percobaan pemilik Rumah Selebritis.';
+   faniBot.memories=['BOT percobaan Kota Nusa · Pemilik Rumah Selebritis'];
+   W.players['bot-fani-celebrity-test-v1']=faniBot;
+  }
  }
  // Bonus sekali untuk pemilik yang SUDAH membuka mode Presiden di browser ini.
  // Bukan saldo cloud dan tidak diberikan pada seluruh pengunjung.
@@ -1738,7 +1746,10 @@ function snapshot(){
   record(W,'owner_bonus','Bonus pribadi Presiden +100.000 koin (sekali)',me.id,100000);
   v2Post(W,me,'Bonus Presiden +100.000','Bonus satu kali masuk dompet game lokal milikmu. Tidak memengaruhi saldo warga lain.');
  }
-  persist();return {...view(W,uid),online:visitBot?[{id:visitBot.id,x:-18,z:18,yaw:0,emote:'wave',bot:true}]:[],tips:[],rajinLocal:W.rajinWeeks?.[nusaWeekKey()]||{}};
+  const testOnline=[];
+  if(visitBot)testOnline.push({id:visitBot.id,x:-18,z:18,yaw:0,emote:'wave',bot:true});
+  if(faniBot)testOnline.push({id:faniBot.id,x:-154,z:164,yaw:2.35,emote:'wave',bot:true,celebrity:true});
+  persist();return {...view(W,uid),online:testOnline,tips:[],rajinLocal:W.rajinWeeks?.[nusaWeekKey()]||{}};
 }
 return {claimGoogleWelcomeBonus(googleUid){
  const p=W.players[uid];
@@ -6975,6 +6986,7 @@ const app=getApps().find(v=>v.name==='nusa-ktp-cloud')||initializeApp(config,'nu
 const auth=getAuth(app),db=getDatabase(app),ST='nusaCelebrityEstateV1/slots';
 const TEST_HOST=location.hostname==='kota-nusa-tes-rumahku.netlify.app'||/^deploy-preview-\d+--kota-nusa-tes-rumahku\.netlify\.app$/.test(location.hostname);
 const CACHE='nusaCelebrityEstateCacheV1';
+const TEST_FANI={uid:'preview-fani-celebrity-v1',gameId:'bot-fani-celebrity-test-v1',name:'Fani',preview:true,testOwner:true};
 let slots={},user=null,listener=null,cloudError='',activePane=null,estateLoaded=false;
 try{const cached=JSON.parse(localStorage.getItem(CACHE)||'{}');if(cached&&typeof cached==='object')slots=cached}catch{}
 const namesafe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -6982,8 +6994,8 @@ const curr=()=>window.NusaPremiumUser?.()||null;
 const stock=()=>Math.max(0,10-Object.values(slots).filter(Boolean).length);
 const stockLabel=()=>estateLoaded?stock()+'/10':'…/10';
 const myUnit=()=>Object.entries(slots).find(([,v])=>v?.uid===user?.uid && String(v?.gameId)===String(curr()?.id))||null;
-const isVip=u=>!!u && Object.values(slots).some(v=>v?.uid===u);
-const mapSlots=()=>{if(!TEST_HOST)return slots;const shown={...slots};for(let i=0;i<10;i++)if(!shown[String(i)])shown[String(i)]={uid:'preview-'+i,gameId:'preview-'+i,name:'Vila Contoh '+(i+1),preview:true};return shown};
+const isVip=u=>!!u && (Object.values(slots).some(v=>v?.uid===u)||(TEST_HOST&&u===TEST_FANI.gameId));
+const mapSlots=()=>{if(!TEST_HOST)return slots;const shown={...slots},empty=Array.from({length:10},(_,i)=>i).find(i=>!shown[String(i)]);if(empty!==undefined)shown[String(empty)]={...TEST_FANI,slot:empty};for(let i=0;i<10;i++)if(!shown[String(i)])shown[String(i)]={uid:'preview-'+i,gameId:'preview-'+i,name:'Vila Contoh '+(i+1),preview:true};return shown};
 const errorText=e=>/permission.denied|PERMISSION_DENIED/i.test(String(e?.message||e))?'Firebase menolak akses kompleks. Tambahkan Rules V2.39 di jalur nusaCelebrityEstateV1 lalu coba lagi.':String(e?.message||e||'Tidak diketahui');
 const pos=i=>({x:-180+(Number(i)%5)*12.8,z:179+Math.floor(Number(i)/5)*18.5});
 window.NusaCelebritySlots=slots;
@@ -6996,10 +7008,10 @@ function renderButton(){
 function overlay(title,sub){document.getElementById('nusaCelebOverlay')?.remove();const el=document.createElement('div');el.id='nusaCelebOverlay';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-label',title);
  el.innerHTML=`<div class="cv-dialog"><div class="cv-header"><div><small>${namesafe(sub||'KOMPLEKS EKSKLUSIF · KOTA NUSA')}</small><h2>${namesafe(title)}</h2></div><button class="cv-close" type="button" aria-label="Tutup" id="cvClose">×</button></div><div class="cv-scroll" id="cvBody"></div></div>`;
  document.body.appendChild(el);el.querySelector('#cvClose').onclick=()=>el.remove();el.addEventListener('pointerdown',ev=>{if(ev.target===el)el.remove()});return el.querySelector('#cvBody')}
-function viewUnit(i){const k=String(i),v=slots[k];const p=pos(i);window.NusaCelebrityMap?.visit(i);const out=document.getElementById('nusaCelebOverlay');out?.remove();return {p,owner:v};}
+function viewUnit(i){const k=String(i),v=mapSlots()[k];const p=pos(i);window.NusaCelebrityMap?.visit(i);const out=document.getElementById('nusaCelebOverlay');out?.remove();return {p,owner:v};}
 function contentHero(){return `<div class="cv-hero"><strong>THE NUSA CELEBRITY ESTATE</strong><small>10 mansion low-poly · tiga sayap · balkon · kolam biru · taman tropis · lampu keemasan saat malam<br>${TEST_HOST?'MODE TES: seluruh vila dapat dipreview tanpa mengubah pemilik atau data pembayaran.':'Stok dibatasi per kavling dan tersinkron untuk pemain online.'}</small></div><div class="cv-pills"><div class="cv-pill"><b>${stockLabel()}</b> tersedia</div><div class="cv-pill"><b>${estateLoaded?10-stock():'…'} / 10</b> ditempati</div></div>`}
 function openEstateAt(index){openEstate(Number.isInteger(index)?index:null)}
-function openEstate(highlight=null){const body=overlay('Kompleks Rumah Selebritis');const mine=myUnit();const cards=Array.from({length:10},(_,i)=>{const v=slots[String(i)],owned=mine&&Number(mine[0])===i;return `<div class="cv-unit ${v?'taken':''}" ${highlight===i?'style="outline:2px solid #ffdda0"':''}><b>Vila ${String(i+1).padStart(2,'0')} ${owned?'· MILIKMU':''}</b><small>${v?'Ditempati: '+namesafe(v.name):TEST_HOST?'Terbuka untuk preview tes':estateLoaded?'Tersedia untuk pembeli berikutnya':'Memuat status kavling…'}</small><button type="button" data-visit="${i}">${TEST_HOST?'Preview mansion':'Lihat lokasi'}</button></div>`}).join('');
+function openEstate(highlight=null){const body=overlay('Kompleks Rumah Selebritis');const mine=myUnit(),shown=mapSlots();const cards=Array.from({length:10},(_,i)=>{const v=shown[String(i)],owned=mine&&Number(mine[0])===i;return `<div class="cv-unit ${v?'taken':''}" ${highlight===i?'style="outline:2px solid #ffdda0"':''}><b>Vila ${String(i+1).padStart(2,'0')} ${owned?'· MILIKMU':''}</b><small>${v?.testOwner?'Ditempati: Fani · BOT TES':v&&!v.preview?'Ditempati: '+namesafe(v.name):TEST_HOST?'Terbuka untuk preview tes':estateLoaded?'Tersedia untuk pembeli berikutnya':'Memuat status kavling…'}</small><button type="button" data-visit="${i}">${TEST_HOST?'Preview mansion':'Lihat lokasi'}</button></div>`}).join('');
  body.innerHTML=contentHero()+`<div class="cv-info">Vila muncul setelah <b>Presiden memverifikasi pembayaran QRIS dan menyetujui pesanan</b>. Satu akun Google hanya boleh memiliki satu kavling. Rumah lama disembunyikan dari peta setelah berhasil dipindahkan; data progres rumah lama tidak dihapus permanen.</div>${mine?'<button class="cv-btn" id="cvMine">🏡 Kunjungi Rumah Selebritisku</button>':''}<div class="cv-grid">${cards}</div><button class="cv-btn ghost" id="cvShop">Lihat Rumah Selebritis di Premium Shop</button>${cloudError?`<div class="cv-info cv-alert">${namesafe(cloudError)}</div>`:!estateLoaded?'<div class="cv-info">Menghubungkan data kompleks… Jangan membuat pembelian baru sebelum stok terbaca.</div>':''}`;
  body.querySelectorAll('[data-visit]').forEach(b=>b.onclick=()=>viewUnit(b.dataset.visit));body.querySelector('#cvMine')?.addEventListener('click',openMyHome);body.querySelector('#cvShop').onclick=()=>{document.getElementById('nusaCelebOverlay')?.remove();window.NusaPremiumOrders?.openProduct?.('mansion')};}
 function openMyHome(){const mine=myUnit(),body=overlay('Rumah Selebritisku','VILA KHUSUS · RUMAH PREMIUM');if(!mine){body.innerHTML=`<div class="cv-info ${TEST_HOST?'':'cv-alert'}">${TEST_HOST?'Mode percobaan aktif. Seluruh mansion dapat dibuka sebagai preview, tetapi tidak dianggap milikmu dan tidak mengubah data pembeli.':'Akun Google atau karakter saat ini belum tercatat menempati vila. Jika sebelumnya sudah dibeli, <b>jangan bayar ulang</b>. Minta Presiden membuka menu <b>Tempatkan pembeli lama</b> di panel Pesanan Pelanggan.'}</div><button class="cv-btn" id="cvBrowse">${TEST_HOST?'Buka Semua Preview Mansion':'Lihat Kompleks'}</button>`;body.querySelector('#cvBrowse').onclick=()=>openEstate();return}
