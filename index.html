@@ -7452,7 +7452,12 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
  100%{opacity:1;transform:none;filter:none;}
 }
 }
-#rumahkuRoot .rh-scene>canvas.rh-stage1-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}#rumahkuRoot .rh-scene .rh-paint{display:none}
+#rumahkuRoot .rh-scene{overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;touch-action:pan-y;background:#cfe6df}
+#rumahkuRoot .rh-scene::-webkit-scrollbar{display:none}
+#rumahkuRoot .rh-scene>canvas.rh-stage1-canvas{position:absolute;left:0;top:0;width:100%;height:auto;display:block;pointer-events:none}#rumahkuRoot .rh-scene .rh-paint{display:none}
+#rumahkuRoot .rh-scene .rh-camera-hint{position:sticky;z-index:5;left:50%;top:10px;display:table;transform:translateX(-50%);padding:7px 12px;border-radius:999px;background:#17382ad9;color:#fff6dd;font:800 10px/1 system-ui;letter-spacing:.25px;pointer-events:none;box-shadow:0 4px 13px #17382a35;transition:opacity .35s}
+#rumahkuRoot .rh-scene.rh-camera-used .rh-camera-hint{opacity:0}
+#rumahkuRoot .rh-scene .rh-hotspot{display:none}
 #rumahkuRoot .rh-crop-visual{position:relative;height:54px;border-radius:12px;background:linear-gradient(#b9ddc0 0 55%,#916540 56%);display:grid;place-items:end center;overflow:hidden}
 #rumahkuRoot .rh-crop-visual:after{content:"";position:absolute;left:0;right:0;bottom:7px;border-top:2px dashed #c99864}
 #rumahkuRoot .rh-crop-visual i{position:absolute;bottom:7px;width:5px;height:12px;border-radius:5px;background:#398244;transform-origin:bottom;transition:height .25s ease}
@@ -7468,10 +7473,10 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
   if (!window.NusaRumahku || window.NusaRumahku.__visualTahap1) return;
   var api = window.NusaRumahku;
   var observedRoot = null, observer = null, clock = null;
-  var W = 864, H = 790;
+  var W = 864, H = 1120;
 
   function iso(x, z, height) {
-    return {x: 432 + (x - z) * 30.5, y: 378 + (x + z) * 15.8 - (height || 0)};
+    return {x: 432 + (x - z) * 30.5, y: 610 + (x + z) * 15.8 - (height || 0)};
   }
   function polygon(g, pts, fill, stroke, lineWidth) {
     g.beginPath();
@@ -7749,8 +7754,9 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     }
   }
   function celebrityHome(g,night) {
-    // Mansion low-poly putih-hitam berdasarkan referensi: bangunan lebar,
-    // dua lantai, sayap kanan-kiri, balkon, gerbang dan kolam pribadi.
+    // Mansion selebritis dibuat sebagai bangunan tersendiri, bukan rumah level
+    // 10 yang dibesarkan. Tata letak: rumah di tengah, kolam + air mancur di
+    // halaman depan, sedangkan kebun berada jauh di halaman belakang.
     function P(x,z,y){return iso(x,z,y)}
     function block(x,z,w,d,bottom,top,front,side){
       var l=x-w/2,r=x+w/2,f=z-d/2,b=z+d/2;
@@ -7764,42 +7770,82 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
       polygon(g,[P(l-.18,b+.18,y),P(r+.18,b+.18,y),P(r+.18,b+.18,y-10),P(l-.18,b+.18,y-10)],'#11191e');
       polygon(g,[P(r+.18,f-.18,y),P(r+.18,b+.18,y),P(r+.18,b+.18,y-10),P(r+.18,f-.18,y-10)],'#0b1216');
     }
-    var glass=night?'#ffd784':'#4d8c9d',dark='#20262b';
-    g.save();g.shadowColor='#102b2658';g.shadowBlur=25;g.shadowOffsetY=15;
-    ellipse(g,iso(0,.2).x,iso(0,.2).y+26,190,67,'#17372d50');g.restore();
-    // Kolam dan teras di halaman depan kanan.
-    tile(g,2.0,2.15,3.55,2.45,'#f5f4ed');tile(g,2.22,2.34,3.10,2.05,night?'#267f9f':'#55bfd4');
-    for(var s=0;s<4;s++)line(g,iso(2.45+s*.72,2.42),iso(2.45+s*.72,4.12),1,'#c8edf1aa');
-    // Sayap utama dan dua sayap samping.
-    block(0,-.65,5.9,3.65,0,178,'#f6f5ef','#d8d8d3');
-    block(-3.55,.05,2.45,4.55,0,123,'#f4f2eb','#cecfcb');
-    block(3.55,.05,2.45,4.55,0,132,'#f8f7f1','#d4d5d1');
-    roof(0,-.65,6.15,3.9,188);roof(-3.55,.05,2.75,4.85,133);roof(3.55,.05,2.75,4.85,142);
-    // Menara masuk hitam dan lengkung putih seperti mansion referensi.
-    block(0,1.28,1.7,1.15,0,146,dark,'#11181c');
-    var cp=P(0,1.88,103);g.beginPath();g.arc(cp.x,cp.y,30,Math.PI,0);g.lineTo(cp.x+30,cp.y+84);g.lineTo(cp.x-30,cp.y+84);g.closePath();g.fillStyle='#f6f3e9';g.fill();
-    var dp=P(0,1.96,78);g.beginPath();g.arc(dp.x,dp.y,18,Math.PI,0);g.lineTo(dp.x+18,dp.y+59);g.lineTo(dp.x-18,dp.y+59);g.closePath();g.fillStyle=dark;g.fill();
-    // Balkon depan dengan pagar putih dan kolom tinggi.
-    polygon(g,[P(-2.75,1.25,98),P(2.75,1.25,98),P(2.75,1.82,91),P(-2.75,1.82,91)],'#f6f3ea','#c9c8c0',2);
-    for(var c=-2.55;c<=2.55;c+=.85){line(g,P(c,1.72,91),P(c,1.72,122),4,'#f5f2e9')}
-    for(var col of [-2.88,-1.88,1.88,2.88]){line(g,P(col,1.70,0),P(col,1.70,91),7,'#f3f0e7');round(g,P(col,1.70,94).x,P(col,1.70,94).y,5,'#d8bd86')}
-    // Deretan jendela besar dua lantai dengan cahaya hangat malam hari.
-    for(var floor=0;floor<2;floor++){
-      var y=24+floor*73;
-      for(var wx of [-2.35,-1.45,1.45,2.35]){
-        polygon(g,[P(wx-.28,1.19,y+45),P(wx+.28,1.19,y+45),P(wx+.28,1.19,y),P(wx-.28,1.19,y)],glass,'#f5f1e8',3);
-        line(g,P(wx,1.20,y+43),P(wx,1.20,y+2),2,'#e8e8df');
+    function frontWindow(x,z,bottom,w,h){
+      polygon(g,[P(x-w/2,z,bottom+h),P(x+w/2,z,bottom+h),P(x+w/2,z,bottom),P(x-w/2,z,bottom)],glass,'#f8f5eb',3);
+      line(g,P(x,z+.01,bottom+h-2),P(x,z+.01,bottom+2),1.6,'#e8eee7');
+      line(g,P(x-w/2+.03,z+.01,bottom+h/2),P(x+w/2-.03,z+.01,bottom+h/2),1.2,'#e8eee7');
+    }
+    function fountain(x,z){
+      var p=P(x,z,0);
+      ellipse(g,p.x,p.y+8,46,18,'#d8ded9');
+      ellipse(g,p.x,p.y+4,39,14,night?'#267f9f':'#54c4df');
+      polygon(g,[xy(p.x-9,p.y+1),xy(p.x+9,p.y+1),xy(p.x+6,p.y-28),xy(p.x-6,p.y-28)],'#efe9dc');
+      ellipse(g,p.x,p.y-28,18,7,'#d8d3c9');
+      ellipse(g,p.x,p.y-30,14,5,night?'#4e9fb8':'#8edcec');
+      line(g,xy(p.x,p.y-31),xy(p.x,p.y-68),3,night?'#a5e9ff':'#d6fbff');
+      for(var a=-1;a<=1;a+=2){
+        g.beginPath();g.moveTo(p.x,p.y-53);g.quadraticCurveTo(p.x+a*25,p.y-73,p.x+a*34,p.y-42);
+        g.strokeStyle=night?'#8fddf4':'#d8fbff';g.lineWidth=3;g.lineCap='round';g.stroke();
       }
+      if(night){g.save();g.shadowColor='#76dcff';g.shadowBlur=20;round(g,p.x,p.y-31,5,'#c9f5ff');g.restore();}
     }
-    for(var side of [-1,1])for(var n=0;n<3;n++){
-      var xx=side*(3.18+n*.34),zz=.2+n*.62;
-      polygon(g,[P(xx,zz,85),P(xx,zz+.48,85),P(xx,zz+.48,27),P(xx,zz,27)],glass,'#efeee7',2);
+    var glass=night?'#ffd784':'#589baa',dark='#20272d',cream='#f7f4eb',stoneSide='#d5d5d0';
+    g.save();g.shadowColor='#102b2658';g.shadowBlur=25;g.shadowOffsetY=15;
+    ellipse(g,P(0,-.55,0).x,P(0,-.55,0).y+27,205,72,'#17372d50');g.restore();
+    // Badan utama tiga lantai dan dua sayap simetris yang lebih rendah.
+    block(0,-1.05,5.55,3.75,0,184,cream,stoneSide);
+    block(-3.45,-.20,2.35,3.65,0,126,'#f1efe8','#c8cbc7');
+    block(3.45,-.20,2.35,3.65,0,126,'#f1efe8','#c8cbc7');
+    roof(-3.45,-.20,2.62,3.94,137);roof(3.45,-.20,2.62,3.94,137);
+    // Atap utama bertingkat dengan paviliun tengah dan aksen emas.
+    roof(0,-1.05,5.86,4.05,195);
+    block(0,-1.18,2.18,2.05,195,238,'#f7f5ee','#cfd3cf');
+    roof(0,-1.18,2.46,2.34,249);
+    var crown=P(0,-1.18,276);round(g,crown.x,crown.y,6,'#e6be63');
+    // Fasad gelap di tengah memberi pintu masuk yang tegas dan proporsional.
+    block(0,.58,1.72,1.28,0,151,dark,'#11181c');
+    var arch=P(0,1.27,80);g.beginPath();g.arc(arch.x,arch.y,19,Math.PI,0);g.lineTo(arch.x+19,arch.y+61);g.lineTo(arch.x-19,arch.y+61);g.closePath();g.fillStyle=glass;g.fill();
+    // Balkon panjang, lis lantai, pagar dan kolom klasik.
+    polygon(g,[P(-2.75,.88,103),P(2.75,.88,103),P(2.75,1.48,96),P(-2.75,1.48,96)],'#f7f3e8','#c9c6bd',2);
+    line(g,P(-2.68,1.47,99),P(2.68,1.47,99),4,'#ded8c9');
+    for(var rail=-2.55;rail<=2.55;rail+=.64)line(g,P(rail,1.44,99),P(rail,1.44,124),3,'#f7f2e6');
+    for(var col of [-2.83,-1.96,1.96,2.83]){
+      line(g,P(col,1.45,0),P(col,1.45,96),8,'#f0ece2');
+      round(g,P(col,1.45,99).x,P(col,1.45,99).y,5,'#d7b976');
     }
-    // Tangga, jalan masuk, pagar dan papan nama.
-    tile(g,-.75,1.95,1.5,.48,'#ddd8ca');tile(g,-.92,2.40,1.84,.48,'#eee9dc');
-    tile(g,-.72,2.86,1.44,2.25,'#d8d1c2');
-    for(var gx of [-5.65,5.65]){line(g,iso(gx,4.72),iso(gx,4.72,69),8,'#edeae2');round(g,iso(gx,4.72,72).x,iso(gx,4.72,72).y,7,night?'#ffe4a3':'#d9c18a')}
-    g.font='800 15px system-ui,sans-serif';g.textAlign='center';g.fillStyle=night?'#ffe0a0':'#263c38';g.fillText('✦ RUMAH SELEBRITIS',432,704);
+    // Banyak jendela, namun dikelompokkan rapi agar mansion tidak tampak sesak.
+    for(var floor=0;floor<3;floor++){
+      var y=22+floor*55;
+      for(var wx of [-2.28,-1.45,1.45,2.28])frontWindow(wx,.84,y,.48,36);
+    }
+    for(var side of [-1,1])for(var row=0;row<2;row++){
+      var sx=side*3.46,sz=-.55+row*1.28;
+      polygon(g,[P(sx,sz,84),P(sx,sz+.62,84),P(sx,sz+.62,23),P(sx,sz,23)],glass,'#f2efe7',2.5);
+    }
+    // Teras masuk dan jalur kendaraan di sisi kiri.
+    tile(g,-.83,1.36,1.66,.54,'#e3ddd0');tile(g,-1.02,1.82,2.04,.50,'#f1ece1');
+    tile(g,-2.15,2.25,1.55,4.25,'#c9c8c0');
+    for(var mark=0;mark<5;mark++)tile(g,-1.75,2.55+mark*.72,.75,.18,'#e9e7df');
+    // Kolam renang benar-benar di DEPAN rumah, lengkap dengan air mancur.
+    tile(g,.35,2.25,4.70,3.55,'#f5f2ea');
+    tile(g,.62,2.50,4.16,3.02,night?'#267f9f':'#56bfd6');
+    for(var s=0;s<5;s++)line(g,P(.78+s*.76,2.66,0),P(.78+s*.76,5.25,0),1,'#c8edf1aa');
+    fountain(2.70,4.05);
+    // Kursi santai, payung dan tanaman pot sebagai detail halaman premium.
+    for(var chair of [[-.20,3.0],[-.20,4.15]]){
+      tile(g,chair[0],chair[1],.62,.95,'#ead9b8');
+      line(g,P(chair[0]+.05,chair[1]+.12,3),P(chair[0]+.52,chair[1]+.78,18),4,'#87694e');
+    }
+    var umbrella=P(5.25,2.55,0);line(g,umbrella,P(5.25,2.55,70),5,'#765d43');
+    polygon(g,[P(4.55,2.55,69),P(5.25,1.85,69),P(5.95,2.55,69),P(5.25,3.25,69)],'#e2b85f','#a67d38',2);
+    shrub(g,5.25,4.65,15,['#2f7e48','#4ba15c','#72c978']);
+    // Pilar gerbang dan papan identitas mansion.
+    for(var gx of [-6.55,6.55]){
+      line(g,P(gx,6.38,0),P(gx,6.38,75),10,'#eeeae1');
+      round(g,P(gx,6.38,78).x,P(gx,6.38,78).y,8,night?'#ffe4a3':'#d7bd7e');
+    }
+    var sign=P(-4.75,5.72,0);polygon(g,[xy(sign.x-72,sign.y-18),xy(sign.x+72,sign.y-18),xy(sign.x+72,sign.y+12),xy(sign.x-72,sign.y+12)],dark,'#dfbd6a',2);
+    g.font='800 13px system-ui,sans-serif';g.textAlign='center';g.fillStyle='#ffe8a7';g.fillText('✦ RUMAH SELEBRITIS',sign.x,sign.y+3);
   }
     function stone(g,x,z,w) {
     var s=w||.6, a=iso(x,z);
@@ -7819,12 +7865,14 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
       round(g,p.x+6*scale,p.y-23*scale,3.5*scale,fruit);
     }
   }
-  function miniGarden(g) {
+  function miniGarden(g,baseX,baseZ) {
+    baseX=Number.isFinite(baseX)?baseX:-5.72;
+    baseZ=Number.isFinite(baseZ)?baseZ:-14.45;
     var garden=window.NusaRumahku?.displayed?.()||
       (window.NusaHomeBridge && window.NusaHomeBridge.player && window.NusaHomeBridge.player());
     var plants=(garden && garden.privateGardenV262 && garden.privateGardenV262.plots)||[];
     for(var i=0;i<4;i++) {
-      var gx=2.58+(i%2)*1.05,gz=1.15+Math.floor(i/2)*1.05;
+      var gx=baseX+(i%2)*1.05,gz=baseZ+Math.floor(i/2)*1.05;
       tile(g,gx,gz,.99,.99,i%2?"#805031":"#91613a");
       tile(g,gx+.12,gz+.17,.72,.16,"#a97948");
       tile(g,gx+.12,gz+.58,.72,.16,"#634229");
@@ -7871,8 +7919,8 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     tallBuilding(g,723,95,138,night?["#729a94","#567d7f","#648889"]:["#d0e6d5","#accfc1","#a4c3bd"]);
     tallBuilding(g,-67,665,116,night?["#789d9c","#678787","#537f7c"]:["#cde0d6","#accdcf","#97bdc2"]);
     tallBuilding(g,768,700,112,night?["#779d8d","#63897f","#4c7970"]:["#cbe6d3","#abd4bd","#9abfaa"]);
-    // Tanah halaman dengan lapisan tanah terlihat dari depan.
-    var a=iso(-6.6,-6.6),b=iso(6.6,-6.6),c=iso(6.6,6.6),d=iso(-6.6,6.6);
+    // Tanah dipanjangkan jauh ke belakang supaya halaman dapat dijelajahi.
+    var a=iso(-7.4,-16.3),b=iso(7.4,-16.3),c=iso(7.4,7.2),d=iso(-7.4,7.2);
     g.save();g.shadowColor="#193d2f58";g.shadowBlur=20;g.shadowOffsetY=16;
     polygon(g,[a,b,c,d],night?"#52865a":"#77c957");g.restore();
     polygon(g,[d,c,xy(c.x,c.y+51),xy(d.x,d.y+51)],"#875b39");
@@ -7880,7 +7928,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     polygon(g,[a,d,xy(d.x,d.y+51),xy(a.x,a.y+18)],"#986a42");
     polygon(g,[a,b,c,d],night?"#5c975d":"#85d45f");
     g.save();g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.lineTo(c.x,c.y);g.lineTo(d.x,d.y);g.closePath();g.clip();
-    for(var u=-7;u<7;u++)for(var v=-7;v<7;v++) {
+    for(var u=-8;u<8;u++)for(var v=-17;v<8;v++) {
       var hash=(u*37+v*19+u*v*11)&7;
       tile(g,u,v,1,1,night?(hash<3?"#58985d":"#619e62"):(hash<3?"#87d861":hash<5?"#80ce58":"#91db65"));
     }
@@ -7897,16 +7945,34 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     }
     // Batas pagar tanaman bulat, bukan balok kubus.
     var hedge=["#297943","#358b45","#459f4b"];
-    for(var t=-6.05;t<=6.05;t+=.67) {
-      shrub(g,t,-6.18,12.5,hedge);
-      shrub(g,-6.18,t,12.5,hedge);
+    for(var t=-6.85;t<=6.85;t+=.67) {
+      shrub(g,t,-15.72,12.5,hedge);
     }
-    // Pepohonan belakang ditarik lebih dulu agar sebagian terlindung rumah.
-    tree(g,-5.25,-3.45,.9,night);
-    tree(g,5.15,-4.15,.82,night);
-    tree(g,-5.55,.1,.62,night);
-    // Pohon samping dijauhkan dari empat petak kebun agar tidak menutupinya.
-    tree(g,5.55,-.75,.68,night);
+    for(var sideZ=-15.25;sideZ<=6.65;sideZ+=.67){
+      shrub(g,-6.98,sideZ,12.5,hedge);
+    }
+    // Kebun semua rumah berada di belakang, tersambung jalan setapak.
+    tile(g,-5.92,-14.72,3.10,2.92,night?'#617f61':'#b5d58b');
+    miniGarden(g,-5.72,-14.45);
+    var gardenSign=iso(-4.25,-13.10,0);
+    polygon(g,[xy(gardenSign.x-47,gardenSign.y-28),xy(gardenSign.x+47,gardenSign.y-28),xy(gardenSign.x+47,gardenSign.y-7),xy(gardenSign.x-47,gardenSign.y-7)],'#8b633f','#5b422e',1.5);
+    g.font='800 10px system-ui,sans-serif';g.textAlign='center';g.fillStyle='#fff0bf';g.fillText('KEBUN BELAKANG',gardenSign.x,gardenSign.y-13);
+    tile(g,-4.15,-13.20,.72,10.92,night?'#aaa281':'#dfd7bb');
+    for(var backStone=0;backStone<13;backStone++){
+      var bz=-12.85+backStone*.76;
+      tile(g,-3.84,bz,.52,.36,backStone%2?'#d2d8cb':'#e4e8dc');
+    }
+    // Pepohonan belakang ditarik lebih dulu agar rumah menutupinya secara alami.
+    tree(g,-6.15,-11.15,.82,night);
+    tree(g,5.65,-13.15,.86,night);
+    tree(g,4.75,-9.85,.66,night);
+    tree(g,-5.75,-2.15,.66,night);
+    // Pohon samping dan gazebo kecil mengisi halaman panjang tanpa menutup jalan.
+    tree(g,5.75,-1.15,.68,night);
+    tile(g,3.65,-11.15,2.0,1.65,night?'#637e68':'#d8d1b8');
+    var gazebo=iso(4.63,-10.35,0);
+    for(var gp of [[3.78,-10.98],[5.42,-10.98],[3.78,-9.74],[5.42,-9.74]])line(g,iso(gp[0],gp[1],0),iso(gp[0],gp[1],67),4,'#8a6846');
+    polygon(g,[iso(3.55,-11.25,70),iso(5.62,-11.25,70),iso(5.62,-9.55,70),iso(3.55,-9.55,70)],night?'#6c5e4d':'#d6b477','#856a4d',2);
     // Elemen belakang tidak boleh menutupi pondasi.
     // Level diambil dari RUMAH YANG SEDANG DITAMPILKAN, termasuk saat bertamu,
     // bukan selalu dari akun pemain yang sedang login.
@@ -7917,28 +7983,31 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     var decor=scene.getAttribute("data-house-decor")||scene.querySelector(".rh-paint")?.style.backgroundColor;
     var vip=scene.getAttribute("data-house-celebrity")==="true";
     if(vip)celebrityHome(g,night);else home(g,decor,night,level);
-    if(level>=3)shrub(g,-3.1,2.3,14,["#347c45","#4c9e57","#5dbd64"]);
-    if(level>=5)shrub(g,3.4,3.5,13,["#35804a","#4ca360","#6ec476"]);
-    if(level>=7)lamp(g,4.3,2.7,night);
-    if(level>=9)shrub(g,-4.0,3.5,19,["#37954b","#58aa5f","#83d97a"]);
-    // Akses depan rumah: jalan kecil dan batu setapak.
-    tile(g,-.7,2.35,1.4,2.7,night?"#b3a887":"#e8cea4");
-    for(var q=0;q<4;q++){
-      var zz=2.7+q*.72, xx=.05+(q%2)*.12;
-      var at=iso(xx,zz);
-      ellipse(g,at.x+4,at.y+5,17,7,"#12362328");
-      tile(g,xx-.32,zz-.24,.64,.48,q%2?"#d4d8ca":"#e1e5d8");
+    if(!vip){
+      if(level>=3)shrub(g,-3.1,2.3,14,["#347c45","#4c9e57","#5dbd64"]);
+      if(level>=5)shrub(g,3.4,3.5,13,["#35804a","#4ca360","#6ec476"]);
+      if(level>=7)lamp(g,4.3,2.7,night);
+      if(level>=9)shrub(g,-4.0,3.5,19,["#37954b","#58aa5f","#83d97a"]);
+      // Akses depan rumah: jalan kecil dan batu setapak.
+      tile(g,-.7,2.35,1.4,2.7,night?"#b3a887":"#e8cea4");
+      for(var q=0;q<4;q++){
+        var zz=2.7+q*.72, xx=.05+(q%2)*.12;
+        var at=iso(xx,zz);
+        ellipse(g,at.x+4,at.y+5,17,7,"#12362328");
+        tile(g,xx-.32,zz-.24,.64,.48,q%2?"#d4d8ca":"#e1e5d8");
+      }
+      shrub(g,-1.9,2.77,17,["#328345","#3b9547","#57ac54"]);
+      shrub(g,1.85,2.76,16,["#328345","#3b9547","#57ac54"]);
+      lamp(g,-2.72,3.5,night);
+      mailbox(g,-1.5,4.47);
+    }else{
+      lamp(g,-5.45,4.88,night);mailbox(g,-5.05,5.52);
     }
-    miniGarden(g);
-    shrub(g,-1.9,2.77,17,["#328345","#3b9547","#57ac54"]);
-    shrub(g,1.85,2.76,16,["#328345","#3b9547","#57ac54"]);
-    lamp(g,-2.72,3.5,night);
-    mailbox(g,-1.5,4.47);
     // Pagar depan diletakkan paling atas sebagai pembatas lahan.
-    for(var f=-6.05;f<=6.05;f+=.67){
+    for(var f=-6.85;f<=6.85;f+=.67){
       if(Math.abs(f)>.72) shrub(g,f,6.18,12.7,hedge);
-      shrub(g,6.18,f,12.7,hedge);
     }
+    for(var rightZ=-15.25;rightZ<=6.65;rightZ+=.67)shrub(g,6.98,rightZ,12.7,hedge);
     // Cahaya jendela hangat dan lampu lebih tampak saat malam.
     if(night) {
       var haze=g.createLinearGradient(0,0,0,H);
@@ -7950,6 +8019,19 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     if (!observedRoot || !observedRoot.isConnected) return;
     var scene=observedRoot.querySelector(".rh-scene");
     if (!scene) return;
+    if(!scene.querySelector('.rh-camera-hint')){
+      var hint=document.createElement('span');hint.className='rh-camera-hint';hint.textContent='↕ Geser: halaman depan & belakang';scene.appendChild(hint);
+    }
+    if(!scene.dataset.cameraBound){
+      scene.dataset.cameraBound='1';
+      scene.addEventListener('scroll',function(){scene.classList.add('rh-camera-used')},{passive:true});
+      requestAnimationFrame(function(){
+        if(!scene.isConnected||scene.dataset.cameraReady)return;
+        scene.dataset.cameraReady='1';
+        var scale=(scene.clientWidth||W)/W;
+        scene.scrollTop=Math.max(0,Math.round(138*scale));
+      });
+    }
     var existing=scene.querySelector("canvas.rh-stage1-canvas");
     if(existing){
       var levelNow=scene.getAttribute("data-house-level")||"0";
@@ -8021,7 +8103,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
 </script>
 
 <!-- Rumahku Tahap 2: gerak karakter dan jalur aman halaman -->
-<style id="rh-visual-tahap2">#rumahkuRoot .rh-scene>canvas.rh-stage2-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;pointer-events:auto}</style>
+<style id="rh-visual-tahap2">#rumahkuRoot .rh-scene>canvas.rh-stage2-canvas{position:absolute;left:0;top:0;width:100%;height:auto;display:block;touch-action:pan-y;pointer-events:auto}</style>
 <script>
 (function() {
   "use strict";
@@ -8029,17 +8111,18 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
   // Semua tombol, data KTP, uang, Firebase, toko, radio dan peta tetap terpisah.
   var house=window.NusaRumahku;
   if(!house || house.__walkingTahap2)return;
-  var W=864,H=790, originX=432,originY=378;
+  var W=864,H=1120, originX=432,originY=610;
   var actor={x:-.65,z:3.25,walk:false,phase:0,face:1,way:[]};
   var root=null,observer=null,raf=0,lastTime=0,lastDraw=0,groundCanvas=null;
-  var step=.28,MIN=-6.02,MAX=6.02,gridN=Math.floor((MAX-MIN)/step)+1;
+  var step=.28,MIN=-15.52,MAX=6.92,XMIN=-6.82,XMAX=6.82,ZMIN=-15.52,ZMAX=6.92,gridN=Math.floor((MAX-MIN)/step)+1;
   var obstacles=[
-    {kind:"kotak",x0:-2.56,x1:2.38,z0:-2.56,z1:2.38,nama:"Rumah"},
-    {kind:"kotak",x0:2.40,x1:4.88,z0:.96,z1:3.43,nama:"Kebun"},
-    {kind:"lingkaran",x:-3.95,z:-2.35,r:.52,nama:"Pohon"},
-    {kind:"lingkaran",x:3.95,z:-3.55,r:.55,nama:"Pohon"},
-    {kind:"lingkaran",x:-4.60,z:.10,r:.44,nama:"Pohon"},
-    {kind:"lingkaran",x:4.75,z:-.65,r:.47,nama:"Pohon"},
+    {kind:"kotak",x0:-6.12,x1:-3.22,z0:-14.72,z1:-12.43,nama:"Kebun belakang"},
+    {kind:"kotak",x0:3.55,x1:5.65,z0:-11.28,z1:-9.52,nama:"Gazebo"},
+    {kind:"lingkaran",x:-6.15,z:-11.15,r:.56,nama:"Pohon"},
+    {kind:"lingkaran",x:5.65,z:-13.15,r:.58,nama:"Pohon"},
+    {kind:"lingkaran",x:4.75,z:-9.85,r:.46,nama:"Pohon"},
+    {kind:"lingkaran",x:-5.75,z:-2.15,r:.46,nama:"Pohon"},
+    {kind:"lingkaran",x:5.75,z:-1.15,r:.47,nama:"Pohon"},
     {kind:"lingkaran",x:-1.90,z:2.77,r:.46,nama:"Tanaman"},
     {kind:"lingkaran",x:1.85,z:2.76,r:.47,nama:"Tanaman"},
     {kind:"lingkaran",x:-2.72,z:3.50,r:.26,nama:"Lampu taman"},
@@ -8051,14 +8134,13 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     return {x:(u+v)/2,z:(v-u)/2};
   }
   function blocked(x,z){
-    // Rumah berada di depan kamera. Karena karakter berada di kanvas
-    // paling atas, area belakang rumah tidak boleh dijelajahi:
-    // di sana karakter akan terlihat berdiri di atap meskipun
-    // posisi tanahnya secara matematis di luar bangunan.
-    // Batas rumput depan diberi jarak aman dari dinding/atap.
-    if(x<MIN+.07||x>MAX-.07||z<2.72||z>MAX-.07)return true;
+    // Seluruh halaman, termasuk sisi dan belakang rumah, dapat dijelajahi.
+    if(x<XMIN+.07||x>XMAX-.07||z<ZMIN+.07||z>ZMAX-.07)return true;
     var vip=root?.querySelector('.rh-scene')?.getAttribute('data-house-celebrity')==='true';
-    if(vip&&x>=1.85&&x<=5.55&&z>=2.05&&z<=4.72)return true;
+    if(vip){
+      if(x>=-4.78&&x<=4.78&&z>=-3.05&&z<=1.72)return true;
+      if(x>=.22&&x<=5.18&&z>=2.15&&z<=5.78)return true;
+    }else if(x>=-2.56&&x<=2.38&&z>=-2.56&&z<=2.38)return true;
     for(var i=0;i<obstacles.length;i++){
       var o=obstacles[i];
       if(o.kind==="kotak"){
@@ -8191,6 +8273,11 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     if(!groundCanvas||!groundCanvas.isConnected)return;
     var g=groundCanvas.getContext("2d");if(!g)return;
     g.clearRect(0,0,W,H);
+    // Saat berjalan tepat di balik bangunan, karakter disembunyikan oleh
+    // massa rumah lalu muncul lagi di sisi/halaman belakang.
+    var vip=root?.querySelector('.rh-scene')?.getAttribute('data-house-celebrity')==='true';
+    if(vip&&actor.z<-.45&&actor.x>-4.7&&actor.x<4.7)return;
+    if(!vip&&actor.z<-.65&&actor.z>-3.0&&actor.x>-2.65&&actor.x<2.5)return;
     paintPerson(g);
   }
   function walkFrame(time){
@@ -8225,11 +8312,11 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     // tujuan berjalan di tanah di balik bangunan (proyeksi isometrik).
     var vip=root?.querySelector('.rh-scene')?.getAttribute('data-house-celebrity')==='true';
     var points=vip?[
-      {x:432,y:92},{x:645,y:238},{x:624,y:432},
-      {x:432,y:510},{x:238,y:424},{x:215,y:232}
+      {x:432,y:284},{x:690,y:430},{x:658,y:664},
+      {x:432,y:746},{x:174,y:650},{x:188,y:418}
     ]:[
-      {x:432,y:153},{x:600,y:240},{x:590,y:382},
-      {x:434,y:464},{x:276,y:386},{x:266,y:240}
+      {x:432,y:385},{x:600,y:472},{x:590,y:614},
+      {x:434,y:696},{x:276,y:618},{x:266,y:472}
     ];
     var inside=false;
     for(var i=0,j=points.length-1;i<points.length;j=i++){
@@ -8266,7 +8353,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     overlay.width=W;overlay.height=H;
     overlay.setAttribute("aria-label","Halaman rumah: ketuk tanah untuk berjalan");
     overlay.setAttribute("role","img");
-    overlay.style.cssText="position:absolute;inset:0;width:100%;height:100%;touch-action:pan-y;pointer-events:auto;";
+    overlay.style.cssText="position:absolute;left:0;top:0;width:100%;height:auto;touch-action:pan-y;pointer-events:auto;";
     var hotspot=scene.querySelector(".rh-hotspot");
     if(hotspot)scene.insertBefore(overlay,hotspot);
     else scene.append(overlay);
