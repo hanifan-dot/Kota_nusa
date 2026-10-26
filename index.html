@@ -5546,9 +5546,12 @@ function nkOrderStatus(box,o){
  const p=NK_PRODUCTS[o.product];if(!p)return;
  if(o.status==='pending'){nkPayment(box,o);return}
  const heading=o.status==='reported'?'🟡 Laporan “Saya Sudah Bayar” diterima':o.status==='approved'?'✅ Pembayaran disetujui':o.status==='rejected'?'⚠️ Pesanan ditolak':'Status Pesanan';
- const detail=o.status==='reported'?'Admin sedang memeriksa DANA Bisnis. Status ini bukan konfirmasi pembayaran. Jangan membayar ulang.':o.status==='approved'?'Admin sudah mencocokkan pembayaran dan mengaktifkan produk di akun Google ini.':o.status==='rejected'?'Jika kamu merasa sudah membayar, hubungi WhatsApp Admin dengan ID pesanan. Jangan membuat pesanan baru dulu.':'Silakan periksa kembali.';
- box.innerHTML=`<div class="no-box"><b>${nkEsc(p.icon)} ${nkEsc(p.name)}</b><div class="no-muted">${nkFmt(o.price)} · ID ${nkEsc(o.id)}</div></div><div class="no-box ${o.status==='reported'||o.status==='rejected'?'no-warn':'no-success'}"><b>${heading}</b><p style="margin-top:8px">${detail}</p><small>Terakhir diperbarui: ${new Date(o.updatedAt||o.createdAt||Date.now()).toLocaleString('id-ID')}</small></div>${nkWaButton(o)}<div class="no-buttons"><button class="no-btn" id="nkStatusRefresh">🔄 Perbarui Status</button><button class="no-btn ghost" id="nkHistory">Semua Pesanan</button></div>${o.status==='approved'?'<button class="no-btn ghost attention" id="nkOwned">🎁 Buka Barang Saya</button>':''}<div id="nkNotice" class="no-status"></div>`;
+ const detail=o.status==='reported'?'Admin sedang memeriksa DANA Bisnis. Status ini bukan konfirmasi pembayaran. Jangan membayar ulang.':o.status==='approved'?'Admin sudah mencocokkan pembayaran dan mengaktifkan produk di akun Google ini.':o.status==='rejected'?'Pesanan lama ditolak dan tetap tercatat. Jika BELUM membayar, kamu boleh memesan lagi. Jika SUDAH membayar, hubungi admin dengan ID pesanan sebelum mencoba lagi; jangan bayar dua kali.':'Silakan periksa kembali.';
+ box.innerHTML=`<div class="no-box"><b>${nkEsc(p.icon)} ${nkEsc(p.name)}</b><div class="no-muted">${nkFmt(o.price)} · ID ${nkEsc(o.id)}</div></div><div class="no-box ${o.status==='reported'||o.status==='rejected'?'no-warn':'no-success'}"><b>${heading}</b><p style="margin-top:8px">${detail}</p><small>Terakhir diperbarui: ${new Date(o.updatedAt||o.createdAt||Date.now()).toLocaleString('id-ID')}</small></div>${nkWaButton(o)}<div class="no-buttons"><button class="no-btn" id="nkStatusRefresh">🔄 Perbarui Status</button><button class="no-btn ghost" id="nkHistory">Semua Pesanan</button></div>${o.status==='approved'?'<button class="no-btn ghost attention" id="nkOwned">🎁 Buka Barang Saya</button>':''}${o.status==='rejected'?'<button class="no-btn" id="nkReorder">↻ Buat Pesanan Baru (jika belum bayar)</button>':''}<div id="nkNotice" class="no-status"></div>`;
  box.querySelector('#nkStatusRefresh').onclick=()=>nkOpenMineOrder(o.id);
+ box.querySelector('#nkReorder')?.addEventListener('click',()=>{
+  if(confirm('Pastikan pesanan lama BENAR-BENAR belum dibayar. Jika sudah transfer, hubungi admin dahulu dan jangan bayar ulang. Lanjut membuat pesanan BARU?'))void nkCreate(o.product);
+ });
  box.querySelector('#nkHistory').onclick=nkMine;
  box.querySelector('#nkOwned')?.addEventListener('click',nkInventory);
 }
@@ -5743,13 +5746,15 @@ async function nkAdmin(){const body=nkPopup('Pesanan Pelanggan','PANEL PRESIDEN 
    const visible=allOrders.filter(o=>!hidden[o.id]);
    const pending=visible.filter(o=>o.status==='pending'||o.status==='reported');
    const done=visible.filter(o=>o.status==='approved'||o.status==='rejected');
+   const recentRejected=done.filter(o=>o.status==='rejected').slice(0,3);
    body.querySelector('#nkTotal').textContent=allOrders.length;
    body.querySelector('#nkReviewCount').textContent=allOrders.filter(o=>o.status==='reported').length;
    body.querySelector('#nkApproved').textContent=allOrders.filter(o=>o.status==='approved').length;
    body.querySelector('#nkRejected').textContent=allOrders.filter(o=>o.status==='rejected').length;
    body.querySelector('#nkPendingCount').textContent=pending.length+' pesanan';
    body.querySelector('#nkDoneCount').textContent=done.length+' pesanan';
-   body.querySelector('#nkPendingOrders').innerHTML=pending.map(o=>nkAdminItemHtml(o,labels[o.status]||o.status,false)).join('')||'<div class="no-box">Tidak ada pesanan yang menunggu diproses.</div>';
+   body.querySelector('#nkPendingOrders').innerHTML=(pending.map(o=>nkAdminItemHtml(o,labels[o.status]||o.status,false)).join('')||'<div class="no-box">Tidak ada pesanan yang menunggu diproses.</div>')
+    +(recentRejected.length?'<div class="no-box no-warn"><b>🗂️ Baru ditolak · tetap tersimpan di Riwayat</b><div class="no-muted">Pesanan ini sudah selesai. Untuk memesan lagi, pembeli harus membuat pesanan baru; persetujuan lama tidak bisa diulang.</div></div>'+recentRejected.map(o=>nkAdminItemHtml(o,labels[o.status],true)).join(''):'');
    body.querySelector('#nkProcessedOrders').innerHTML=done.map(o=>nkAdminItemHtml(o,labels[o.status]||o.status,true)).join('')||'<div class="no-box">Belum ada riwayat yang diproses.</div>';
    body.querySelectorAll('[data-ok]').forEach(btn=>btn.onclick=()=>nkReview(btn.dataset.ok,'approved',body,getStock));
    body.querySelectorAll('[data-no]').forEach(btn=>btn.onclick=()=>nkReview(btn.dataset.no,'rejected',body,getStock));
@@ -5765,8 +5770,8 @@ async function nkAdmin(){const body=nkPopup('Pesanan Pelanggan','PANEL PRESIDEN 
    const active=goatOrders.filter(o=>o.status==='pending'||o.status==='reported');
    const done=goatOrders.filter(o=>o.status==='approved'||o.status==='rejected');
    if(count)count.textContent=active.length+' menunggu · '+done.length+' selesai';
-   list.innerHTML=(active.length?'<strong style="color:#ffe5aa">Menunggu</strong>'+active.map(nkGoatItemHtml).join(''):'<div class="no-box">Tidak ada pesanan GOAT yang menunggu.</div>')
-       +(done.length?'<strong style="color:#ffe5aa">Riwayat GOAT ('+done.length+')</strong>'+done.map(nkGoatItemHtml).join(''):'');
+   // Keep original descending order; rejected orders stay visible in the same place.
+   list.innerHTML=goatOrders.length?'<div class="no-box"><b>Semua pesanan GOAT</b><div class="no-muted">Pesanan menunggu, disetujui, maupun ditolak tetap terlihat, diurutkan dari yang terbaru. Status Ditolak tidak dapat disetujui ulang.</div></div>'+goatOrders.map(nkGoatItemHtml).join(''):'<div class="no-box">Belum ada pesanan GOAT.</div>';
    list.querySelectorAll('[data-goat-approve]').forEach(btn=>btn.onclick=()=>nkReviewGoat(btn.dataset.goatApprove,'approved',body));
    list.querySelectorAll('[data-goat-reject]').forEach(btn=>btn.onclick=()=>nkReviewGoat(btn.dataset.goatReject,'rejected',body));
   };
