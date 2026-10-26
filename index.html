@@ -2853,7 +2853,22 @@ function createWorld(canvas,places,callbacks={}){
   tile(191,-49,24,9,'#c1d6cc',.11);
   tile(191,-49,24,6.2,'#889fa0',.15);
   for(let i=0;i<LAND_COUNT;i++){const p=plotPosition(i),owner=citizens.find(c=>c.home===i&&!Object.values(celebritySlots).some(v=>v&&v.gameId===c.id))||window.NusaRumahkuTest?.previewOwner(i),w=i<24?5.2:6.7,d=i<24?4.2:6.7;
-   if(owner){tile(p.x,p.z,w+.5,d+.5,'#dfd8b9');tile(p.x,p.z,w,d,'#bad29b');buildings.push({...p,w:i<24?4:5.2,d:i<24?3.2:4.8,h:4.5+Math.max(0,(owner.houseLevel||1)-9)*1.2,color:({sage:'#bad1a5',coral:'#e3ad94',blue:'#a8cbd8',sand:'#e4d0a8'})[owner.decor]||'#d6ddba',id:'plot:'+i,houseLevel:owner.houseLevel||1});}
+   if(owner){
+     // Tahap tes: rumah follower biasa disembunyikan dari PETA, bukan dihapus.
+     // Rumah milik pemain aktif tetap muncul; rumah Selebritis digambar terpisah.
+     // Kavling milik follower tetap dianggap TERISI, agar tidak dapat dibeli ulang.
+     tile(p.x,p.z,w+.5,d+.5,'#dfd8b9');
+     tile(p.x,p.z,w,d,'#bad29b');
+     if(owner.id===localPlayerId){
+       buildings.push({...p,w:i<24?4:5.2,d:i<24?3.2:4.8,h:4.5+Math.max(0,(owner.houseLevel||1)-9)*1.2,color:({sage:'#bad1a5',coral:'#e3ad94',blue:'#a8cbd8',sand:'#e4d0a8'})[owner.decor]||'#d6ddba',id:'plot:'+i,houseLevel:owner.houseLevel||1});
+     }else{
+       // Tetap ada bidang kavling dan target KTP pemilik saat tanah diketuk.
+       // Jangan mendaftarkan bangunan/hit tinggi karena rumahnya tak digambar.
+       registerHit({...p,id:'plot:'+i},w,d,0);
+       tile(p.x,p.z,w*.8,d*.8,'#a0ce92',.08);
+       tile(p.x-w*.27,p.z+d*.27,.28,.52,'#78926a',.12);
+     }
+   }
    else {registerHit({...p,id:'plot:'+i},w,d,0);
      // An unowned parcel stays green until selected; no 200+ bright squares across town.
      if(i%4===0){tile(p.x,p.z,1.2,1.2,'#d4e4bc');tile(p.x,p.z,.22,.75,'#f4edcc');}
