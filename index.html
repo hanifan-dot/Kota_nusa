@@ -652,6 +652,7 @@ const NEW_JOBS=[
 {id:'coach',name:'Pelatih senam',icon:'person',group:'Layanan',mechanic:'jump',risk:0,pay:60,desc:'Peragakan lompat tali dengan irama yang tepat di taman.',color:'#a8c97e',workplace:'garden'}
 ];
 
+const PRIVATE_HOUSE_STEPS=[{"level":1,"name":"Gubuk Seng","desc":"Rumah pertama sederhana dengan halaman hijau.","price":500},{"level":2,"name":"Pondok Kayu","desc":"Pondok kayu hangat dengan teras kecil.","price":1500},{"level":3,"name":"Pondok Rapi","desc":"Jendela lebih rapi dan ruang semakin nyaman.","price":5000},{"level":4,"name":"Rumah Bata","desc":"Dinding bata kokoh untuk penghuni.","price":15000},{"level":5,"name":"Rumah Genteng","desc":"Atap genteng indah dan taman kecil.","price":50000},{"level":6,"name":"Rumah Permanen","desc":"Hunian permanen dengan ruang lega.","price":150000},{"level":7,"name":"Rumah Tipe 36","desc":"Bangunan modern praktis dan tertata.","price":450000},{"level":8,"name":"Rumah Tipe 45","desc":"Rumah luas dengan cahaya alami.","price":1200000},{"level":9,"name":"Vila Teras","desc":"Vila berteras dan taman yang asri.","price":2500000},{"level":10,"name":"Rumah Modern Mewah","desc":"Hunian termegah dengan fasilitas premium.","price":5000000}];
 const HOUSE_LEVELS=[{"level":1,"name":"Gubuk Seng","cost":0},{"level":2,"name":"Pondok Kayu","cost":300},{"level":3,"name":"Pondok Rapi","cost":450},{"level":4,"name":"Rumah Bata","cost":650},{"level":5,"name":"Rumah Genteng","cost":900},{"level":6,"name":"Rumah Permanen","cost":1250},{"level":7,"name":"Rumah Tipe 36","cost":1700},{"level":8,"name":"Rumah Tipe 45","cost":2300},{"level":9,"name":"Rumah Teras","cost":3100},{"level":10,"name":"Rumah Modern","cost":4200},{"level":11,"name":"Rumah Dua Lantai","cost":5600},{"level":12,"name":"Townhouse","cost":7500},{"level":13,"name":"Rumah Taman","cost":10000},{"level":14,"name":"Vila Klasik","cost":13500},{"level":15,"name":"Vila Kolam","cost":18000},{"level":16,"name":"Vila Kaca","cost":24000},{"level":17,"name":"Penthouse","cost":32000},{"level":18,"name":"Mansion","cost":43000},{"level":19,"name":"Grand Estate","cost":58000},{"level":20,"name":"Istana Nusa","cost":78000}];
 const CATALOG={"jobs":[{"id":"library","name":"Pustakawan","icon":"book","group":"Layanan","mechanic":"shelf","risk":0,"pay":40,"desc":"Baca label dan susun buku mengikuti kode rak.","color":"#81b5a3","workplace":"library"},{"id":"cashier","name":"Kasir","icon":"wallet","group":"Layanan","mechanic":"cash","risk":0,"pay":45,"desc":"Pindai belanja dan hitung kembalian dengan tepat.","color":"#e4b971","workplace":"market"},{"id":"barista","name":"Barista","icon":"cup","group":"Kuliner","mechanic":"recipe","risk":0,"pay":50,"desc":"Racik minuman sesuai pesanan, satu bahan setiap langkah.","color":"#d4a586","workplace":"cafe"},{"id":"tailor","name":"Penjahit","icon":"scissors","group":"Kriya","mechanic":"trace","risk":0,"pay":50,"desc":"Ikuti pola jahitan tanpa keluar dari jalurnya.","color":"#b6a2ca","workplace":"tailor"},{"id":"barber","name":"Penata rambut","icon":"scissors","group":"Layanan","mechanic":"trim","risk":0,"pay":55,"desc":"Rapikan helai yang ditandai tanpa memotong bagian lain.","color":"#98b7cf","workplace":"barber"},{"id":"musician","name":"Musisi","icon":"music","group":"Kreatif","mechanic":"rhythm","risk":0,"pay":55,"desc":"Tangkap nada saat melewati garis irama.","color":"#ca9aaf","workplace":"studio"},{"id":"photo","name":"Fotografer","icon":"camera","group":"Kreatif","mechanic":"photo","risk":0,"pay":60,"desc":"Bingkai objek bergerak lalu potret di saat yang tepat.","color":"#82afa5","workplace":"studio"},{"id":"garden","name":"Tukang kebun","icon":"leaf","group":"Alam","mechanic":"water","risk":1,"pay":60,"desc":"Isi air setiap tanaman sampai tanda, jangan berlebihan.","color":"#84b587","workplace":"garden"},{"id":"bakery","name":"Pembuat roti","icon":"bread","group":"Kuliner","mechanic":"oven","risk":1,"pay":65,"desc":"Kelola beberapa loyang dan angkat sebelum gosong.","color":"#dbb775","workplace":"bakery"},{"id":"chef","name":"Koki","icon":"cup","group":"Kuliner","mechanic":"cook","risk":1,"pay":70,"desc":"Potong bahan lalu jaga panas masakan sampai matang.","color":"#de9977","workplace":"restaurant"},{"id":"farm","name":"Petani","icon":"leaf","group":"Alam","mechanic":"harvest","risk":1,"pay":70,"desc":"Panen tanaman matang, hindari bibit muda.","color":"#91b971","workplace":"farm"},{"id":"ranch","name":"Peternak","icon":"paw","group":"Alam","mechanic":"herd","risk":2,"pay":80,"desc":"Arahkan hewan melalui pintu kandang yang cocok.","color":"#b7b17f","workplace":"ranch"},{"id":"mechanic","name":"Mekanik","icon":"wrench","group":"Teknik","mechanic":"repair","risk":2,"pay":85,"desc":"Temukan bagian rusak lalu pasang komponen yang tepat.","color":"#94b7ba","workplace":"mechanic"},{"id":"courier","name":"Kurir sepeda","icon":"package","group":"Transportasi","mechanic":"route","risk":2,"pay":85,"desc":"Antar paket melewati rute tanpa menabrak rintangan.","color":"#d8a66b","workplace":"courier"},{"id":"bus","name":"Sopir bus","icon":"bus","group":"Transportasi","mechanic":"drive","risk":2,"pay":90,"desc":"Atur gas dan rem agar berhenti tepat di halte.","color":"#81a9c1","workplace":"bus"},{"id":"wood","name":"Pengrajin kayu","icon":"hammer","group":"Kriya","mechanic":"measure","risk":2,"pay":90,"desc":"Ukur dan potong papan sesuai panjang pesanan.","color":"#bf9f80","workplace":"wood"},{"id":"builder","name":"Pekerja konstruksi","icon":"hammer","group":"Teknik","mechanic":"stack","risk":3,"pay":110,"desc":"Tempatkan balok bergerak tepat di atas penyangga.","color":"#dfb371","workplace":"builder"},{"id":"fisher","name":"Nelayan laut","icon":"fish","group":"Alam","mechanic":"fish","risk":3,"pay":115,"desc":"Jaga ketegangan tali saat ikan menarik balik.","color":"#7dabbf","workplace":"pier"},{"id":"tower","name":"Teknisi menara","icon":"tower","group":"Teknik","mechanic":"climb","risk":3,"pay":130,"desc":"Pilih pegangan kokoh dan jaga keseimbangan di ketinggian.","color":"#a2aac4","workplace":"tower"},{"id":"electric","name":"Teknisi listrik","icon":"bolt","group":"Teknik","mechanic":"circuit","risk":3,"pay":135,"desc":"Matikan daya dan putar jalur agar rangkaian tersambung.","color":"#d4bd72","workplace":"electric"},{"id":"miner","name":"Penambang","icon":"pick","group":"Ekspedisi","mechanic":"mine","risk":4,"pay":150,"desc":"Baca petunjuk batuan, pasang penyangga, lalu gali.","color":"#9c9cab","workplace":"miner"},{"id":"diver","name":"Penyelam teknis","icon":"anchor","group":"Ekspedisi","mechanic":"dive","risk":4,"pay":160,"desc":"Navigasi arus, ambil komponen, dan awasi oksigen.","color":"#6aaeba","workplace":"pier"},{"id":"fire","name":"Pemadam kebakaran","icon":"flame","group":"Penyelamatan","mechanic":"fire","risk":4,"pay":175,"desc":"Padamkan titik api sebelum air habis dan buka akses aman.","color":"#d98c76","workplace":"fire"},{"id":"sar","name":"SAR pegunungan","icon":"mountain","group":"Penyelamatan","mechanic":"rope","risk":5,"pay":190,"desc":"Pasang jangkar dan bawa tandu melalui jalur aman.","color":"#91a48a","workplace":"sar"},{"id":"rescue","name":"Penyelamat bencana","icon":"shield","group":"Penyelamatan","mechanic":"rescue","risk":5,"pay":210,"desc":"Baca peta reruntuhan dan buka jalur evakuasi korban.","color":"#c7a17e","workplace":"rescue"}],"buildings":[["Klinik",1800,"Kesehatan"],["Rumah sakit",6200,"Kesehatan"],["Apotek",2200,"Kesehatan"],["Pos pemadam",4500,"Keselamatan"],["Pusat SAR",5800,"Keselamatan"],["Pasar",3500,"Perdagangan"],["Minimarket",2100,"Perdagangan"],["Pujasera",3200,"Kuliner"],["Kafe",2400,"Kuliner"],["Toko roti",2600,"Kuliner"],["Halte",1200,"Transportasi"],["Terminal bus",4800,"Transportasi"],["Dermaga",3900,"Transportasi"],["Stasiun",7500,"Transportasi"],["Garasi umum",2900,"Transportasi"],["Perpustakaan",2800,"Pendidikan"],["Pusat pelatihan",3800,"Pendidikan"],["Museum",5200,"Budaya"],["Galeri seni",3300,"Budaya"],["Teater",5400,"Budaya"],["Taman kota",1500,"Rekreasi"],["Lapangan olahraga",2500,"Rekreasi"],["Kolam renang",4200,"Rekreasi"],["Taman bermain",2300,"Rekreasi"],["Gedung festival",6500,"Rekreasi"],["Kantor pos",2000,"Layanan"],["Pusat daur ulang",3600,"Layanan"],["Bengkel umum",3100,"Produksi"],["Rumah kaca",3400,"Produksi"],["Pengolahan air",5100,"Layanan"]],"places":[{"id":"hall","name":"Balai Nusa","sub":"Pemerintahan & voting","x":0,"z":-20,"kind":"hall"},{"id":"market","name":"Shopmarket Senja","sub":"Kasir · belanja warga","x":-22,"z":0,"kind":"market"},{"id":"jobs","name":"Bursa Karya","sub":"25 pilihan pekerjaan","x":22,"z":0,"kind":"jobs"},{"id":"home","name":"Kos Pelangi","sub":"Rumah pertamamu","x":-22,"z":22,"kind":"home"},{"id":"clinic","name":"Klinik Sehat","sub":"Perawatan & pemulihan","x":22,"z":-20,"kind":"clinic"},{"id":"cafe","name":"Kopi Tepi Laut","sub":"Meja ngobrol & pertemanan","x":-22,"z":-20,"kind":"cafe"},{"id":"land","name":"Kantor Pertanahan","sub":"Pilih lahan & bangun rumah","x":22,"z":22,"kind":"land"},{"id":"pier","name":"Dermaga Biru","sub":"Pemandangan pesisir","x":0,"z":43,"kind":"pier"},{"id":"airport","name":"Bandara Nusa","sub":"Gerbang cerita baru","x":-45,"z":-40,"kind":"airport"},{"id":"library","name":"Perpustakaan Nusa","x":-48,"z":-21,"kind":"workplace","style":"library","sub":"Pustakawan"},{"id":"bakery","name":"Bakery Mentari","x":-48,"z":1,"kind":"workplace","style":"bakery","sub":"Pembuat roti"},{"id":"tailor","name":"Atelier Benang","x":-35,"z":1,"kind":"workplace","style":"shop","sub":"Penjahit"},{"id":"barber","name":"Barbershop Sudut","x":-35,"z":23,"kind":"workplace","style":"shop","sub":"Penata rambut"},{"id":"studio","name":"Studio Nada & Foto","x":-48,"z":23,"kind":"workplace","style":"studio","sub":"Musisi · Fotografer"},{"id":"garden","name":"Taman Kota","x":0,"z":23,"kind":"workplace","style":"park","sub":"Tukang kebun"},{"id":"restaurant","name":"Restoran Rasa","x":-35,"z":-21,"kind":"workplace","style":"restaurant","sub":"Koki"},{"id":"farm","name":"Kebun & Rumah Kaca","x":-79,"z":-70,"kind":"workplace","style":"farm","sub":"Petani"},{"id":"ranch","name":"Peternakan Hijau","x":-79,"z":-45,"kind":"workplace","style":"ranch","sub":"Peternak"},{"id":"mechanic","name":"Bengkel Roda","x":79,"z":5,"kind":"workplace","style":"garage","sub":"Mekanik"},{"id":"courier","name":"Kantor Pos Nusa","x":79,"z":30,"kind":"workplace","style":"post","sub":"Kurir sepeda"},{"id":"bus","name":"Terminal Kota","x":79,"z":55,"kind":"workplace","style":"terminal","sub":"Sopir bus"},{"id":"wood","name":"Workshop Kayu","x":-79,"z":5,"kind":"workplace","style":"workshop","sub":"Pengrajin kayu"},{"id":"builder","name":"Proyek Konstruksi","x":43,"z":-25,"kind":"workplace","style":"construction","sub":"Pekerja konstruksi"},{"id":"tower","name":"Menara Telekomunikasi","x":55,"z":-25,"kind":"workplace","style":"utility","sub":"Teknisi menara"},{"id":"electric","name":"Gardu & Kantor Listrik","x":79,"z":-20,"kind":"workplace","style":"utility","sub":"Teknisi listrik"},{"id":"miner","name":"Pos Tambang Bukit","x":-79,"z":30,"kind":"workplace","style":"mine","sub":"Penambang"},{"id":"fire","name":"Pos Pemadam","x":-54,"z":47,"kind":"workplace","style":"fire","sub":"Pemadam kebakaran"},{"id":"sar","name":"Pusat SAR","x":-44,"z":47,"kind":"workplace","style":"rescue","sub":"SAR pegunungan"},{"id":"rescue","name":"Pos Siaga Bencana","x":-34,"z":47,"kind":"workplace","style":"rescue","sub":"Penyelamat bencana"}],"housing":{"count":240,"districts":[{"name":"Pusat Kota","start":0,"count":24},{"name":"Taman Utara","start":24,"count":72},{"name":"Pesisir Timur","start":96,"count":72},{"name":"Kebun Selatan","start":168,"count":72}]}};
 CATALOG.jobs.push(...NEW_JOBS);
@@ -681,13 +682,13 @@ const DEFAULT_CHANNELS = [{ name: 'Nipzy Play', url: 'https://www.youtube.com/@n
 const RANKS = [{ xp: 0, name: 'Warga Baru', bonus: 0 }, { xp: 150, name: 'Magang', bonus: 2 }, { xp: 500, name: 'Terampil', bonus: 4 }, { xp: 1300, name: 'Profesional', bonus: 6 }, { xp: 3000, name: 'Supervisor', bonus: 8 }, { xp: 6500, name: 'Kepala Divisi', bonus: 10 }];
 function career(xp) { const index = RANKS.findLastIndex(r => xp >= r.xp); const current = RANKS[Math.max(0, index)]; return { ...current, index, next: RANKS[index + 1] ?? null }; }
 function initialWorld(now) { return { players: {}, tax: 5, pendingTax: null, treasury: 12000, termDays: 30, mayorUntil: 0, president: null, vice: null, mayor: null, vote: null, projects: [], news: [{ id: 'welcome', title: 'Selamat datang di Kota Nusa', text: 'Sebuah pulau kecil, banyak cerita baru. Mulai dari kos, pilih pekerjaan, dan bangun kota bersama.', author: 'Kantor Nusa', time: now }], events: [], ledger: [], reports: [], youtube: DEFAULT_CHANNELS[0].url, channels: DEFAULT_CHANNELS, created: now }; }
-function makePlayer(name, color, now) { return { id: crypto.randomUUID(), name, color, coins: 250, held: 0, xp: 0, hunger: 100, thirst: 100, health: 100, active: 0, joined: now, lastTick: now, salaryAt: 0, lastAction: 0, jobs: 0, skills: {}, inventory: {}, home: null, ig: '', bio: '', apt: null, decor: 'sage', life: 1, orchardLot: null, memories: ['Tiba di Nusa · ' + new Date(now).toISOString().slice(0, 10)], friends: [], requests: [], blocks: [], mutedUntil: 0, banned: false, tutorial: 0, job: null, claimTries: 0, claimAt: 0 }; }
+function makePlayer(name, color, now) { return { id: crypto.randomUUID(), name, color, coins: 250, held: 0, xp: 0, hunger: 100, thirst: 100, health: 100, active: 0, joined: now, lastTick: now, salaryAt: 0, lastAction: 0, jobs: 0, skills: {}, inventory: {}, home: null, personalHouseLevel: 0, ig: '', bio: '', apt: null, decor: 'sage', life: 1, orchardLot: null, memories: ['Tiba di Nusa · ' + new Date(now).toISOString().slice(0, 10)], friends: [], requests: [], blocks: [], mutedUntil: 0, banned: false, tutorial: 0, job: null, claimTries: 0, claimAt: 0 }; }
 function role(w, id) { return w.president === id ? 'president' : w.vice === id ? 'vice' : w.mayor === id ? 'mayor' : 'citizen'; }
 function publicPlayer(w, p) { const orchard=orchardState(p); let orchardInfo=null; if(orchard){const counts={}; for(const plot of orchard.plots)if(plot)counts[plot.type]=(counts[plot.type]||0)+1; const mainType=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0]||null;
  orchardInfo={lot:Number.isInteger(p.orchardLot)?p.orchardLot:null,occupied:orchard.plots.filter(Boolean).length,
  mainType,harvests:orchard.harvests||0,lastHarvest:orchard.lastHarvest||0,
  ready:orchard.plots.filter(a=>a&&Date.now()>=a.nextAt).length,
- trees:orchard.plots.map(a=>a?{type:a.type,plantedAt:a.plantedAt,nextAt:a.nextAt,harvested:a.harvested}:null)};} return { id: p.id, name: p.name, color: p.color, role: role(w, p.id), home: p.home, ig: p.ig||'', bio: p.bio||'', apt: p.apt||null, houseLevel:p.home===null?0:(p.houseLevel||1), business:p.business?{name:p.business.name,type:p.business.type,level:p.business.level}:null, orchard:orchardInfo, xp: p.xp, life: p.life, jobs: p.jobs, joined: p.joined, decor: p.decor, career: career(p.xp) }; }
+ trees:orchard.plots.map(a=>a?{type:a.type,plantedAt:a.plantedAt,nextAt:a.nextAt,harvested:a.harvested}:null)};} return { id: p.id, name: p.name, color: p.color, role: role(w, p.id), home: p.home, ig: p.ig||'', bio: p.bio||'', apt: p.apt||null, houseLevel:p.home===null?0:(p.houseLevel||1), personalHouseLevel:Math.min(10,Math.max(0,p.personalHouseLevel||(p.home!==null?Math.min(10,p.houseLevel||1):0))), business:p.business?{name:p.business.name,type:p.business.type,level:p.business.level}:null, orchard:orchardInfo, xp: p.xp, life: p.life, jobs: p.jobs, joined: p.joined, decor: p.decor, career: career(p.xp) }; }
 function record(w, kind, text, actor, amount = 0, now = Date.now()) { w.ledger.unshift({ id: crypto.randomUUID(), kind, text, actor, amount, time: now }); w.ledger = w.ledger.slice(0, 200); }
 function demand(condition, message) { if (!condition)
     throw new Error(message); }
@@ -737,7 +738,7 @@ function tick(p, w, now) { const dt = Math.max(0, Math.min(15, (now - p.lastTick
 function die(w, p, now) { if (w.vote?.owner === p.id && ['open', 'tie'].includes(w.vote.status)) {
     w.vote.status = 'cancelled';
     record(w, 'vote', 'Anggaran voting dilepas: karakter pemilik memulai hidup baru.', p.id, 0, now);
-} p.coins = 250; p.held = 0; p.xp = 0; p.hunger = 100; p.thirst = 100; p.health = 100; p.home = null; p.houseLevel=0;p.civicQualifiedAt=null; p.skills = {}; p.inventory = {}; p.jobs = 0; p.life++; p.job = null; p.memories.unshift('Memulai kehidupan ke-' + p.life + ' · ' + new Date(now).toISOString().slice(0, 10)); p.memories = p.memories.slice(0, 20); }
+} p.coins = 250; p.held = 0; p.xp = 0; p.hunger = 100; p.thirst = 100; p.health = 100; p.home = null; p.houseLevel=0;p.personalHouseLevel=0;p.civicQualifiedAt=null; p.skills = {}; p.inventory = {}; p.jobs = 0; p.life++; p.job = null; p.memories.unshift('Memulai kehidupan ke-' + p.life + ' · ' + new Date(now).toISOString().slice(0, 10)); p.memories = p.memories.slice(0, 20); }
 
 function view(w, uid) { const p = w.players[uid]; return { me: p ? { ...p, role: role(w, p.id), career: career(p.xp), nusaV2: v2View(w,p) } : null, city: { tax: w.tax, pendingTax: w.pendingTax, treasury: w.treasury, civicXP:500, civicQueue:Object.values(w.players).filter(p=>!p.banned&&p.xp>=500&&p.id!==w.president&&p.id!==w.vice).sort((a,b)=>a.civicQualifiedAt-b.civicQualifiedAt||a.id.localeCompare(b.id)).map(p=>({id:p.id,name:p.name,xp:p.xp,at:p.civicQualifiedAt})), termDays: w.termDays, mayorUntil: w.mayorUntil, president: w.president, vice: w.vice, mayor: w.mayor, youtube: w.youtube, channels: w.channels ?? DEFAULT_CHANNELS, created: w.created, news: w.news, projects: w.projects, events: w.events.filter(e => e.until > Date.now()), vote: w.vote ? { ...w.vote, votes: undefined, counts: w.vote.options.map((_, i) => Object.values(w.vote.votes).filter(v => v === i).length), myVote: p ? w.vote.votes[p.id] ?? null : null } : null }, citizens: Object.values(w.players).filter(x => !x.banned).map(x => publicPlayer(w, x)), ledger: p ? w.ledger.filter(x => ['president', 'vice'].includes(role(w, p.id)) || x.actor === p.id || ['tax', 'build', 'vote', 'office', 'salary'].includes(x.kind)).slice(0, 50) : [], bannedCitizens: p && role(w, p.id) === 'president' ? Object.values(w.players).filter(x => x.banned).map(x => publicPlayer(w, x)) : [], reports: p && ['president', 'vice'].includes(role(w, p.id)) ? w.reports : [], now: Date.now() }; }
 
@@ -1401,24 +1402,32 @@ async function POST(req) {
                 record(w, 'received', 'Dari ' + p.name, to.id, n, now);
                 return { message: n + ' koin terkirim ke ' + to.name };
             }
-            if (action === 'buyLand') {
-                const plot = amount(b.plot, 0, 239);
-                demand(p.home === null, 'Satu rumah untuk setiap karakter.');
-                demand(!Object.values(w.players).some(a => a.home === plot), 'Lahan baru saja dibeli warga lain.');
-                const cost = plot < 12 || plot >= 24 ? 420 : 600;
-                spend(cost);
-                p.coins -= cost;
-                p.home = plot; p.houseLevel=1;
-                p.memories.unshift('Rumah pertama · Petak ' + (plot + 1));
-                record(w, 'land', 'Membeli petak ' + (plot + 1), p.id, -cost, now);
-                return { message: 'Petak ' + (plot + 1) + ' sekarang milikmu!' };
+            if(action==='buyPrivateHouse'){
+                demand(!p.personalHouseLevel&&p.home==null,'Kamu sudah mempunyai rumah.');
+                const cost=PRIVATE_HOUSE_STEPS[0].price;
+                spend(cost);p.coins-=cost;p.personalHouseLevel=1;
+                p.memories.unshift('Membeli rumah Level 1 · '+cost+' koin');
+                record(w,'house','Membeli rumah Level 1',p.id,-cost,now);
+                return {message:'Rumah Level 1 berhasil dibeli!'};
             }
+            if(action==='upgradePrivateHouse'){
+                const own=Math.min(10,Math.max(0,p.personalHouseLevel||(p.home!=null?Math.min(10,p.houseLevel||1):0)));
+                demand(own>=1&&own<10,'Rumah belum dibeli atau sudah Level 10.');
+                demand(b.fromLevel===own,'Level rumah berubah. Buka Rumahku kembali.');
+                const next=PRIVATE_HOUSE_STEPS[own];
+                demand(next?.level===own+1,'Level tujuan tidak valid.');
+                spend(next.price);p.coins-=next.price;p.personalHouseLevel=next.level;
+                p.memories.unshift('Upgrade rumah Level '+next.level+' · '+next.price+' koin');
+                record(w,'house','Upgrade rumah menjadi '+next.name,p.id,-next.price,now);
+                return {message:'Upgrade berhasil: '+next.name+'!'};
+            }
+            if(action==='buyLand')throw Error('Sistem kavling ditutup. Beli rumah langsung di Rumahku.');
             if(action==='profile'){const ig=String(b.ig??p.ig??'').replace(/^@/,'').trim();demand(ig===''||/^[A-Za-z0-9._]{1,30}$/.test(ig),'Username Instagram hanya huruf, angka, titik, garis bawah.');p.ig=ig;if(b.bio!==undefined)p.bio=cleanBio(b.bio);return {message:'Kartu penduduk diperbarui.'};}
             if(action==='rentApt'){const t=amount(b.tower,0,7),u=amount(b.unit,0,APT_UNITS-1);demand(!p.apt,'Kamu sudah punya unit apartemen.');const cost=aptCost(u);spend(cost);p.coins-=cost;p.apt={t,u};p.memories.unshift('Pindah ke Apartemen '+(t+1)+' · Lantai '+(u+1));record(w,'house','Tinggal di Apartemen '+(t+1)+' lantai '+(u+1),p.id,-cost,now);return {message:'Selamat tinggal di Apartemen '+(t+1)+', lantai '+(u+1)+'!'};}
             if(action==='leaveApt'){demand(p.apt,'Kamu tidak sedang tinggal di apartemen.');p.apt=null;return {message:'Kamu pindah keluar dari apartemen.'};}
             if(action==='upgradeHouse'){demand(p.home!==null,'Beli tanah dahulu.');const current=p.houseLevel||1;demand(current<20,'Rumah sudah tingkat maksimum.');demand(b.fromLevel===current,'Tingkat rumah sudah berubah. Buka ulang panel Rumah.');const next=HOUSE_LEVELS[current];spend(next.cost);p.coins-=next.cost;p.houseLevel=next.level;record(w,'house','Upgrade ke '+next.name+' · tingkat '+next.level,p.id,-next.cost,now);return {message:'Rumah menjadi '+next.name+'!'};}
  if (action === 'decorate') {
-                demand(p.home !== null, 'Beli lahan dahulu.');
+                demand(p.home!==null||p.personalHouseLevel>0,'Beli rumah terlebih dahulu.');
                 demand(['sage', 'coral', 'blue', 'sand'].includes(b.decor), 'Warna tidak tersedia.');
                 spend(25);
                 p.coins -= 25;
@@ -3835,7 +3844,7 @@ function showApt(t=0){
 function ktpData(c,mine){
   const home=c.home===undefined?c.h:c.home,apt=c.apt!==undefined?c.apt:c.a;
   let addr='Kos Pelangi';
-  if(home!==null&&home!==undefined){const d=typeof districtFor==='function'?districtFor(home):null;addr='Petak '+(home+1)+(d?' · '+d.name:'');}
+  if(c.personalHouseLevel>0||home!==null&&home!==undefined){addr='Rumah Pribadi · Level '+Math.min(10,Math.max(1,c.personalHouseLevel||c.houseLevel||1));}
   else if(apt)addr='Apartemen '+(apt.t+1)+' · Lantai '+(apt.u+1);
   const official=(c.id===state?.me?.id?state?.me?.role:null)||window.NusaCivic?.roleForGameId?.(c.id)||(c.role==='mayor'?'citizen':c.role);
   const role=official==='president'?'Presiden':official==='vice'?'Wakil Presiden':official==='mayor'?'Wali Kota':(c.career&&c.career.name)||c.rk||'Warga Baru';
@@ -7312,80 +7321,57 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
 })();
 </script><script src="city-life.js?v=1" defer></script>
 <script>
-/* Pulau Harapan: simulasi kepemilikan dan koin TANPA menulis Firebase.
-   Hanya aktif di domain pratinjau; tidak memberikan koin sungguhan. */
+/* Simulasi rumah khusus domain Netlify tes; tidak mengubah dompet game. */
 (function(){
  "use strict";
  const enabled=location.hostname==="kota-nusa-tes-rumahku.netlify.app";
- const PREFIX="nusa-rumahku-tes-v1:";
- function my(){return typeof state!=="undefined"?state.me:null;}
- function key(){return PREFIX+String(my()?.id||"tamu");}
- function saved(){
-  if(!enabled||!my()?.id)return null;
-  try{const a=JSON.parse(localStorage.getItem(key())||"null");
-    if(!a||!Number.isInteger(a.plot)||a.plot<0||a.plot>=288||a.ver!==1)return null;
-    return a;
-  }catch{return null;}
+ const storageKey=()=> "nusa-rumah-pribadi-tes-v2:"+String(state?.me?.id||"tamu");
+ function read(){
+  if(!enabled||!state?.me?.id)return 0;
+  try{
+    const a=JSON.parse(localStorage.getItem(storageKey())||"null");
+    if(Number.isInteger(a?.level)&&a.level>0&&a.level<=10)return a.level;
+    const previous=JSON.parse(localStorage.getItem("nusa-rumahku-tes-v1:"+state.me.id)||"null");
+    if(Number.isInteger(previous?.level)&&previous.level>0&&previous.level<=10)return previous.level;
+  }catch(e){}
+  return 0;
  }
- function viewPlayer(p){
-  if(!p||!enabled||p.home!=null)return p;
-  const r=saved();return r?{...p,home:r.plot,houseLevel:r.level||1,decor:r.decor||p.decor||"sage"}:p;
+ function viewPlayer(p){if(!p||!enabled)return p;return {...p,personalHouseLevel:Math.max(read(),p.personalHouseLevel||0)};}
+ function save(level){try{localStorage.setItem(storageKey(),JSON.stringify({level,version:2}));return true;}catch(e){toast('Tidak dapat menyimpan rumah tes.',true);return false;}}
+ function buyHouse(){
+  if(!state?.me)return toast('Masuk Kota Nusa dahulu.',true);
+  if(read()||state.me.personalHouseLevel||state.me.home!=null)return toast('Rumah sudah dimiliki.',true);
+  if(!window.confirm('Beli Level 1 (500 koin)?\nIni simulasi Netlify, saldo asli TIDAK berkurang.'))return;
+  if(save(1)){toast('Rumah tes Level 1 berhasil dibeli!');window.NusaRumahku?.open();}
  }
- function previewOwner(i) {
-  if(!enabled)return null;const p=my(),r=saved();
-  if(!p||!r||r.plot!==i||p.home!=null)return null;
-  return {...p,home:i,houseLevel:r.level||1,decor:r.decor||p.decor||"sage"};
+ function upgradeHouse(fromLevel){
+  if(!state?.me)return;
+  const level=Math.max(read(),state.me.personalHouseLevel||0,state.me.home!=null?Math.min(10,state.me.houseLevel||1):0);
+  if(level!==fromLevel||level>=10||level<1)return toast('Level tidak sesuai.',true);
+  const next=PRIVATE_HOUSE_STEPS[level];
+  if(!window.confirm('Upgrade ke '+next.name+' (harga '+next.price.toLocaleString('id-ID')+' koin)?\nSIMULASI, tidak memotong koin asli.'))return;
+  if(save(level+1)){toast('Rumah demo naik ke Level '+(level+1));window.NusaRumahku?.open();}
  }
- function ownedPlot(){const r=saved();return r?[r.plot]:[];}
- function refresh(){
-  // Angka demo tidak menyentuh p.coins atau dompet transaksi asli.
-  if(!enabled)return;
-  const badge=document.getElementById("coins");
-  if(badge){
-    if(badge.textContent!=="∞")badge.textContent="∞";
-    const label=badge.nextElementSibling;
-    if(label && label.textContent!=="Koin TES rumah")label.textContent="Koin TES rumah";
-  }
- }
- function buy(i){
-  if(!enabled)return;
-  const p=my();
-  if(!p)return toast("Masuk ke Kota Nusa dahulu.",true);
-  if(p.home!=null)return toast("Akun ini sudah mempunyai tanah asli.",true);
-  if(saved())return toast("Kamu sudah membeli satu rumah tes.",true);
-  if(!Number.isInteger(i)||i<0||i>=288)return toast("Nomor petak tidak valid.",true);
-  if(state.citizens.some(c=>c.home===i))return toast("Petak sudah ditempati warga lain.",true);
-  if(!window.confirm("Beli Petak "+(i+1)+" memakai ∞ koin DEMO?\nTidak memotong saldo dan tidak memberi tanah asli di Firebase."))return;
-  try{localStorage.setItem(key(),JSON.stringify({ver:1,plot:i,level:1,decor:p.decor||"sage"}));}
-  catch(e){return toast("Penyimpanan demo gagal: "+e.message,true);}
-  toast("Rumah percobaan di Petak "+(i+1)+" berhasil dibuat! (Simulasi)");
-  world?.reloadScene?.();
-  const where=world?.plotPosition?.(i);
-  if(where)world.navigate(where.x,where.z);
-  closePanel();
-  window.NusaRumahku?.open();
- }
- function upgrade(){
-  if(!enabled||!saved())return;
-  const old=saved();
-  const level=old.level||1;
-  if(level>=20)return toast("Rumah demo sudah tingkat 20.");
-  if(!window.confirm("Naikkan rumah DEMO dari tingkat "+level+" ke "+(level+1)+" tanpa biaya asli?"))return;
-  const next={...old,level:level+1};
-  try{localStorage.setItem(key(),JSON.stringify(next));}catch(e){return toast("Gagal menyimpan demo.",true);}
-  world?.reloadScene?.();
-  window.NusaRumahku?.open();
-  toast("Tingkat rumah DEMO menjadi "+next.level);
- }
- window.NusaRumahkuTest={enabled,viewPlayer,previewOwner,ownedPlot,hasDemo:()=>!!saved(),buy,upgrade};
- if(enabled) {
-  setInterval(refresh,1000);
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",refresh,{once:true});
-  else refresh();
+ window.NusaRumahkuTest={enabled,viewPlayer,buyHouse,upgradeHouse};
+ if(enabled){
+  const update=()=>{const el=document.getElementById('coins');if(!el)return;el.textContent='∞';const caption=el.nextElementSibling;if(caption)caption.textContent='Koin TES rumah';};
+  setInterval(update,1000);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',update,{once:true});else update();
  }
 })();
 </script>
-<script>window.NusaHomeBridge={player:()=>window.NusaRumahkuTest?.viewPlayer(state.me)||state.me,citizens:()=>state.citizens||[],identity:p=>ktpData(p,p.id===state.me?.id),manage:()=>window.NusaRumahkuTest?.hasDemo()?window.NusaRumahkuTest.upgrade():showHomeManage(),land:showLand,decorate:color=>act('decorate',{decor:color},true),toast};</script><script src="rumahku.js?v=1"></script>
+<script>window.NusaHomeBridge={
+ player:()=>window.NusaRumahkuTest?.viewPlayer(state.me)||state.me,
+ citizens:()=>state.citizens||[],
+ identity:p=>ktpData(p,p.id===state.me?.id),
+ levels:()=>PRIVATE_HOUSE_STEPS,
+ buyHouse:()=>window.NusaRumahkuTest?.enabled?window.NusaRumahkuTest.buyHouse():act('buyPrivateHouse'),
+ upgradeHouse:fromLevel=>window.NusaRumahkuTest?.enabled?window.NusaRumahkuTest.upgradeHouse(fromLevel):act('upgradePrivateHouse',{fromLevel}),
+ manage:()=>window.NusaRumahku?.open(),
+ land:()=>window.NusaRumahku?.open(),
+ decorate:color=>act('decorate',{decor:color},true),
+ toast
+};</script><script src="rumahku.js?v=1"></script>
 
 <style id="nusa-no-zeppelin">#nusaScarvAirship{display:none!important;pointer-events:none!important}</style>
 <!-- Rumahku Tahap 1: hanya render halaman (tanpa mengubah fitur lain) -->
