@@ -7666,7 +7666,12 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     return {x:(u+v)/2,z:(v-u)/2};
   }
   function blocked(x,z){
-    if(x<MIN+.07||x>MAX-.07||z<MIN+.07||z>MAX-.07)return true;
+    // Rumah berada di depan kamera. Karena karakter berada di kanvas
+    // paling atas, area belakang rumah tidak boleh dijelajahi:
+    // di sana karakter akan terlihat berdiri di atap meskipun
+    // posisi tanahnya secara matematis di luar bangunan.
+    // Batas rumput depan diberi jarak aman dari dinding/atap.
+    if(x<MIN+.07||x>MAX-.07||z<2.72||z>MAX-.07)return true;
     for(var i=0;i<obstacles.length;i++){
       var o=obstacles[i];
       if(o.kind==="kotak"){
@@ -7827,7 +7832,26 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     if(time-lastDraw>30||!actor.walk){draw();lastDraw=time;}
     if(actor.walk)raf=requestAnimationFrame(walkFrame);
   }
+  function inHouseSilhouette(x,y){
+    // Poligon atap + dinding rumah yang terlihat di kamera.
+    // Mencegah ketukan pada atap/dinding diterjemahkan menjadi
+    // tujuan berjalan di tanah di balik bangunan (proyeksi isometrik).
+    var points=[
+      {x:432,y:153},{x:600,y:240},{x:590,y:382},
+      {x:434,y:464},{x:276,y:386},{x:266,y:240}
+    ];
+    var inside=false;
+    for(var i=0,j=points.length-1;i<points.length;j=i++){
+      var a=points[i],b=points[j];
+      if((a.y>y)!==(b.y>y) &&
+         x<(b.x-a.x)*(y-a.y)/(b.y-a.y)+a.x)inside=!inside;
+    }
+    return inside;
+  }
   function walkTo(screenX,screenY){
+    // Rumah 3D digambar menutupi tanah: jangan jadikan
+    // ketukan di permukaan atap/dinding sebagai tujuan berjalan.
+    if(inHouseSilhouette(screenX,screenY))return;
     var target=fromScreen(screenX,screenY);
     // Ketukan pada ruang kosong di luar petak atau benda tidak memulai jalan.
     if(blocked(target.x,target.z))return;
