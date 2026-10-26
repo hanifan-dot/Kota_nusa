@@ -7386,11 +7386,22 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
  land:()=>window.NusaRumahku?.open(),
  decorate:color=>window.NusaRumahkuTest?.enabled?window.NusaRumahkuTest.decorate(color):act('decorate',{decor:color},true),
  toast
-};</script><script src="rumahku.js?v=4"></script>
+};</script><script src="rumahku.js?v=20261026-upgrade5"></script>
 
 <style id="nusa-no-zeppelin">#nusaScarvAirship{display:none!important;pointer-events:none!important}</style>
 <!-- Rumahku Tahap 1: hanya render halaman (tanpa mengubah fitur lain) -->
-<style id="rh-visual-tahap1">#rumahkuRoot .rh-scene>canvas.rh-stage1-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}#rumahkuRoot .rh-scene .rh-paint{display:none}</style>
+<style id="rh-visual-tahap1">
+@media(prefers-reduced-motion:no-preference){
+#rumahkuRoot .rh-scene.rh-house-level-up canvas.rh-stage1-canvas{
+ animation:rhHouseUpgrade .62s cubic-bezier(.18,.9,.26,1) both;
+}
+@keyframes rhHouseUpgrade{
+ 0%{opacity:.2;transform:translateY(16px) scale(.92);filter:brightness(1.35);}
+ 60%{opacity:1;transform:translateY(-5px) scale(1.018);filter:brightness(1.08);}
+ 100%{opacity:1;transform:none;filter:none;}
+}
+}
+#rumahkuRoot .rh-scene>canvas.rh-stage1-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}#rumahkuRoot .rh-scene .rh-paint{display:none}</style>
 <script>
 (function () {
   "use strict";
@@ -7820,7 +7831,17 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     if (!observedRoot || !observedRoot.isConnected) return;
     var scene=observedRoot.querySelector(".rh-scene");
     if (!scene) return;
-    if (scene.querySelector("canvas.rh-stage1-canvas")) return;
+    var existing=scene.querySelector("canvas.rh-stage1-canvas");
+    if(existing){
+      var levelNow=scene.getAttribute("data-house-level")||"0";
+      var decorNow=scene.getAttribute("data-house-decor")||"sage";
+      if(existing.dataset.houseLevel!==levelNow||existing.dataset.houseDecor!==decorNow){
+        paint(existing,scene);
+        existing.dataset.houseLevel=levelNow;
+        existing.dataset.houseDecor=decorNow;
+      }
+      return;
+    }
     var image=scene.querySelector("img");
     if (image) image.remove();
     var canvas=document.createElement("canvas");
@@ -7830,6 +7851,8 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     canvas.setAttribute("aria-label","Halaman rumah isometrik dengan pepohonan rimbun, pagar tanaman, jalan batu, kotak surat, lampu taman dan kebun mini.");
     scene.prepend(canvas);
     paint(canvas,scene);
+    canvas.dataset.houseLevel=scene.getAttribute("data-house-level")||"0";
+    canvas.dataset.houseDecor=scene.getAttribute("data-house-decor")||"sage";
   }
   function detach() {
     if(observer)observer.disconnect();
@@ -7855,6 +7878,21 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
   api.open=function(){var result=originalOpen.apply(this,arguments);attach();return result;};
   var originalClose=api.close;
   api.close=function(){detach();return originalClose.apply(this,arguments);};
+  // Digunakan tombol Upgrade agar rumah langsung tergambar ulang.
+  // Tidak mereset posisi karakter maupun mengubah saldo pemain.
+  window.NusaRumahkuVisual={
+    refresh:function(){
+      if(!observedRoot||!observedRoot.isConnected)return;
+      mount();
+      var sc=observedRoot.querySelector(".rh-scene");
+      var cv=sc?.querySelector("canvas.rh-stage1-canvas");
+      if(cv&&sc){
+        paint(cv,sc);
+        cv.dataset.houseLevel=sc.getAttribute("data-house-level")||"0";
+        cv.dataset.houseDecor=sc.getAttribute("data-house-decor")||"sage";
+      }
+    }
+  };
   api.__visualTahap1=true;
 })();
 </script>
