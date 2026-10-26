@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#193e47">
+<title>Kurir Nusa | Uji Tahap 1</title>
+<style>
+:root{color-scheme:light;font-family:system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#8cbfc3;touch-action:none}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#hud{pointer-events:none;position:fixed;z-index:2;inset:0;color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 22px)}
+#top{display:flex;align-items:start;gap:9px}
+#name{background:#133d47e8;border:1px solid #ffffff30;border-radius:19px;padding:10px 13px;flex:1;box-shadow:0 5px 16px #102e3344}
+#name small{font-size:10px;letter-spacing:1.5px;color:#acd9d9;font-weight:800;display:block}
+#name strong{font-size:19px;display:block;line-height:1.3}
+#timer{background:#ffcd65;color:#273c3b;min-width:66px;text-align:center;border-radius:17px;padding:11px;font-size:24px;font-weight:900}
+#stats{display:flex;gap:8px;margin-top:8px}
+.pill{background:#103b43e5;padding:8px 12px;border-radius:14px;border:1px solid #ffffff29;font-weight:800;flex:1;white-space:nowrap;font-size:13px}
+#bottom{text-align:center}
+#progressLabel{text-shadow:0 2px 5px #102d3d;font-size:12px;font-weight:800;margin-bottom:5px}
+#bar{height:8px;overflow:hidden;border-radius:100px;background:#153540aa;border:1px solid #ffffff55}
+#bar i{display:block;width:0;height:100%;background:linear-gradient(90deg,#ffd875,#fff7c7);transition:width .14s}
+#hint{margin:10px auto 0;display:inline-block;border-radius:16px;padding:8px 14px;background:#153c45c9;font-size:12px;font-weight:750;color:#f5faf0}
+#toast{position:absolute;top:32%;width:100%;left:0;text-align:center;font-weight:1000;letter-spacing:1px;font-size:clamp(23px,7vw,37px);color:#fffbd9;text-shadow:0 4px 2px #18405288,0 0 16px #18405288;opacity:0;transform:scale(.75);transition:opacity .15s,transform .15s}
+#toast.show{opacity:1;transform:scale(1.08)}
+#cover{position:fixed;inset:0;z-index:4;background:#0e343ec4;display:grid;place-items:center;padding:18px}
+#cover.hidden{display:none}
+.dialog{background:#f7f4e7;max-width:390px;width:100%;color:#21424b;border-radius:28px;padding:23px 20px;text-align:center;box-shadow:0 18px 55px #092a305c;border:2px solid #e9f2dc}
+.logo{font-size:56px;margin-bottom:3px}
+.dialog h1{margin:0;font-size:32px;line-height:1.1}
+.dialog p{font-size:14px;color:#547076;line-height:1.55;margin:13px 2px}
+.tags{display:flex;gap:7px;justify-content:center;margin:18px 0}
+.tags span{padding:7px 10px;border-radius:12px;background:#dfede2;font-weight:800;font-size:12px}
+button{border:0;font:900 16px system-ui;cursor:pointer}
+#play{display:block;background:#e99d2e;color:#252e27;border-radius:16px;width:100%;min-height:55px;box-shadow:0 6px 0 #b66a24}
+#play:active{transform:translateY(3px);box-shadow:0 3px 0 #b66a24}
+.note{font-size:11px!important;margin-bottom:0!important}
+#exit{pointer-events:auto;position:fixed;right:12px;top:calc(env(safe-area-inset-top) + 113px);z-index:3;border:1px solid #ffffff33;background:#143b44da;color:white;border-radius:12px;padding:9px 12px;font-size:12px;min-height:40px}
+#exit[hidden]{display:none}
+@media (min-width:700px){#hud{max-width:590px;left:50%;transform:translateX(-50%)}}
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Permainan kurir isometrik dengan tiga jalur" role="img"></canvas>
+<div id="hud">
+ <div>
+  <div id="top"><div id="name"><small>KOTA NUSA • MINI GAME</small><strong>📦 KURIR NUSA</strong></div><div id="timer">45</div></div>
+  <div id="stats"><div class="pill" id="score">⭐ 0 POIN</div><div class="pill" id="delivered">📦 0 TERKIRIM</div><div class="pill" id="hearts">❤️❤️❤️</div></div>
+ </div>
+ <div id="toast" aria-live="polite"></div>
+ <div id="bottom"><div id="progressLabel">TARGET LEVEL 2 • 500 POIN</div><div id="bar"><i></i></div><div id="hint">↔ Geser pindah jalur · Ketuk untuk melempar</div></div>
+</div>
+<button id="exit" hidden type="button" aria-label="Akhiri ronde">Akhiri</button>
+<div id="cover">
+ <div class="dialog">
+  <div class="logo">🚲📦</div>
+  <h1 id="coverTitle">Kurir Nusa</h1>
+  <p id="coverText">Antar paket ke rumah bertanda <b>📦</b>. Geser kiri atau kanan untuk memilih jalur. Ketuk layar ketika rumah berada sejajar dengan kurir!</p>
+  <div class="tags" id="coverTags"><span>⏱️ 45 detik</span><span>🛣️ 3 jalur</span><span>🎮 Mode tes</span></div>
+  <button id="play" type="button">Mulai Antar Paket</button>
+  <p class="note">Tahap 1: kontrol, gerak kamera, paket dasar, skor dan hasil. Belum mengubah koin Kota Nusa.</p>
+ </div>
+</div>
+<script>
+(function(){
+"use strict";
+const canvas=document.getElementById("game"),ctx=canvas.getContext("2d",{alpha:false});
+const el=id=>document.getElementById(id);
+const cfg={seconds:45,houseEvery:1.2,obstacleEvery:2.8,speed:.29,playerDepth:.78};
+let W=390,H=800,DPR=1,raf=0,last=0,state="menu",elapsed=0,score=0,delivered=0,combo=0,bestCombo=0,hearts=3,lane=0,visualLane=0,houseWait=0,obstacleWait=1.8,distance=0,flash=0,toastLeft=0,callback=null,gesture=null;
+const objects=[],pool=[],effects=[];
+function resize(){
+ W=Math.max(290,innerWidth);H=Math.max(460,innerHeight);
+ DPR=Math.min(2,devicePixelRatio||1);
+ canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);
+ ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+addEventListener("resize",resize,{passive:true});resize();
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[(Math.random()*a.length)|0];
+const midway=()=>W/2;
+const horizon=()=>H*.19;
+const project=p=>horizon()+Math.max(-.2,p)*H*.84;
+const halfRoad=p=>(52+Math.max(0,p)*133)*(W/390);
+const laneX=(l,p)=>midway()+l*halfRoad(p)*.56;
+function rect(x,y,w,h,fill){ctx.fillStyle=fill;ctx.fillRect(x,y,w,h)}
+function poly(pts,color){ctx.fillStyle=color;ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fill()}
+function circle(x,y,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}
+function line(x1,y1,x2,y2,width,color){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
+function obj(kind,more){
+ const o=pool.pop()||{};o.kind=kind;o.p=-.12;o.done=false;o.touched=false;
+ Object.assign(o,more);objects.push(o);return o;
+}
+function sweepObjects(dt){
+ for(let i=objects.length-1;i>=0;i--){
+  const o=objects[i];o.p+=dt*(cfg.speed+elapsed*.0018);
+  if(o.p>1.25){objects.splice(i,1);pool.push(o);}
+ }
+}
+function spawnHouse(){obj("house",{side:Math.random()<.5?-1:1,roof:pick(["#b95c50","#cf964c","#5984a1"]),tone:pick(["#f1d5a2","#f2e7d4","#c1d9b7"])});}
+function spawnObstacle(){obj("obstacle",{lane:((Math.random()*3)|0)-1,style:pick(["car","hole","cart"])});}
+function notice(s){el("toast").textContent=s;el("toast").classList.add("show");toastLeft=.75;}
+function updateHud(){
+ el("score").textContent="⭐ "+score+" POIN";
+ el("delivered").textContent="📦 "+delivered+" TERKIRIM";
+ el("hearts").textContent="❤️".repeat(Math.max(0,hearts));
+ el("timer").textContent=Math.ceil(Math.max(0,cfg.seconds-elapsed));
+ const level=Math.floor(score/500)+1;
+ el("progressLabel").textContent="LEVEL "+level+" → "+(level+1)+" • "+((level)*500)+" POIN";
+ el("bar").firstElementChild.style.width=(score%500)/5+"%";
+}
+function reset(){
+ for(const o of objects)pool.push(o);
+ objects.length=0;effects.length=0;
+ state="running";elapsed=0;score=0;delivered=0;combo=0;bestCombo=0;hearts=3;lane=0;visualLane=0;houseWait=.3;obstacleWait=2.1;distance=0;flash=0;toastLeft=0;
+ el("toast").classList.remove("show");el("cover").classList.add("hidden");el("exit").hidden=false;
+ updateHud();last=0;
+}
+function start(onFinish){
+ if(typeof onFinish==="function")callback=onFinish;
+ reset();
+}
+function finish(){
+ if(state!=="running")return;
+ state="result";el("exit").hidden=true;
+ const result={score,delivered,bestCombo,seconds:Math.round(elapsed)};
+ if(typeof callback==="function"){try{callback(result)}catch(e){console.warn("Callback Kurir Nusa gagal",e)}}
+ // Integrasi hadiah menunggu validasi server; skor klien bukan saldo.
+ el("coverTitle").textContent=hearts<=0?"Sepedanya perlu istirahat!":"Ronde Selesai!";
+ el("coverText").textContent="⭐ "+score+" poin • 📦 "+delivered+" paket terkirim • Combo terbaik "+bestCombo+"x. Skor ini masih dalam mode tes, belum masuk ke dompet Kota Nusa.";
+ el("coverTags").innerHTML="<span>45 detik maks.</span><span>Latihan Kurir</span>";
+ el("play").textContent="🔁 Main Lagi";
+ el("cover").classList.remove("hidden");
+}
+function shift(dir){if(state!=="running")return;lane=Math.max(-1,Math.min(1,lane+dir));}
+function throwPackage(){
+ if(state!=="running")return;
+ let target=null,diff=Infinity;
+ for(const o of objects){
+  if(o.kind!=="house"||o.done|| (o.side<0&&lane>0)||(o.side>0&&lane<0))continue;
+  const d=Math.abs(o.p-cfg.playerDepth);
+  if(d<.145&&d<diff){diff=d;target=o;}
+ }
+ if(target){
+  target.done=true;delivered++;combo++;bestCombo=Math.max(bestCombo,combo);
+  const perfect=diff<.055;
+  score+=perfect?125:80;
+  notice(perfect?"✓ PERFECT!":"📦 TERKIRIM!");
+  const px=target.side<0?midway()-halfRoad(target.p)-22:midway()+halfRoad(target.p)+22;
+  effects.push({x:px,y:project(target.p)-17,t:.52,label:perfect?"+125":"+80"});
+ }else{combo=0;notice("CARI TANDA 📦");}
+ updateHud();
+}
+function onDown(e){if(state!=="running"||!e.isPrimary)return;gesture={x:e.clientX,y:e.clientY,id:e.pointerId};}
+function onUp(e){if(!gesture||gesture.id!==e.pointerId)return;let dx=e.clientX-gesture.x,dy=e.clientY-gesture.y;gesture=null;if(Math.abs(dx)>25&&Math.abs(dx)>Math.abs(dy)*1.15)shift(dx>0?1:-1);else if(Math.hypot(dx,dy)<28)throwPackage();}
+canvas.addEventListener("pointerdown",onDown,{passive:true});
+canvas.addEventListener("pointerup",onUp,{passive:true});
+canvas.addEventListener("pointercancel",()=>{gesture=null;},{passive:true});
+addEventListener("keydown",e=>{if(state!=="running")return;if(e.key==="ArrowLeft"){e.preventDefault();shift(-1)}else if(e.key==="ArrowRight"){e.preventDefault();shift(1)}else if(e.key===" "||e.key==="Enter"){e.preventDefault();throwPackage()}});
+el("play").onclick=()=>start();
+el("exit").onclick=()=>finish();
+document.addEventListener("visibilitychange",()=>{last=0;});
+function drawBackground(){
+ const night=score>=1500;
+ const sky=ctx.createLinearGradient(0,0,0,H);
+ sky.addColorStop(0,night?"#273d61":"#73bfd0");sky.addColorStop(.55,night?"#53688f":"#c0e1d4");sky.addColorStop(1,night?"#51646f":"#a3ca9e");
+ rect(0,0,W,H,sky);
+ circle(W*.82,H*.12,W*.06,night?"#f7f5c7":"#fff4bc");
+ // Perbukitan jauh dan bangunan berlapis paralaks.
+ for(let n=0;n<9;n++){
+  let x=n*(W/7)-W*.12,sh=H*(.075+.035*Math.sin(n*2.21));
+  poly([[x,horizon()+8],[x+W*.18,horizon()-sh],[x+W*.37,horizon()+9]],night?"#54787c":"#83b99f");
+ }
+ for(let n=0;n<13;n++){
+  const x=n*(W/11)-W*.1;
+  const y=horizon()+H*.03;
+  rect(x,y-20-(n%3)*9,W*.078,20+(n%3)*9,night?"#61747d":"#90b4a9");
+ }
+}
+function drawRoad(){
+ const y1=horizon(),y2=H+24,center=midway(),h1=halfRoad(0),h2=halfRoad(1.3);
+ poly([[center-h1-12,y1],[center+h1+12,y1],[center+h2+20,y2],[center-h2-20,y2]],"#86a18a");
+ poly([[center-h1,y1],[center+h1,y1],[center+h2,y2],[center-h2,y2]],"#58666f");
+ for(let l=-1;l<=1;l+=2){
+  const gapY=H*.21;
+  for(let n=0;n<12;n++){
+   const y=y1+((n*gapY/2+distance*100)%(H-y1+gapY/2));
+   const p=Math.max(0,(y-y1)/(H*.84));
+   const x=center+l*halfRoad(p)/3;
+   const wid=2+5*p;
+   line(x,y,x+l*5*p,y+10+20*p,wid,"#dbe2cb95");
+  }
+ }
+ for(let s of [-1,1]){
+  line(center+s*h1,y1,center+s*h2,y2,4,"#d5cba2");
+ }
+}
+function drawTree(x,y,size){
+ rect(x-3*size,y-18*size,6*size,20*size,"#5e7860");
+ circle(x,y-26*size,15*size,"#3e8e65");
+ circle(x-8*size,y-27*size,10*size,"#58a376");
+}
+function drawHouse(o){
+ const p=o.p;if(p<-.14||p>1.17)return;
+ const y=project(p),zoom=Math.max(.22,.2+p*.95);
+ const width=halfRoad(p),side=o.side;
+ const x=midway()+side*(width+(52+p*32)*(W/390));
+ const size=55*zoom*(W/390);
+ const base=y+size*.45;
+ const left=x-size*.55,top=base-size*.8;
+ poly([[left,top],[left+size*.7,top-size*.44],[left+size*1.42,top],[left+size*.72,top+size*.44]],o.roof);
+ poly([[left,top],[left+size*.72,top+size*.44],[left+size*.72,base+size*.3],[left,base-size*.1]],o.tone);
+ poly([[left+size*.72,top+size*.44],[left+size*1.42,top],[left+size*1.42,base-size*.08],[left+size*.72,base+size*.3]],"#d1ba9b");
+ rect(left+size*.21,top+size*.48,size*.21,size*.37,"#56879f");
+ rect(left+size*.84,top+size*.65,size*.24,size*.43,"#698c9f");
+ if(!o.done){
+  const pulse=1+.075*Math.sin(elapsed*7+p*3);
+  circle(x+size*.44,top-size*.42,17*zoom*pulse+4,"#f8d66c");
+  ctx.fillStyle="#233e40";ctx.font="bold "+Math.max(13,19*zoom)+"px system-ui";ctx.textAlign="center";ctx.fillText("📦",x+size*.44,top-size*.39);ctx.textAlign="left";
+ }
+}
+function drawObstacle(o){
+ if(o.p<0||o.p>1.15)return;
+ const p=o.p,x=laneX(o.lane,p),y=project(p),z=(W/390)*(.22+p*.9);
+ if(o.style==="hole"){
+  ctx.save();ctx.translate(x,y+9*z);ctx.scale(1,.42);circle(0,0,21*z,"#1e2930");ctx.restore();
+  line(x-26*z,y+8*z,x+25*z,y+8*z,2*z,"#e4b984");
+ }else if(o.style==="cart"){
+  rect(x-19*z,y-14*z,38*z,20*z,"#b47544");
+  circle(x-13*z,y+7*z,6*z,"#32404a");circle(x+13*z,y+7*z,6*z,"#32404a");
+  poly([[x-22*z,y-19*z],[x+22*z,y-19*z],[x+15*z,y-30*z],[x-15*z,y-30*z]],"#e8aa57");
+ }else{
+  poly([[x-22*z,y-6*z],[x-19*z,y-29*z],[x+14*z,y-35*z],[x+24*z,y-9*z]],"#cc7255");
+  rect(x-13*z,y-28*z,19*z,12*z,"#b5d7dc");
+  circle(x-15*z,y+2*z,6*z,"#292f35");circle(x+17*z,y+2*z,6*z,"#292f35");
+ }
+}
+function drawCourier(){
+ const p=cfg.playerDepth,y=project(p),x=laneX(visualLane,p),s=Math.min(1.2,W/390);
+ const bob=state==="running"?Math.sin(elapsed*15)*2:0;
+ circle(x,y+8*s,24*s,"#273b3966");
+ line(x-16*s,y-8*s+bob,x+16*s,y-8*s+bob,3*s,"#2c5263");
+ for(const t of [-15,15]){ctx.save();ctx.translate(x+t*s,y+2*s+bob);ctx.scale(1,.67);circle(0,0,10*s,"#243a43");circle(0,0,6*s,"#94bdc0");ctx.restore();}
+ line(x,y-18*s+bob,x-16*s,y+2*s+bob,4*s,"#e0c37f");
+ line(x,y-18*s+bob,x+16*s,y+2*s+bob,4*s,"#e0c37f");
+ rect(x-11*s,y-46*s+bob,23*s,22*s,"#de883c");
+ circle(x,y-57*s+bob,13*s,"#bd865a");
+ poly([[x-14*s,y-64*s+bob],[x+12*s,y-66*s+bob],[x+19*s,y-61*s+bob],[x-11*s,y-58*s+bob]],"#2c566f");
+ line(x-7*s,y-25*s+bob,x-20*s,y-12*s+bob,5*s,"#ba865d");
+ line(x+6*s,y-25*s+bob,x+13*s,y-12*s+bob,5*s,"#ba865d");
+ rect(x-16*s,y-44*s+bob,17*s,18*s,"#f6d16e");
+ line(x-8*s,y-44*s+bob,x-8*s,y-26*s+bob,2*s,"#b18452");
+}
+function draw(){
+ ctx.setTransform(DPR,0,0,DPR,0,0);
+ drawBackground();
+ drawRoad();
+ for(let n=0;n<5;n++){
+  let p=((n/4+distance*.13)%1.13),y=project(p),x=W*.08+(n%2)*W*.05;
+  drawTree(x,y,Math.max(.25,p*.95)*(W/390));drawTree(W-x,y+25,Math.max(.25,p*.95)*(W/390));
+ }
+ const sorted=objects.filter(o=>o.p>=-.15&&o.p<1.16).sort((a,b)=>a.p-b.p);
+ for(const o of sorted){if(o.kind==="house")drawHouse(o);else drawObstacle(o)}
+ drawCourier();
+ for(const e of effects){ctx.globalAlpha=Math.max(0,e.t/.52);ctx.textAlign="center";ctx.font="900 20px system-ui";ctx.fillStyle="#fff2a1";ctx.fillText(e.label,e.x,e.y-(1-e.t/.52)*28);ctx.globalAlpha=1}
+ if(flash>0)rect(0,0,W,H,"rgba(255,105,60,"+(flash*.15)+")");
+}
+function tick(dt){
+ elapsed+=dt;distance+=dt*(cfg.speed+elapsed*.0018);
+ visualLane+=(lane-visualLane)*Math.min(1,dt*11);
+ houseWait-=dt;obstacleWait-=dt;
+ if(houseWait<=0){spawnHouse();houseWait+=cfg.houseEvery;}
+ if(obstacleWait<=0){spawnObstacle();obstacleWait+=cfg.obstacleEvery;}
+ sweepObjects(dt);
+ for(const o of objects)if(o.kind==="obstacle"&&!o.touched&&Math.abs(o.p-cfg.playerDepth)<.045&&Math.abs(visualLane-o.lane)<.39){
+  o.touched=true;hearts--;combo=0;flash=1;notice("AWAS RINTANGAN!");updateHud();if(hearts<=0){finish();break;}
+ }
+ for(let i=effects.length-1;i>=0;i--){effects[i].t-=dt;if(effects[i].t<=0)effects.splice(i,1);}
+ flash=Math.max(0,flash-dt*2);toastLeft=Math.max(0,toastLeft-dt);
+ if(toastLeft===0)el("toast").classList.remove("show");
+ updateHud();
+ if(elapsed>=cfg.seconds)finish();
+}
+function frame(t){
+ let dt=last?Math.min(.045,(t-last)/1000):0;last=t;
+ if(document.hidden)dt=0;
+ if(state==="running")tick(dt);
+ draw();
+ raf=requestAnimationFrame(frame);
+}
+window.NusaKurir={start,version:"tahap-1"};
+raf=requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
