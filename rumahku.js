@@ -1,5 +1,5 @@
-/* Personal house entry. Reuses the existing KTP identity, wallet actions and garden.
-   The reference illustration is deliberately fixed; actual level is shown separately. */
+/* Rumahku: rendering rumah isometrik Canvas mengikuti level warga.
+   Upgrade memakai dompet utama (situs resmi) atau simulasi lokal (Netlify tes). */
 (()=>{'use strict';
 const B=()=>window.NusaHomeBridge,esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),money=n=>Number(n||0).toLocaleString('id-ID');
 const icons=['<path d="M16 28V14M16 20C5 20 4 12 4 9c9 0 12 4 12 11ZM16 15C16 7 22 4 29 4c0 7-5 12-13 11Z"/>','<path d="m5 22 16-17 7 7-16 17H5ZM18 8l7 7M5 29h23"/>','<path d="m3 15 13-12 13 12M7 12v17h18V12M16 25V13m-5 5 5-5 5 5"/>','<circle cx="12" cy="10" r="5"/><path d="M2 29v-4c0-10 20-10 20 0v4M22 5a5 5 0 0 1 0 10M25 20q5 1 5 9"/>'];
@@ -51,9 +51,21 @@ async function upgrade(){
  try{
   if(currentLevel===0)await B().buyHouse();
   else await B().upgradeHouse(currentLevel);
-  // Ambil level terbaru setelah transaksi / simulasi; ganti kanvas saat itu juga.
+  // Verifikasi bahwa level benar-benar berubah sebelum memberi notifikasi sukses.
+  const actual=houseLevel(current());
+  if(actual!==next.level){
+   throw new Error('Level belum berubah. Coba muat ulang Rumahku sebelum mengulang pembayaran.');
+  }
+  // Render ulang halaman dan kedua lapis Canvas setelah level diperbarui.
   render();
-  B()?.toast?.('🏡 '+next.name+' berhasil! Rumah sekarang Level '+next.level+'.');
+  window.NusaRumahkuVisual?.refresh?.();
+  const stage=root?.querySelector('.rh-scene');
+  if(stage){
+   stage.classList.remove('rh-house-level-up');
+   void stage.offsetWidth;
+   stage.classList.add('rh-house-level-up');
+  }
+  B()?.toast?.('🏡 '+next.name+' berhasil! Rumah sekarang Level '+actual+'.');
  }catch(e){
   B()?.toast?.(e?.message||'Pembelian atau upgrade belum berhasil.',true);
  }finally{
