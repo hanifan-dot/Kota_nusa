@@ -4,7 +4,7 @@
 #rumahkuRoot .rh-scene {overflow-x:hidden!important;touch-action:pan-y;}
 #rumahkuRoot .rh-scene>canvas.rh-stage1-canvas,
 #rumahkuRoot .rh-scene>canvas.rh-stage2-canvas {
- width:134%!important;left:-17%!important;height:auto!important;
+ width:116%!important;left:-8%!important;height:auto!important;
  transform:translate3d(var(--rh-pan-x,0px),0,0);
  will-change:transform;
 }
