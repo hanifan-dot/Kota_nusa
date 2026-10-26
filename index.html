@@ -7336,8 +7336,19 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
   }catch(e){}
   return 0;
  }
- function viewPlayer(p){if(!p||!enabled)return p;return {...p,personalHouseLevel:Math.max(read(),p.personalHouseLevel||0)};}
- function save(level){try{localStorage.setItem(storageKey(),JSON.stringify({level,version:2}));return true;}catch(e){toast('Tidak dapat menyimpan rumah tes.',true);return false;}}
+ function viewPlayer(p){
+  if(!p||!enabled)return p;
+  let decor=p.decor;
+  try{const a=JSON.parse(localStorage.getItem(storageKey())||'null');if(['sage','coral','blue','sand'].includes(a?.decor))decor=a.decor;}catch(e){}
+  return {...p,decor,personalHouseLevel:Math.max(read(),p.personalHouseLevel||0)};
+ }
+ function save(level,decor){
+  try{
+   const old=JSON.parse(localStorage.getItem(storageKey())||'null')||{};
+   localStorage.setItem(storageKey(),JSON.stringify({level,decor:decor||old.decor||state.me.decor||'sage',version:2}));
+   return true;
+  }catch(e){toast('Tidak dapat menyimpan rumah tes.',true);return false;}
+ }
  function buyHouse(){
   if(!state?.me)return toast('Masuk Kota Nusa dahulu.',true);
   if(read()||state.me.personalHouseLevel||state.me.home!=null)return toast('Rumah sudah dimiliki.',true);
@@ -7352,7 +7363,13 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
   if(!window.confirm('Upgrade ke '+next.name+' (harga '+next.price.toLocaleString('id-ID')+' koin)?\nSIMULASI, tidak memotong koin asli.'))return;
   if(save(level+1)){toast('Rumah demo naik ke Level '+(level+1));window.NusaRumahku?.open();}
  }
- window.NusaRumahkuTest={enabled,viewPlayer,buyHouse,upgradeHouse};
+ function decorate(color){
+   if(!enabled||!['sage','coral','blue','sand'].includes(color)||!read())throw Error('Warna tidak dapat diubah.');
+   if(!save(read(),color))throw Error('Penyimpanan warna gagal.');
+   toast('Warna rumah tes diperbarui. Saldo asli tetap.');
+   return {message:'Warna demo diperbarui'};
+ }
+ window.NusaRumahkuTest={enabled,viewPlayer,buyHouse,upgradeHouse,decorate};
  if(enabled){
   const update=()=>{const el=document.getElementById('coins');if(!el)return;el.textContent='∞';const caption=el.nextElementSibling;if(caption)caption.textContent='Koin TES rumah';};
   setInterval(update,1000);
@@ -7369,7 +7386,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
  upgradeHouse:fromLevel=>window.NusaRumahkuTest?.enabled?window.NusaRumahkuTest.upgradeHouse(fromLevel):act('upgradePrivateHouse',{fromLevel}),
  manage:()=>window.NusaRumahku?.open(),
  land:()=>window.NusaRumahku?.open(),
- decorate:color=>act('decorate',{decor:color},true),
+ decorate:color=>window.NusaRumahkuTest?.enabled?window.NusaRumahkuTest.decorate(color):act('decorate',{decor:color},true),
  toast
 };</script><script src="rumahku.js?v=3"></script>
 
