@@ -7546,7 +7546,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
  land:()=>window.NusaRumahku?.open(),
  decorate:color=>window.NusaRumahkuTest?.enabled?window.NusaRumahkuTest.decorate(color):act('decorate',{decor:color},true),
  toast
-};</script><script src="rumahku.js?v=20261026-visit7"></script>
+};</script><script src="rumahku.js?v=20261027-model-katalog"></script>
 
 <style id="nusa-no-zeppelin">#nusaScarvAirship{display:none!important;pointer-events:none!important}</style>
 <!-- Rumahku Tahap 1: hanya render halaman (tanpa mengubah fitur lain) -->
@@ -7685,6 +7685,43 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     line(g,iso(x,z+.29,bottom+36),iso(x,z+.29,bottom),2,"#d7e7db");
     polygon(g,[iso(x,z-.03,bottom-2),iso(x,z+.63,bottom-2),
       iso(x+.065,z+.65,bottom-6),iso(x+.065,z-.03,bottom-6)],"#ddd7c8");
+  }
+  /* Model Rumahku bergaya diorama Claude: tiap level mengubah siluet,
+     jumlah lantai, sayap, atap, teras, dan kaca—bukan sekadar warna. */
+  function catalogHome(g,decor,night,level){
+    level=Math.max(1,Math.min(10,Math.floor(Number(level)||1)));
+    var cfg=[
+      {w:2.45,d:2.45,f:1,h:66,roof:'shed',wall:'#c9aa7e',side:'#9a7959',top:'#7d898a'},
+      {w:2.85,d:2.75,f:1,h:78,roof:'gable',wall:'#ddb98d',side:'#a98563',top:'#765641'},
+      {w:3.05,d:3.00,f:2,h:61,roof:'gable',wall:'#ead6ad',side:'#b89e78',top:'#5f776d'},
+      {w:3.30,d:3.18,f:2,h:65,roof:'gable',wall:'#c98264',side:'#9f604d',top:'#8d4d3e'},
+      {w:3.72,d:3.38,f:2,h:67,roof:'hip',wall:'#eedbb9',side:'#c3aa82',top:'#a86642'},
+      {w:3.82,d:3.45,f:2,h:72,roof:'flat',wall:'#e5e7df',side:'#aec3bc',top:'#536d6b'},
+      {w:4.05,d:3.55,f:2,h:76,roof:'flat',wall:'#dceceb',side:'#99bdc1',top:'#3f7180',wing:1},
+      {w:4.18,d:3.70,f:3,h:60,roof:'flat',wall:'#e7e2d6',side:'#a8b9b7',top:'#415f76',wing:2},
+      {w:4.55,d:3.90,f:3,h:62,roof:'hip',wall:'#f0dfc2',side:'#c7b18e',top:'#5a7365',wing:3},
+      {w:4.72,d:4.05,f:3,h:66,roof:'hip',wall:'#f3f0e7',side:'#bdcfcc',top:'#315f71',wing:4}
+    ][level-1],front=cfg.wall,side=cfg.side,glass=night?'#ffd477':'#70bed1';
+    if(decor==='coral'){front='#eab79d';side='#b88972'}else if(decor==='blue'){front='#c7e2ea';side='#8eb4c3'}else if(decor==='sand'){front='#ead3a9';side='#bfa477'}
+    function P(x,z,y){return iso(x,z,y||0)}
+    function block(x,z,w,d,b,t,fc,sc,tc){var l=x-w/2,r=x+w/2,a=z-d/2,e=z+d/2;polygon(g,[P(l,e,t),P(r,e,t),P(r,e,b),P(l,e,b)],fc||front,'#776e6255',1);polygon(g,[P(r,a,t),P(r,e,t),P(r,e,b),P(r,a,b)],sc||side,'#5f625d55',1);polygon(g,[P(l,a,t),P(r,a,t),P(r,e,t),P(l,e,t)],tc||'#f0eadc','#ffffff55',1)}
+    function frontWin(x,z,b,w,h){polygon(g,[P(x-w/2,z,b+h),P(x+w/2,z,b+h),P(x+w/2,z,b),P(x-w/2,z,b)],glass,'#f6f1df',2);line(g,P(x,z+.01,b+2),P(x,z+.01,b+h-2),1.4,'#e9eee4')}
+    function sideWin(x,z,b,w,h){polygon(g,[P(x,z-w/2,b+h),P(x,z+w/2,b+h),P(x,z+w/2,b),P(x,z-w/2,b)],glass,'#e9eadf',2)}
+    function roof(x,z,w,d,y,kind,col){var l=x-w/2-.18,r=x+w/2+.18,a=z-d/2-.18,e=z+d/2+.18,c=col||cfg.top;if(kind==='flat'){polygon(g,[P(l,a,y),P(r,a,y),P(r,e,y),P(l,e,y)],c,'#3f5558',2);polygon(g,[P(l,e,y),P(r,e,y),P(r,e,y-9),P(l,e,y-9)],'#617b7d')}else if(kind==='shed'){polygon(g,[P(l,a,y+19),P(r,a,y+19),P(r,e,y),P(l,e,y)],c,'#4c5d60',2);for(var q=0;q<5;q++){var xx=l+.25+q*(r-l-.5)/4;line(g,P(xx,a,y+19),P(xx,e,y),1.2,'#b9c1bc')}}else{var L=P((l+r)/2,a,y+30),R=P((l+r)/2,e,y+30);polygon(g,[P(l,a,y),L,R,P(l,e,y)],kind==='hip'?'#789087':c,'#465852',2);polygon(g,[L,P(r,a,y),P(r,e,y),R],c,'#465852',2);polygon(g,[P(l,e,y),R,P(r,e,y)],front);line(g,L,R,2,'#eadcba')}}
+    var height=cfg.f*cfg.h,base=P(0,-.35);g.save();g.shadowColor='#17362c66';g.shadowBlur=24;g.shadowOffsetY=14;ellipse(g,base.x,base.y+24,135+level*8,48+level*3,'#17362d4d');g.restore();
+    block(0,-.45,cfg.w,cfg.d,0,height,front,side);
+    for(var fl=0;fl<cfg.f;fl++){var y=17+fl*cfg.h;frontWin(-cfg.w*.27,cfg.d/2-.44,y,.52,34);if(level>=3)frontWin(cfg.w*.27,cfg.d/2-.44,y,.52,34);sideWin(cfg.w/2+.01,-.75,y,.54,34);if(level>=5)sideWin(cfg.w/2+.01,.45,y,.54,34)}
+    var dz=cfg.d/2+.02;polygon(g,[P(-.33,dz,53),P(.33,dz,53),P(.33,dz,0),P(-.33,dz,0)],level>=7?'#315860':'#574735','#2f342f',1);tile(g,-.7,dz+.10,1.4,.55,level>=6?'#dce4df':'#dfcbaa');
+    roof(0,-.45,cfg.w,cfg.d,height+8,cfg.roof,cfg.top);
+    if(level===2){block(-.7,-1.1,.42,.46,height+3,height+42,'#c5ad92','#9d8069');roof(-.7,-1.1,.46,.50,height+45,'shed','#6e5040')}
+    if(level===3){var attic=P(0,dz+.02,height+19);polygon(g,[xy(attic.x-25,attic.y+9),xy(attic.x,attic.y-17),xy(attic.x+25,attic.y+9)],cfg.top);round(g,attic.x,attic.y+4,8,glass)}
+    if(level===4)for(var by=13;by<height-8;by+=14)line(g,P(-cfg.w/2,dz+.01,by),P(cfg.w/2,dz+.01,by),1,'#955b4b88');
+    if(level>=5){polygon(g,[P(-1.0,dz+.05,78),P(1.0,dz+.05,78),P(1.0,dz+.82,73),P(-1.0,dz+.82,73)],level>=7?'#507d82':'#c7a47a');for(var pc of [-.88,.88])line(g,P(pc,dz+.75,0),P(pc,dz+.75,73),4,'#eee6d3')}
+    if(level===6){block(.72,-.78,1.7,1.5,height+7,height+39,'#d2dfdb','#8faeaa');roof(.72,-.78,1.8,1.6,height+43,'flat','#536e6c')}
+    if(cfg.wing){var wingW=cfg.wing>=3?2.0:1.55,wingH=cfg.wing===1?84:cfg.wing===2?108:125;block(-cfg.w*.64,-.10,wingW,2.65,0,wingH,level>=9?'#eee8dc':'#d4e5e3',level>=9?'#baae99':'#91afb2');roof(-cfg.w*.64,-.10,wingW,2.65,wingH+9,cfg.wing>=3?'hip':'flat',cfg.top);if(cfg.wing>=2){block(cfg.w*.64,-.10,wingW,2.65,0,wingH,level>=9?'#eee8dc':'#d4e5e3',level>=9?'#baae99':'#91afb2');roof(cfg.w*.64,-.10,wingW,2.65,wingH+9,cfg.wing>=3?'hip':'flat',cfg.top)}}
+    if(level>=7){polygon(g,[P(-1.55,dz+.18,cfg.h+45),P(1.55,dz+.18,cfg.h+45),P(1.55,dz+.42,cfg.h+13),P(-1.55,dz+.42,cfg.h+13)],night?'#f0ce86aa':'#65b6c49c','#f4f1e7',2)}
+    if(level>=9)for(var col of [-1.65,-.58,.58,1.65])line(g,P(col,dz+.60,0),P(col,dz+.60,92),5,'#f1e8d4');
+    if(level===10){block(0,-.62,2.08,1.92,height+8,height+55,'#f5f3e9','#afc8c6');roof(0,-.62,2.25,2.10,height+63,'hip','#356579');var crown=P(0,-.62,height+104);round(g,crown.x,crown.y,5,'#edc968')}
   }
   function home(g, decor, night, level) {
     // Setiap tingkat memakai bentuk bangunan yang berbeda, bukan sekadar warna.
@@ -8091,7 +8128,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
       (citizen?.personalHouseLevel||(citizen?.home!=null?citizen.houseLevel||1:1))));
     var decor=scene.getAttribute("data-house-decor")||scene.querySelector(".rh-paint")?.style.backgroundColor;
     var vip=scene.getAttribute("data-house-celebrity")==="true";
-    if(vip)celebrityHome(g,night);else home(g,decor,night,level);
+    if(vip)celebrityHome(g,night);else catalogHome(g,decor,night,level);
     if(!vip){
       if(level>=3)shrub(g,-3.1,2.3,14,["#347c45","#4c9e57","#5dbd64"]);
       if(level>=5)shrub(g,3.4,3.5,13,["#35804a","#4ca360","#6ec476"]);
@@ -8249,7 +8286,12 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     if(vip){
       if(x>=-4.78&&x<=4.78&&z>=-3.05&&z<=1.72)return true;
       if(x>=.22&&x<=5.18&&z>=2.15&&z<=5.78)return true;
-    }else if(x>=-2.56&&x<=2.38&&z>=-2.56&&z<=2.38)return true;
+    }else{
+      var level=Number(root?.querySelector('.rh-scene')?.getAttribute('data-house-level'))||1;
+      var half=level>=9?4.12:level>=7?3.48:level>=5?2.48:level>=3?2.08:1.72;
+      var back=level>=7?-2.72:-2.22,front=level>=5?2.18:1.78;
+      if(x>=-half&&x<=half&&z>=back&&z<=front)return true;
+    }
     for(var i=0;i<obstacles.length;i++){
       var o=obstacles[i];
       if(o.kind==="kotak"){
@@ -8420,9 +8462,16 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     // Mencegah ketukan pada atap/dinding diterjemahkan menjadi
     // tujuan berjalan di tanah di balik bangunan (proyeksi isometrik).
     var vip=root?.querySelector('.rh-scene')?.getAttribute('data-house-celebrity')==='true';
+    var level=Number(root?.querySelector('.rh-scene')?.getAttribute('data-house-level'))||1;
     var points=vip?[
       {x:432,y:284},{x:690,y:430},{x:658,y:664},
       {x:432,y:746},{x:174,y:650},{x:188,y:418}
+    ]:level>=9?[
+      {x:432,y:300},{x:665,y:430},{x:648,y:650},
+      {x:432,y:742},{x:205,y:650},{x:211,y:418}
+    ]:level>=7?[
+      {x:432,y:337},{x:632,y:448},{x:618,y:638},
+      {x:432,y:718},{x:236,y:636},{x:242,y:440}
     ]:[
       {x:432,y:385},{x:600,y:472},{x:590,y:614},
       {x:434,y:696},{x:276,y:618},{x:266,y:472}
