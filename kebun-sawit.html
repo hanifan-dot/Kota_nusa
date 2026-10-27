@@ -29,6 +29,13 @@
 #kebunSawit .ks-price b{font-size:22px;color:#c25a00;display:flex;align-items:center;gap:6px}
 #kebunSawit .ks-msg{min-height:18px;font-size:13px;font-weight:700;color:#b3261e}
 #kebunSawit .ks-card .ks-btn{max-width:none}
+#kebunSawit .ks-visit{position:absolute;inset:0;z-index:8;display:grid;place-items:center;padding:calc(env(safe-area-inset-top,0px) + 70px) 16px calc(env(safe-area-inset-bottom,0px) + 18px);background:rgba(25,22,13,.48);backdrop-filter:blur(5px);pointer-events:auto}
+#kebunSawit .ks-visit-card{width:min(100%,390px);max-height:72dvh;display:flex;flex-direction:column;gap:10px;background:#fff8e6;color:#33250f;border:2px solid #ecd89f;border-radius:22px;padding:16px;box-shadow:0 18px 48px rgba(0,0,0,.42)}
+#kebunSawit .ks-visit-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.ks-visit-head h2{margin:0;font-size:21px}.ks-visit-head button{border:0;background:#eadfc4;border-radius:50%;width:36px;height:36px;font-size:22px;color:#49371d}
+#kebunSawit .ks-search{width:100%;min-height:45px;border:2px solid #dbcba6;border-radius:13px;padding:10px 13px;background:#fff;color:#352915;font:700 15px system-ui;outline:none}
+#kebunSawit .ks-people{overflow:auto;display:grid;gap:8px;min-height:90px}
+#kebunSawit .ks-person{border:1px solid #dfd1ad;border-radius:14px;background:#fffdf5;padding:11px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;color:#3c2d17;text-align:left;font:700 14px system-ui}.ks-person span{display:block}.ks-person small{display:block;color:#857554;margin-top:3px}.ks-person b{flex:0 0 auto;color:#246a44}
+#kebunSawit .ks-mine{border-color:#86b78f;background:#eaf5e7}
 #kebunSawit [hidden]{display:none!important}
 </style>
 <style>html,body{margin:0;height:100%;background:#8fd3f4}[hidden]{display:none!important}</style></head><body>
@@ -40,6 +47,7 @@
     <div class="ks-top">
       <div class="ks-pill" id="ksCoinPill"><i class="ks-coin"></i><span id="ksCoins">0</span></div>
       <div class="ks-right">
+        <button class="ks-ib" id="ksVisit" type="button" aria-label="Kunjungi kebun warga" title="Kunjungi"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3.5 20v-2.2c0-3 2.4-5.3 5.5-5.3s5.5 2.3 5.5 5.3V20M14.5 14c3.2-.8 6 1.1 6 4v2"/></svg></button>
         <button class="ks-ib" id="ksSnd" type="button" aria-label="Suara"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path id="ksSndW" d="M16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11"/></svg></button>
         <button class="ks-ib" id="ksX" type="button" aria-label="Keluar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
@@ -62,6 +70,13 @@
         <div class="ks-msg" id="ksMsg"></div>
         <button class="ks-btn" id="ksBuyBtn" type="button">BELI KEBUN</button>
       </div>
+    </div>
+    <div class="ks-visit" id="ksVisitPanel" hidden>
+      <section class="ks-visit-card" role="dialog" aria-modal="true" aria-label="Kunjungi kebun warga">
+        <div class="ks-visit-head"><h2>🌴 Kunjungi Kebun</h2><button id="ksVisitClose" type="button" aria-label="Tutup">×</button></div>
+        <input class="ks-search" id="ksVisitSearch" maxlength="24" placeholder="Cari nama warga…" autocomplete="off">
+        <div class="ks-people" id="ksPeople"><small>Memuat kebun warga…</small></div>
+      </section>
     </div>
   </div>
 </div>
@@ -126,14 +141,16 @@ var LOCAL=(function(){
     dbgReady:function(n){load();for(var i=0;i<n&&i<S.palms.length;i++)S.palms[i].plantedAt=Date.now()-GROW_MS-10;save();return snap()},
     siram:function(id){load();var p=S.palms[id],now=Date.now();
       if(!p||now-p.plantedAt>=GROW_MS||now-(p.wAt||0)<WATER_CD)return Promise.resolve({ok:false,state:snap()});
-      p.plantedAt-=WATER_MS;p.wAt=now;save();return Promise.resolve({ok:true,state:snap()})}
+      p.plantedAt-=WATER_MS;p.wAt=now;save();return Promise.resolve({ok:true,state:snap()})},
+    warga:function(){return Promise.resolve([])},
+    kunjungi:function(){return Promise.reject(new Error('Belum ada kebun warga pada mode mandiri.'))}
   };
 })();
 var RPC=(function(){
   var seq=0,pending={};
   window.addEventListener('message',function(e){var d=e.data||{};if(d.type!=='kebunsawit:response'||!pending[d.id])return;var p=pending[d.id];delete pending[d.id];d.error?p.reject(new Error(d.error)):p.resolve(d.result)});
   function call(op,payload){return new Promise(function(resolve,reject){var id='ks-'+Date.now()+'-'+(++seq);pending[id]={resolve:resolve,reject:reject};parent.postMessage({type:'kebunsawit:request',id:id,op:op,payload:payload||{}},'*');setTimeout(function(){if(!pending[id])return;delete pending[id];reject(new Error('Koneksi kebun terlalu lama.'))},12000)})}
-  return{getState:function(){return call('state')},beli:function(){return call('buy')},panen:function(ids){return call('harvest',{ids:ids})},siram:function(id){return call('water',{id:id})}};
+  return{getState:function(){return call('state')},beli:function(){return call('buy')},panen:function(ids){return call('harvest',{ids:ids})},siram:function(id){return call('water',{id:id})},warga:function(){return call('citizens')},kunjungi:function(id){return call('visit',{id:id})}};
 })();
 var HOST=window.KEBUN_HOST||(EMBED?RPC:LOCAL);
 /* ================= AKHIR ADAPTER ================= */
@@ -187,7 +204,7 @@ function isoBox(x0,y0,x1,y1,zb,zt,cTop,cR,cL){
 }
 
 /* ---------- keadaan ---------- */
-var ST={koin:0,punya:false,palms:[],nama:'Kebunku'};
+var ST={koin:0,punya:false,palms:[],nama:'Kebunku'},MY_STATE=null,visitorRows=[];
 var V={palms:[],show:0,readOnly:false,time:0,tip:null,tipT:0,shake:0};
 var truck={mode:'off',ty:-3,speed:0,crates:0,load:0,pending:[],busy:false,alpha:0,hornDone:false,reward:0,comboAll:false};
 var flights=[],parts=[],floats=[],clouds=[];
@@ -459,12 +476,32 @@ function onTap(e){
     if(r.state.palms[i]&&ST.palms[i]){ST.palms[i].plantedAt=r.state.palms[i].plantedAt;ST.palms[i].wAt=r.state.palms[i].wAt}});
 }
 cv.addEventListener('pointerdown',onTap);
+$('ksVisit').addEventListener('click',function(){
+  ac();$('ksVisitPanel').hidden=false;$('ksPeople').innerHTML='<small>Memuat kebun warga…</small>';
+  HOST.warga().then(function(rows){visitorRows=Array.isArray(rows)?rows:[];renderVisitors('');$('ksVisitSearch').focus()}).catch(function(e){$('ksPeople').textContent=e.message||'Daftar warga belum bisa dimuat.'});
+});
+function renderVisitors(query){
+  var box=$('ksPeople'),q=String(query||'').trim().toLowerCase();box.innerHTML='';
+  var mine=document.createElement('button');mine.type='button';mine.className='ks-person ks-mine';mine.innerHTML='<span>🏡 Kebunku<small>Kembali mengelola kebun sendiri</small></span><b>Buka ›</b>';mine.onclick=showMine;box.appendChild(mine);
+  var rows=visitorRows.filter(function(r){return !q||String(r.name||'').toLowerCase().indexOf(q)>=0});
+  rows.forEach(function(r){var b=document.createElement('button');b.type='button';b.className='ks-person';var left=document.createElement('span'),name=document.createTextNode('🌴 '+String(r.name||'Warga')),small=document.createElement('small');small.textContent=(r.gold?'✨ '+r.gold+' Sawit Emas · ':'')+(r.ready||0)+' siap panen';left.appendChild(name);left.appendChild(small);var go=document.createElement('b');go.textContent='Kunjungi ›';b.appendChild(left);b.appendChild(go);b.onclick=function(){visitCitizen(r.id)};box.appendChild(b)});
+  if(!rows.length){var empty=document.createElement('small');empty.textContent=q?'Nama warga tidak ditemukan.':'Belum ada warga lain yang memiliki kebun.';box.appendChild(empty)}
+}
+function showMine(){
+  $('ksPeople').innerHTML='<small>Membuka kebunmu…</small>';HOST.getState().then(function(s){MY_STATE=s;V.readOnly=false;shownCoins=s.koin;syncState(s);$('ksVisitPanel').hidden=true;renderHUD();updateBottom()}).catch(function(e){$('ksPeople').textContent=e.message||'Kebunmu belum bisa dibuka.'});
+}
+function visitCitizen(id){
+  $('ksPeople').innerHTML='<small>Menuju kebun warga…</small>';HOST.kunjungi(id).then(function(s){V.readOnly=true;syncState(s);$('ksVisitPanel').hidden=true;renderHUD();updateBottom();ft('Mode kunjungan',W/2,VH*.3,'#fff4a8',20)}).catch(function(e){$('ksPeople').textContent=e.message||'Kebun warga belum bisa dikunjungi.'});
+}
+$('ksVisitSearch').addEventListener('input',function(){renderVisitors(this.value)});
+$('ksVisitClose').addEventListener('click',function(){$('ksVisitPanel').hidden=true});
+$('ksVisitPanel').addEventListener('click',function(e){if(e.target===$('ksVisitPanel'))$('ksVisitPanel').hidden=true});
 $('ksHarvest').addEventListener('click',function(){ac();var r=readyList();if(r.length){comboVoice();startHarvest(r,true)}});
 $('ksBuyBtn').addEventListener('click',function(){
   ac();var b=$('ksBuyBtn');b.disabled=true;$('ksMsg').textContent='';
   HOST.beli().then(function(r){b.disabled=false;
     if(!r.ok){$('ksMsg').textContent=r.msg||'Gagal membeli.';sfx.no();vib(40);return}
-    sfx.buy();vib([20,30,20]);var from=shownCoins;syncState(r.state);animateCoins(from,r.state.koin);
+    sfx.buy();vib([20,30,20]);var from=shownCoins;MY_STATE=r.state;syncState(r.state);animateCoins(from,r.state.koin);
     for(var i=0;i<N;i++){var v=V.palms[i];v.pop=0;v.popAt=V.time+i*.08}
     V.show=1;setTimeout(function(){V.show=0},N*80+800);renderHUD();
   }).catch(function(){b.disabled=false;$('ksMsg').textContent='Gagal terhubung. Coba lagi.'});
@@ -485,7 +522,7 @@ function stopLoop(){running=false;cancelAnimationFrame(raf)}
 /* ---------- API ---------- */
 var api={
   buka:function(o){o=o||{};V.readOnly=!!o.readOnly;root.hidden=false;resize();
-    HOST.getState(o.uid).then(function(s){if(o.nama)s.nama=o.nama;shownCoins=s.koin;syncState(s);
+    HOST.getState(o.uid).then(function(s){if(o.nama)s.nama=o.nama;MY_STATE=s;shownCoins=s.koin;syncState(s);
       for(var i=0;i<N;i++){var v=V.palms[i];v.pop=v.has?0:1;v.popAt=V.time+i*.05}
       if(!ST.punya)for(i=0;i<N;i++){V.palms[i].has=false}
       renderHUD();updateBottom();});

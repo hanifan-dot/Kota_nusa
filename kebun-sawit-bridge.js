@@ -17,11 +17,17 @@
     try{if(typeof closePanel==='function')closePanel()}catch(e){}
     document.body.classList.add('nusa-kebun-sawit-open');
     frame=document.createElement('iframe');frame.id='nusaKebunSawitFrame';frame.title='Kebun Sawit '+String(state.me.name||'Warga');
-    frame.allow='autoplay';frame.src='kebun-sawit.html?embed=1&v=20261027-1';
+    frame.allow='autoplay';frame.src='kebun-sawit.html?embed=1&v=20261027-2';
     frame.onload=()=>{try{frame?.contentWindow?.KebunSawit?.buka({nama:'Kebun '+String(state.me?.name||'Warga')})}catch(e){close();toast('Kebun gagal dibuka. Muat ulang halaman.',true)}};
     document.body.appendChild(frame);
   }
   async function run(op,payload){
+    if(op==='citizens')return (state.citizens||[]).filter(p=>p.id!==state.me?.id&&p.sawitGarden?.punya).map(p=>({id:p.id,name:p.name,gold:p.sawitGarden.gold||0,ready:p.sawitGarden.ready||0})).sort((a,b)=>a.name.localeCompare(b.name,'id'));
+    if(op==='visit'){
+      const p=(state.citizens||[]).find(x=>x.id===String(payload.id||''));
+      if(!p?.sawitGarden?.punya||!Array.isArray(p.sawitGarden.palms))throw Error('Kebun warga ini belum tersedia.');
+      return {koin:Math.max(0,(state.me?.coins||0)-(state.me?.held||0)),punya:true,palms:p.sawitGarden.palms.map(x=>x?{plantedAt:Number(x.plantedAt)||0,wAt:0,gold:!!x.gold}:null),nama:'Kebun '+p.name,growMs:300000};
+    }
     if(busy)throw Error('Tunggu proses kebun sebelumnya selesai.');
     busy=true;
     try{
@@ -41,7 +47,7 @@
     if(d.type==='kebunsawit:keluar'){close();return}
     if(d.type!=='kebunsawit:request'||typeof d.id!=='string')return;
     try{const result=await run(String(d.op||''),d.payload||{});e.source.postMessage({type:'kebunsawit:response',id:d.id,result},location.origin)}
-    catch(err){const msg=String(err?.message||err);if(d.op==='state')e.source.postMessage({type:'kebunsawit:response',id:d.id,error:msg},location.origin);else e.source.postMessage({type:'kebunsawit:response',id:d.id,result:{ok:false,msg}},location.origin)}
+    catch(err){const msg=String(err?.message||err);if(['state','citizens','visit'].includes(d.op))e.source.postMessage({type:'kebunsawit:response',id:d.id,error:msg},location.origin);else e.source.postMessage({type:'kebunsawit:response',id:d.id,result:{ok:false,msg}},location.origin)}
   });
   window.NusaKebunSawit={open,close};
 })();
