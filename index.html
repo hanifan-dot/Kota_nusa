@@ -1063,6 +1063,17 @@ function nusaFishSellPrice(fish){
  const byScore=Math.max(6,Math.floor((Number(fish?.score)||0)*0.32));
  return Math.max(byTier,byScore);
 }
+function nusaFishRollTier(f,attempt){
+ const cosmicChancePercent=attempt.pass?0.15:0.0012,draw=nusaFishRandom()*100;
+ if(draw<cosmicChancePercent)return 7;
+ const bait=NUSA_FISH_BAITS[attempt.bait]||NUSA_FISH_BAITS[0],luck=bait.luck+(attempt.pass ? .045 : 0);
+ const scaled=Math.max(0,Math.min(1,(draw-cosmicChancePercent)/(100-cosmicChancePercent)));
+ const commonStreak=Math.min(5,Math.max(0,f.commonStreak||0));
+ const relief=commonStreak>=5?1:(commonStreak>=3 ? .14*(commonStreak-2) : 0);
+ const commonLimit=commonStreak>=5?0:Math.max(0,.58-.2*luck-relief);
+ const thresholds=[commonLimit,.84-.13*luck,.947-.075*luck,.985-.02*luck,.9965-.006*luck,.9992-.001*luck,1];
+ const idx=thresholds.findIndex(t=>scaled<t);return idx<0?6:idx;
+}
 function nusaFishingAction(w,p,b,now,spend){
  const f=nusaFishState(p),op=String(b.op||'status');
  if(op==='status')return {fishing:structuredClone(f)};
@@ -1097,7 +1108,8 @@ function nusaFishingAction(w,p,b,now,spend){
   let id=f.bait;demand((f.baits[id]||0)>0,'Umpan habis. Beli dulu di Kedai Ikan.');
   demand((f.lastCast||0)+3000<=now,'Tunggu 3 detik sebelum lempar lagi.');
   f.baits[id]--;f.lastCast=now;f.pendingCast={bait:id,rod:f.rod,pass:!!(f.pass||window.NusaFishingAuraConfirmed===true) && window.NusaFishingAuraEquipped!==false,at:now,used:false};
-  return {message:'Umpan dipasang.',fishingCast:true};
+  f.pendingCast.tier=NUSA_FISH_TIERS[nusaFishRollTier(f,f.pendingCast)].id;
+  return {message:'Umpan dipasang.',fishingCast:true,fishingCastPreview:{tier:f.pendingCast.tier}};
  }
  if(op==='fail'){if(f.pendingCast&&!f.pendingCast.used){f.pendingCast.used=true;f.pendingCast=null;}return {message:'Ikan lolos. Coba lagi.'};}
  if(op==='sellSelected'){
@@ -1158,21 +1170,10 @@ function nusaFishingAction(w,p,b,now,spend){
   demand(attempt&&!attempt.used,'Belum ada lemparan aktif atau hasil sudah diambil.');
   demand(now-attempt.at>=1500&&now-attempt.at<95000,'Tangkapan sudah tidak berlaku.');
   attempt.used=true;f.pendingCast=null;
-  // Cosmic (Ikan Mistik Kosmik): Pancing Aura aktif = 0,15% per tangkapan berhasil.
-  // Tanpa Aura tetap 0,0012%. Tidak dipengaruhi umpan, pity, ataupun Common streak.
-  const cosmicChancePercent=attempt.pass ? 0.15 : 0.0012;
-  const draw=nusaFishRandom()*100;
-  const cosmic=draw<cosmicChancePercent;
-  const bait=NUSA_FISH_BAITS[attempt.bait]||NUSA_FISH_BAITS[0];
-  const luck=bait.luck+(attempt.pass?.045:0);
-  const scaled=Math.max(0,Math.min(1,(draw-cosmicChancePercent)/(100-cosmicChancePercent)));
-  // Penawar monoton: setelah 3 Common berturut-turut, peluang Common berkurang.
-  // Setelah 5 Common, tangkapan berikutnya minimal Uncommon; TIDAK menjamin Rare/Cosmic.
+  // Tier sudah diundi saat umpan dilempar agar tingkat kesulitan pertarungan sesuai ikannya.
+  // Pending lama tetap aman: jika belum menyimpan tier, lakukan undian kompatibilitas di sini.
   const commonStreak=Math.min(5,Math.max(0,f.commonStreak||0));
-  const relief=commonStreak>=5?1:commonStreak>=3?.14*(commonStreak-2):0;
-  const commonLimit=commonStreak>=5?0:Math.max(0,.58-.2*luck-relief);
-  const thresholds=[commonLimit,.84-.13*luck,.947-.075*luck,.985-.02*luck,.9965-.006*luck,.9992-.001*luck,1];
-  let idx=cosmic?7:thresholds.findIndex(t=>scaled<t);idx=idx<0?6:idx;
+  let idx=NUSA_FISH_TIERS.findIndex(x=>x.id===attempt.tier);if(idx<0)idx=nusaFishRollTier(f,attempt);
   const item=NUSA_FISH_TIERS[idx];
   // Spesies bervariasi, namun nilai tier dan skor tetap sama.
   const species=nusaFishSpecies(f,item.id);
@@ -6017,9 +6018,11 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
  ];
  const RODS=[['Pancing Bambu',0,1],['Kayu Nelayan',220,1.18],['Fiberglass',650,1.42],['Karbon Laut',1600,1.72],['Titanium',4200,2.02],['Samudra Pro',11000,2.3],['Leviathan Rod',28000,2.65],['Pancing Raja Nusa',65000,3.12]];
  const BAITS=[['Cacing Pesisir',4],['Udang Kecil',9],['Ikan Teri',18],['Cumi Segar',32],['Udang Emas',60],['Larva Biru',105],['Kerang Mutiara',190],['Laut Dalam',340],['Esensi Roh',650],['Nebula Pesisir',1200]];
+ const TIER_DIFFICULTY={common:1.5,uncommon:2,rare:2.6,epic:4.1,legendary:5.1,mythic:6.2,mistis:8.2,cosmic:9.5};
+ const ROD_SPEED=[1,1.03,1.07,1.12,1.18,1.25,1.33,1.42],ROD_FX=['#d5b58a','#e8a85d','#6ed8c5','#56c7ff','#e4edf6','#3fa9ff','#bb75ff','#ffd95c'];
  let overlay=null,pane='play',F={rod:0,rods:[0],bait:0,baits:[12,...Array(9).fill(0)],fish:[],score:0,total:0,pass:false},
   phase='idle',biteTimeout=0,castTimeout=0,last=0,tension=.2,progress=0,hold=false,fishFactor=1,drawId=0,secTimer=0,reward=null,ctx=null,canvas=null,disposed=true,fishMove=0,audio=null,rankState=[],waveNode=null,
-  fightZone=.3,fightVelocity=0,fishPosition=.5,fishTarget=.5,fishTargetTimer=0,shadowSchool=[],failStreak=0;
+  fightZone=.3,fightVelocity=0,fishPosition=.5,fishTarget=.5,fishTargetTimer=0,shadowSchool=[],failStreak=0,pendingTier='common',escapeAt=0,escapeReason='';
  const $=(s)=>overlay?.querySelector(s);
  const fmt=n=>Math.max(0,Math.floor(n||0)).toLocaleString('id-ID');
  const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -6087,8 +6090,8 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
  async function sync(){try{const x=await act('nusaFishing',{op:'status'},true);F=x.fishing||F;return F}catch(e){showMessage('Gagal membaca save: '+e.message);return F}}
  function resetPhase(){phase='idle';hold=false;tension=.2;progress=0;clearTimeout(biteTimeout);clearTimeout(castTimeout);renderControls()}
  function close(){if(!overlay)return;oceanSound(false);disposed=true;try{world?.pause(false)}catch(e){};document.documentElement.style.overflow='';clearTimeout(biteTimeout);clearTimeout(castTimeout);clearInterval(secTimer);cancelAnimationFrame(drawId);overlay.remove();overlay=null;canvas=null;ctx=null;hold=false;phase='idle';document.removeEventListener('keydown',eventKeyHandler);}
- function closeAsk(){if(phase==='waiting'||phase==='bite'||phase==='fight'){if(!confirm('Keluar memancing? Umpan yang sudah dilempar tidak dikembalikan.'))return;}close()}
- function renderControls(){if(!overlay)return;overlay.classList.toggle('nf-equipped-aura',auraActive());const ar=$('#nfAuraChip');if(ar){ar.hidden=!hasAura();ar.textContent=auraActive()?'⚡ PANCING AURA AKTIF':'✨ AURA DIMILIKI · BELUM DIPAKAI';}$('#nfCast').disabled=!(phase==='idle');$('#nfReel').disabled=!(phase==='bite'||phase==='fight');$('#nfCast').textContent=phase==='idle'?'🎣 Lempar Kail':phase==='casting'?'Melempar…':phase==='waiting'?'Menunggu…':phase==='bite'?'Ikan menggigit!':'Sedang tarik';$('#nfReel').textContent=phase==='bite'?'⚡ SAMBAR!':phase==='fight'?'🎣 TAHAN & TARIK':'Tarik Ikan';$('#nfRod').textContent=auraActive()?'✨ Pancing Aura · '+(RODS[F.rod]?.[0]||'Pancing Bambu'):(RODS[F.rod]?.[0]||'Pancing Bambu');$('#nfBait').textContent=(BAITS[F.bait]?.[0]||'Cacing')+' ×'+(F.baits?.[F.bait]||0);$('#nfFight').hidden=phase!=='fight';if($('#nfCast').disabled===false&&(F.baits?.[F.bait]||0)<=0)$('#nfCast').disabled=true;}
+ function closeAsk(){if(phase==='waiting'||phase==='bite'||phase==='fight'||phase==='escape'){if(!confirm('Keluar memancing? Umpan yang sudah dilempar tidak dikembalikan.'))return;}close()}
+ function renderControls(){if(!overlay)return;overlay.classList.toggle('nf-equipped-aura',auraActive());const ar=$('#nfAuraChip');if(ar){ar.hidden=!hasAura();ar.textContent=auraActive()?'⚡ PANCING AURA AKTIF':'✨ AURA DIMILIKI · BELUM DIPAKAI';}$('#nfCast').disabled=!(phase==='idle');$('#nfReel').disabled=!(phase==='bite'||phase==='fight');$('#nfCast').textContent=phase==='idle'?'🎣 Lempar Kail':phase==='casting'?'Melempar…':phase==='waiting'?'Menunggu…':phase==='bite'?'Ikan menggigit!':phase==='escape'?'Ikan kabur…':'Sedang tarik';$('#nfReel').textContent=phase==='bite'?'⚡ SAMBAR!':phase==='fight'?'🎣 TAHAN & TARIK':'Tarik Ikan';$('#nfRod').textContent=auraActive()?'✨ Pancing Aura · '+(RODS[F.rod]?.[0]||'Pancing Bambu'):(RODS[F.rod]?.[0]||'Pancing Bambu');$('#nfBait').textContent=(BAITS[F.bait]?.[0]||'Cacing')+' ×'+(F.baits?.[F.bait]||0);$('#nfFight').hidden=phase!=='fight';if($('#nfCast').disabled===false&&(F.baits?.[F.bait]||0)<=0)$('#nfCast').disabled=true;}
  function switchTab(next){pane=next;overlay?.querySelectorAll('.nf-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===next));overlay?.querySelectorAll('.nf-pane').forEach(e=>e.classList.toggle('active',e.id==='nf'+next[0].toUpperCase()+next.slice(1)));if(next==='shop')drawShop();if(next==='bag')drawBag();if(next==='ranks')loadLeaderboard();}
  function shadowTier(){const r=Math.random()*100,cos=auraActive()?.15:.0012;if(r<cos)return 7;if(r<cos+.28)return 6;if(r<cos+1.05)return 5;if(r<cos+3.15)return 4;if(r<cos+8.8)return 3;if(r<cos+20.5)return 2;if(r<cos+42)return 1;return 0}
  function seedShadow(s,initial){const tier=shadowTier(),dir=Math.random()<.5?1:-1;s.tier=tier;s.dir=dir;s.x=initial?Math.random()*430:(dir>0?-55:415);s.y=238+Math.random()*190;s.speed=(9+Math.random()*16)*(1+tier*.055);s.scale=.48+Math.random()*.74+(tier>=4?.18:0);s.wave=Math.random()*7;s.alpha=.11+Math.min(.24,tier*.025)+Math.random()*.07;return s}
@@ -6111,10 +6114,13 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
   else if(kind===3){g.beginPath();g.ellipse(0,5,5,7,0,0,7);g.fill();for(let i=-4;i<=4;i+=4){g.beginPath();g.moveTo(i,10);g.quadraticCurveTo(i+3,15,i,17);g.strokeStyle=colors[kind];g.lineWidth=1.5;g.stroke()}}
   else{g.beginPath();g.arc(0,6,5+(kind>7?2:0),0,7);g.fill();g.stroke();if(kind>=8){g.shadowBlur=10;g.shadowColor=colors[kind];g.fillStyle='#fff6bc';g.beginPath();g.arc(-1,4,1.6,0,7);g.fill()}}g.restore();
  }
- function drawCatchBar(g){if(phase!=='fight')return;const x=300,y=58,w=31,h=330,d=2+F.bait*.5,zone=Math.max(.12,.25-d*.011)*(auraActive()?1.15:1),Y=v=>y+h*(1-v);
+ function rodZoneBonus(){return 1+Math.min(.05,Math.max(0,F.rod||0)/7*.05)}
+ function drawRodParticles(g,tm,bx,by){const level=Math.max(0,Math.min(7,F.rod||0)),count=3+level*3,col=ROD_FX[level];g.save();g.shadowColor=col;g.shadowBlur=level*2.4;for(let k=0;k<count;k++){const f=(k/count+tm*(.08+level*.012+k%3*.012))%1,x=96*(1-f)*(1-f)+2*133*f*(1-f)+174*f*f,y=120*(1-f)*(1-f)+2*57*f*(1-f)+92*f*f,orbit=5+level*1.5;g.globalAlpha=.28+.55*Math.sin(tm*3+k)**2;g.fillStyle=k%4===0?'#fff8d2':col;g.beginPath();g.arc(x+Math.sin(k*4.1+tm)*orbit,y+Math.cos(k*2.3+tm)*orbit*.55,.8+level*.16+(k%3)*.35,0,7);g.fill()}for(let k=0;k<level;k++){const a=tm*(.8+level*.06)+k*6.28/Math.max(1,level),r=12+level*2+k%3*4;g.globalAlpha=.32+level*.06;g.fillStyle=col;g.beginPath();g.arc(bx+Math.cos(a)*r,by+Math.sin(a)*r*.42,1.2+level*.22,0,7);g.fill()}g.restore()}
+ function drawEscapeFish(g,tm,bx,by){if(phase!=='escape')return;const k=Math.min(1,(performance.now()-escapeAt)/780),dir=Math.sin(escapeAt)>.1?1:-1,x=bx+dir*(32+k*190),y=by+30+k*75;g.save();g.strokeStyle='#eef7ee99';g.lineWidth=1.2;g.setLineDash([7,6]);g.beginPath();g.moveTo(bx,by+8);g.quadraticCurveTo(bx+dir*28,by+26,x-dir*20,y);g.stroke();g.setLineDash([]);g.translate(x,y);g.scale(dir,1);g.globalAlpha=1-k*.45;g.fillStyle=FS[Math.max(0,FS.findIndex(v=>v[0]===pendingTier))]?.[3]||'#9dbcc9';g.beginPath();g.ellipse(0,0,18,7,0,0,7);g.fill();g.beginPath();g.moveTo(-15,0);g.lineTo(-29,-10);g.lineTo(-28,10);g.fill();g.restore();g.save();g.globalAlpha=1-k;g.fillStyle='#fff';g.font='900 15px system-ui';g.textAlign='center';g.fillText('IKAN KABUR!',180,235-k*25);g.restore()}
+ function drawCatchBar(g){if(phase!=='fight')return;const x=300,y=58,w=31,h=330,d=TIER_DIFFICULTY[pendingTier]||2,zone=Math.max(.105,.27-d*.014)*rodZoneBonus()*(auraActive()?1.15:1),Y=v=>y+h*(1-v);
   g.save();g.fillStyle='#031b2dcc';g.fillRect(x-5,y-5,w+10,h+10);g.fillStyle='#ffffff1f';g.fillRect(x,y,w,h);
   const inside=Math.abs(fishPosition-fightZone)<=zone/2;g.fillStyle=inside?'#f8fff4':'#ffffffd9';g.shadowBlur=inside?10:0;g.shadowColor='#8cff9b';g.fillRect(x,Y(fightZone+zone/2),w,h*zone);g.shadowBlur=0;
-  const tier=Math.min(7,Math.max(0,Math.floor(F.bait*.72)));g.fillStyle=FS[tier][3];g.beginPath();g.ellipse(x+w/2,Y(fishPosition),10,4.5,Math.PI/2,0,7);g.fill();g.beginPath();g.moveTo(x+w/2,Y(fishPosition)+7);g.lineTo(x+4,Y(fishPosition)+14);g.lineTo(x+w-4,Y(fishPosition)+14);g.fill();
+  const tier=Math.max(0,FS.findIndex(v=>v[0]===pendingTier));g.fillStyle=FS[tier][3];g.beginPath();g.ellipse(x+w/2,Y(fishPosition),10,4.5,Math.PI/2,0,7);g.fill();g.beginPath();g.moveTo(x+w/2,Y(fishPosition)+7);g.lineTo(x+4,Y(fishPosition)+14);g.lineTo(x+w-4,Y(fishPosition)+14);g.fill();
   g.fillStyle='#062238';g.fillRect(338,y-5,12,h+10);const pg=g.createLinearGradient(0,y+h,0,y);pg.addColorStop(0,'#ff6a4d');pg.addColorStop(.5,'#ffd166');pg.addColorStop(1,'#59e07f');g.fillStyle=pg;g.fillRect(340,y+h*(1-progress),8,h*progress);
   g.fillStyle='#fff';g.textAlign='center';g.font='900 9px system-ui';g.fillText('TANGKAP',x+w/2,y-12);g.restore();
  }
@@ -6148,7 +6154,7 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
   g.strokeStyle='#2b2c2b';g.lineCap='round';g.lineWidth=4;g.beginPath();g.moveTo(96,120);g.quadraticCurveTo(133,57,174,92);g.stroke();g.strokeStyle='#e4bf80';g.lineWidth=1.4;g.beginPath();g.moveTo(105,104);g.quadraticCurveTo(140,62,173,91);g.stroke();
   g.strokeStyle='#e7efe9';g.lineWidth=1.5;g.beginPath();g.moveTo(174,92);g.lineTo(212,215+(phase==='waiting'?Math.sin(tm*2)*3:0));g.stroke();
   const bx=212,by=215+(phase==='waiting'?Math.sin(tm*2)*3:0);g.fillStyle='#f4e8de';g.beginPath();g.arc(bx,by,8,0,Math.PI*2);g.fill();g.fillStyle='#e96b53';g.beginPath();g.arc(bx,by,8,Math.PI,2*Math.PI);g.fill();
-  drawBait(g,bx,by+12);for(let i=0;i<shadowSchool.length;i++)drawShadowFish(g,shadowSchool[i],tm);
+  drawBait(g,bx,by+12);for(let i=0;i<shadowSchool.length;i++)drawShadowFish(g,shadowSchool[i],tm);drawRodParticles(g,tm,bx,by);drawEscapeFish(g,tm,bx,by);
   if(phase==='bite'||phase==='fight'){const t=ts*.001;g.strokeStyle='#fbea8b';g.lineWidth=3;for(let j=1;j<=3;j++){g.beginPath();g.ellipse(bx,by,18+j*11+Math.sin(t*9)*4,(9+j*6),0,0,7);g.stroke()}g.fillStyle='#ffee9b';g.font='900 23px system-ui';g.fillText('!',bx+10,by-22)}
   if(auraActive()){
    g.save();const a=.7+.3*Math.sin(tm*4);
@@ -6169,20 +6175,22 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
    g.fillStyle=['#214d59','#5a8786','#356878','#51777a'][k%4];g.beginPath();g.ellipse(x,y,r*2,r*.55,(k%2?-.3:.2),0,7);g.fill();
   }
   drawCatchBar(g);
-  g.fillStyle='#0c4059e5';g.fillRect(0,456,w,34);g.font='bold 13px system-ui';g.fillStyle='#f1ead1';g.textAlign='center';g.fillText(phase==='waiting'?'Tunggu sampai pelampung bergerak…':phase==='bite'?'IKAN MAKAN! Cepat tekan Tarik!':phase==='fight'?'Tahan untuk naik · lepas untuk turun':'Bayangan ikan langka bisa melintas kapan saja',180,476);g.textAlign='left';
+  g.fillStyle='#0c4059e5';g.fillRect(0,456,w,34);g.font='bold 13px system-ui';g.fillStyle='#f1ead1';g.textAlign='center';g.fillText(phase==='waiting'?'Tunggu sampai pelampung bergerak…':phase==='bite'?'IKAN MAKAN! Cepat tekan Tarik!':phase==='fight'?'Tahan untuk naik · lepas untuk turun':phase==='escape'?'Benang lepas—ikan berenang menjauh!':'Bayangan ikan langka bisa melintas kapan saja',180,476);g.textAlign='left';
  }
+ function triggerEscape(msg){if(phase!=='fight')return;phase='escape';hold=false;escapeAt=performance.now();escapeReason=msg||'Progres habis, benang lepas dan ikan kabur.';sfx('fail');showMessage(escapeReason);renderControls();castTimeout=setTimeout(()=>{if(phase==='escape')failCast(escapeReason,true)},820)}
  function draw(ts){if(disposed||!overlay)return;const dt=Math.min(.055,(ts-last)/1000||.016);last=ts;if(pane==='play')oceanFrame(ts);
   if(phase==='fight'){
    fishMove+=dt;
-   const difficulty=2+F.bait*.5,zone=Math.max(.12,.25-difficulty*.011)*(auraActive()?1.15:1);
+   const difficulty=TIER_DIFFICULTY[pendingTier]||2,zone=Math.max(.105,.27-difficulty*.014)*rodZoneBonus()*(auraActive()?1.15:1);
    fightVelocity=Math.max(-1.05,Math.min(1.05,fightVelocity+(hold?2.45:-2.2)*dt));fightZone+=fightVelocity*dt;
    const lo=zone/2,hi=1-zone/2;if(fightZone<lo){fightZone=lo;fightVelocity=Math.abs(fightVelocity)*.22}if(fightZone>hi){fightZone=hi;fightVelocity=-Math.abs(fightVelocity)*.22}
    fishTargetTimer-=dt;if(fishTargetTimer<=0){fishTarget=.06+Math.random()*.88;fishTargetTimer=(.48+Math.random()*.9)/(1+difficulty*.09)}
    const swim=(.31+difficulty*.06)*dt;fishPosition+=Math.max(-swim,Math.min(swim,fishTarget-fishPosition));
-   const inside=Math.abs(fishPosition-fightZone)<=zone/2,pull=(.23+(RODS[F.rod]?.[2]||1)*.045)*(auraActive()?1.10:1);
+   const inside=Math.abs(fishPosition-fightZone)<=zone/2,pull=.285*(ROD_SPEED[F.rod]||1)*(auraActive()?1.10:1);
    progress=Math.max(0,Math.min(1,progress+(inside?pull:-.13-difficulty*.006)*dt));
    if(inside&&Math.random()<dt*3)try{navigator.vibrate?.(7)}catch(e){}
    if(progress>=1){phase='reward';hold=false;sfx('success');finishCatch();}
+   else if(progress<=0){triggerEscape('Progres habis! Benang lepas dan ikan kabur.');}
    else if(fishMove>29){failCast('Ikan lolos karena terlalu lama ditarik.');}
    const t=$('#nfNeedle'),pr=$('#nfProgress');if(t)t.style.left=Math.max(0,Math.min(99,fishPosition*98))+'%';if(pr)pr.style.width=Math.min(100,progress*100)+'%';
   }
@@ -6191,17 +6199,17 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
  async function cast(){if(ttl()<=0){switchTab('play');showMessage('Event berakhir. Akses ditutup.');return}if(phase!=='idle')return;
   if((F.baits[F.bait]||0)<=0){showMessage('Umpan habis. Buka tab Kedai Ikan!');switchTab('shop');return}
   phase='casting';renderControls();sfx('cast');showMessage('Melempar kail ke laut…');
-  try{await act('nusaFishing',{op:'useBait'},true);await sync();phase='waiting';renderControls();sfx('splash');showMessage('Pelampung mengapung. Perhatikan gerakannya!');
+  try{const castResult=await act('nusaFishing',{op:'useBait'},true);pendingTier=castResult?.fishingCastPreview?.tier||'common';await sync();phase='waiting';renderControls();sfx('splash');showMessage('Pelampung mengapung. Perhatikan gerakannya!');
    const delay=1600+Math.random()*2200*(auraActive()?.70:1);
    biteTimeout=setTimeout(()=>{if(phase==='waiting'){phase='bite';renderControls();sfx('bite');showMessage('IKAN MENGGIGIT! Tekan TARIK sekarang!');castTimeout=setTimeout(()=>{if(phase==='bite')failCast('Terlambat! Ikannya kabur.');},2300);}},delay);
   }catch(e){resetPhase();showMessage('Gagal melempar: '+e.message)}
  }
- async function failCast(msg){if(phase==='idle'||phase==='reward')return;phase='idle';hold=false;clearTimeout(castTimeout);clearTimeout(biteTimeout);renderControls();sfx('fail');showMessage(msg);failStreak++;if(failStreak>=3&&failStreak%3===0)setTimeout(showAuraPromo,350);try{await act('nusaFishing',{op:'fail'},true);await sync();renderControls()}catch(e){} }
+ async function failCast(msg,animated=false){if(phase==='idle'||phase==='reward')return;phase='idle';hold=false;clearTimeout(castTimeout);clearTimeout(biteTimeout);renderControls();if(!animated)sfx('fail');showMessage(msg);failStreak++;if(failStreak>=3&&failStreak%3===0)setTimeout(showAuraPromo,350);try{await act('nusaFishing',{op:'fail'},true);await sync();renderControls()}catch(e){} }
  async function finishCatch(){showMessage('Ikan tertangkap! Menyimpan koleksi…');renderControls();
   try{const r=await act('nusaFishing',{op:'catch'},true);reward=r.fishingReward;failStreak=0;await sync();sfx('success');showReward(reward);window.NusaFishingCloud?.publish(F).catch(()=>{});window.NusaAchievements?.onCatch?.(reward)?.catch?.(err=>console.info('Pengumuman tangkapan belum terkirim:',err));}
   catch(e){reward=null;showMessage('Gagal mencatat hasil: '+e.message+' (jangan lempar lagi sebelum diperiksa)');phase='idle';renderControls()}
  }
- function startReel(){if(phase==='bite'){clearTimeout(castTimeout);phase='fight';tension=.28;progress=0;fishMove=0;fishFactor=.7+Math.random()*.6;fightZone=.3;fightVelocity=0;fishPosition=.5;fishTarget=.5;fishTargetTimer=0;hold=true;sfx('pull');showMessage('Tahan untuk menaikkan zona putih, lepas untuk menurunkannya.');renderControls()}else if(phase==='fight'){hold=true}}
+ function startReel(){if(phase==='bite'){clearTimeout(castTimeout);phase='fight';tension=.28;progress=.3;fishMove=0;fishFactor=.7+Math.random()*.6;fightZone=.3;fightVelocity=0;fishPosition=.5;fishTarget=.5;fishTargetTimer=0;hold=true;sfx('pull');const tierName=FS.find(v=>v[0]===pendingTier)?.[2]||'Common',level=['common','uncommon','rare'].includes(pendingTier)?'MUDAH':['epic','legendary','mythic'].includes(pendingTier)?'MENANTANG':'HARD';showMessage(tierName+' · '+level+' — tahan untuk naik, lepas untuk turun.');renderControls()}else if(phase==='fight'){hold=true}}
  function showReward(r){if(!overlay||!r)return;const i=FS.findIndex(x=>x[0]===r.tier),k=Math.max(0,i);
   const body=$('#nfPlay');const w=body?.querySelector('.nf-reward');w?.remove();const node=document.createElement('div');node.className='nf-reward';let sellPrice=null;try{if(typeof nusaFishSellPrice==='function'){const v=Number(nusaFishSellPrice(r));if(Number.isFinite(v)&&v>0)sellPrice=v}}catch(e){}
   node.style.setProperty('--tc',FS[k][3]);
@@ -6211,6 +6219,7 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
  }
  function renderStats(){const row=$('#nfWallet');if(row)row.textContent=fmt(state?.me?.coins-(state?.me?.held||0))+' koin';}
  function drawShop(){const box=$('#nfShop');if(!box)return;renderStats();box.innerHTML=`<div class="nf-box"><h3>🎣 Kedai Pancing Nusa</h3><div class="nf-caption" style="color:#ffe3a0;font-weight:900">🪙 Saldo: ${fmt(state?.me?.coins-(state?.me?.held||0))} koin Kota Nusa</div><div class="nf-caption">Pancing lebih kuat mempercepat progres tarik. Pancing biasa dan umpan dibayar memakai koin game. Gamepass Aura memakai QRIS Rp5.000.</div><div class="nf-card nf-pass-card ${auraActive()?'nf-aura':''}"><span class="nf-emoji">✨</span><div class="nf-pass-details"><b>Pancing Aura · Gamepass</b><small>${hasAura()?'Sudah dimiliki. Saat dipakai: partikel emas premium, zona tangkap 15% lebih lebar, tarikan 10% lebih cepat, dan peluang Cosmic 0,15%.':'Efek partikel emas premium, zona tangkap 15% lebih lebar, tarikan 10% lebih cepat, dan peluang Cosmic 0,15% per tangkapan berhasil saat Aura dipakai. Tidak menjamin ikan langka. Harga Rp5.000 via QRIS, verifikasi manual Presiden.'} Berlaku hingga event berakhir.</small></div><div class="nf-pass-actions"><button id="nfAuraQris" ${hasAura()||ttl()<=0?'disabled':''}>${hasAura()?'✓ Dimiliki':ttl()<=0?'Event Berakhir':'Beli Rp5.000'}</button>${hasAura()?`<button id="nfAuraEquip" class="${auraActive()?'owned':''}" aria-pressed="${auraActive()}">${auraActive()?'⚡ Dipakai · Lepas':'✨ Pakai Aura'}</button>`:''}</div></div>${RODS.map((r,i)=>`<div class="nf-card"><span class="nf-emoji">${['🎋','🪵','🎣','🪝','⚓','🌊','🔱','👑'][i]}</span><div><b>${safe(r[0])}</b><small>Kekuatan ×${r[2]} · ${i===0?'Gratis':fmt(r[1])+' koin'}</small></div><button class="${F.rods.includes(i)?'owned':''}" data-rod="${i}" ${F.rod===i?'disabled':''}>${F.rod===i?'Dipakai':F.rods.includes(i)?'Pakai':'Beli'}</button></div>`).join('')}</div><div class="nf-box"><h3>Umpan Ikan · 10 Jenis</h3><div class="nf-caption">Bentuk umpan sekarang terlihat langsung di ujung kail. Umpan lebih mahal sedikit memperbesar peluang Rare–Mistis; setelah 5 Common berturut-turut kamu minimal dapat Uncommon. Cosmic: 0,0012% tanpa Aura; 0,15% saat Pancing Aura dipakai.</div>${BAITS.map((b,i)=>`<div class="nf-card"><span class="nf-emoji">${['◜','◉','◁','♢','◉','◜','●','≈','✦','✧'][i]}</span><div><b>${safe(b[0])}</b><small>${fmt(b[1]*5)} koin/5 · Stok: ${F.baits[i]||0} ${F.bait===i?'· Dipakai':''}</small></div><button data-bait="${i}">Beli ×5</button>${(F.baits[i]||0)>0&&F.bait!==i?`<button class="owned" data-equip-bait="${i}">Pakai</button>`:''}</div>`).join('')}</div>`;
+  const fxNames=['debu bambu','serpih kayu','kilau hijau','percikan karbon','bintang titanium','ombak biru','petir ungu','badai emas'];box.querySelectorAll('button[data-rod]').forEach(btn=>{const i=Number(btn.dataset.rod),small=btn.closest('.nf-card')?.querySelector('small'),zone=Math.round(i/7*5),speed=Math.round(((ROD_SPEED[i]||1)-1)*100);if(small)small.textContent=`Efek ${fxNames[i]} · zona +${zone}% · progres +${speed}% · ${i===0?'Gratis':fmt(RODS[i][1])+' koin'}`});
   const equip=box.querySelector('#nfAuraEquip');if(equip)equip.onclick=()=>saveAuraEquip(!auraActive());
   const qris=box.querySelector('#nfAuraQris');if(qris)qris.onclick=()=>{
    if(ttl()<=0){showMessage('Event telah berakhir. Pembelian Gamepass ditutup.');return}
