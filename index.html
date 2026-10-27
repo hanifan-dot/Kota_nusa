@@ -1542,7 +1542,13 @@ async function POST(req) {
                 s.rounds++;
                 s.score += score;
                 s.sequence++;
-                s.lastRound = now;s.expires=now+900000;const j=JOBS.find(j=>j.id===s.id);s.payout=(s.payout||0)+Math.round((j.pay/5)*(.6+.4*score/100)*(1+career(p.xp).bonus/100));
+                s.lastRound = now;s.expires=now+900000;const j=JOBS.find(j=>j.id===s.id);
+                if(s.id==='chef'&&Number.isFinite(Number(b.survivalSeconds))){
+                    const survived=Math.floor(num(b.survivalSeconds,5,180));
+                    demand(survived<=Math.floor((now-s.started)/1000)+5,'Durasi Dapur Nusa tidak sesuai sesi kerja.');
+                    const timePay=Math.min(50,5+Math.floor(survived/30)*8);
+                    s.payout=(s.payout||0)+Math.round(timePay*(.8+.2*score/100)*(1+career(p.xp).bonus/100));
+                }else s.payout=(s.payout||0)+Math.round((j.pay/5)*(.6+.4*score/100)*(1+career(p.xp).bonus/100));
                 if (s.risk >= 2 && score < 45) {
                     p.health = Math.max(0, p.health - (s.risk * 5 + 3));
                     if (!p.health) {
@@ -6018,7 +6024,7 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
  ];
  const RODS=[['Pancing Bambu',0,1],['Kayu Nelayan',220,1.18],['Fiberglass',650,1.42],['Karbon Laut',1600,1.72],['Titanium',4200,2.02],['Samudra Pro',11000,2.3],['Leviathan Rod',28000,2.65],['Pancing Raja Nusa',65000,3.12]];
  const BAITS=[['Cacing Pesisir',4],['Udang Kecil',9],['Ikan Teri',18],['Cumi Segar',32],['Udang Emas',60],['Larva Biru',105],['Kerang Mutiara',190],['Laut Dalam',340],['Esensi Roh',650],['Nebula Pesisir',1200]];
- const TIER_DIFFICULTY={common:1.5,uncommon:2,rare:2.6,epic:4.1,legendary:5.1,mythic:6.2,mistis:8.2,cosmic:9.5};
+ const TIER_DIFFICULTY={common:1.25,uncommon:1.65,rare:2.15,epic:3.55,legendary:4.45,mythic:5.35,mistis:6.9,cosmic:8.05};
  const ROD_SPEED=[1,1.03,1.07,1.12,1.18,1.25,1.33,1.42],ROD_FX=['#d5b58a','#e8a85d','#6ed8c5','#56c7ff','#e4edf6','#3fa9ff','#bb75ff','#ffd95c'];
  let overlay=null,pane='play',F={rod:0,rods:[0],bait:0,baits:[12,...Array(9).fill(0)],fish:[],score:0,total:0,pass:false},
   phase='idle',biteTimeout=0,castTimeout=0,last=0,tension=.2,progress=0,hold=false,fishFactor=1,drawId=0,secTimer=0,reward=null,ctx=null,canvas=null,disposed=true,fishMove=0,audio=null,rankState=[],waveNode=null,
@@ -6185,9 +6191,9 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
    fightVelocity=Math.max(-1.05,Math.min(1.05,fightVelocity+(hold?2.45:-2.2)*dt));fightZone+=fightVelocity*dt;
    const lo=zone/2,hi=1-zone/2;if(fightZone<lo){fightZone=lo;fightVelocity=Math.abs(fightVelocity)*.22}if(fightZone>hi){fightZone=hi;fightVelocity=-Math.abs(fightVelocity)*.22}
    fishTargetTimer-=dt;if(fishTargetTimer<=0){fishTarget=.06+Math.random()*.88;fishTargetTimer=(.48+Math.random()*.9)/(1+difficulty*.09)}
-   const swim=(.31+difficulty*.06)*dt;fishPosition+=Math.max(-swim,Math.min(swim,fishTarget-fishPosition));
+   const swim=(.28+difficulty*.052)*dt;fishPosition+=Math.max(-swim,Math.min(swim,fishTarget-fishPosition));
    const inside=Math.abs(fishPosition-fightZone)<=zone/2,pull=.285*(ROD_SPEED[F.rod]||1)*(auraActive()?1.10:1);
-   progress=Math.max(0,Math.min(1,progress+(inside?pull:-.13-difficulty*.006)*dt));
+   progress=Math.max(0,Math.min(1,progress+(inside?pull:-.115-difficulty*.005)*dt));
    if(inside&&Math.random()<dt*3)try{navigator.vibrate?.(7)}catch(e){}
    if(progress>=1){phase='reward';hold=false;sfx('success');finishCatch();}
    else if(progress<=0){triggerEscape('Progres habis! Benang lepas dan ikan kabur.');}
