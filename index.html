@@ -1548,6 +1548,12 @@ async function POST(req) {
                     demand(survived<=Math.floor((now-s.started)/1000)+5,'Durasi Dapur Nusa tidak sesuai sesi kerja.');
                     const timePay=Math.min(50,5+Math.floor(survived/30)*8);
                     s.payout=(s.payout||0)+Math.round(timePay*(.8+.2*score/100)*(1+career(p.xp).bonus/100));
+                }else if(s.id==='wood'&&Number.isFinite(Number(b.survivalSeconds))){
+                    const survived=Math.floor(num(b.survivalSeconds,1,300)),quests=Math.floor(num(b.questsCompleted,0,20));
+                    demand(survived<=Math.floor((now-s.started)/1000)+5,'Durasi proyek tidak sesuai sesi kerja.');
+                    demand(quests<=Math.floor(survived/3)+1,'Jumlah quest proyek tidak sesuai durasi.');
+                    const timePay=Math.min(40,survived>=10?2+Math.floor(survived/30)*4:0),questPay=Math.min(36,quests*6);
+                    s.payout=(s.payout||0)+Math.round((timePay+questPay)*(1+career(p.xp).bonus/100));
                 }else s.payout=(s.payout||0)+Math.round((j.pay/5)*(.6+.4*score/100)*(1+career(p.xp).bonus/100));
                 if (s.risk >= 2 && score < 45) {
                     p.health = Math.max(0, p.health - (s.risk * 5 + 3));
