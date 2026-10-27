@@ -3214,10 +3214,10 @@ function createWorld(canvas,places,callbacks={}){
   seaLife(ambientTime,!fastGesture);
   activity(ambientTime);
   constructionWorkers(ambientTime);
-  orchardHaul(ambientTime);
+  orchardHarvestHotspots.length=0;
   planeLife(ambientTime);
-  if(!fastGesture)orchardGoldShimmer(ambientTime);skyLife(ambientTime,!fastGesture);
-  stadiumMatch(ambientTime);g=staticContext;ctx.restore();atmosphere();lights(ambientTime);drawOwnerLabels();drawHarvestButton();
+  skyLife(ambientTime,!fastGesture);
+  stadiumMatch(ambientTime);g=staticContext;ctx.restore();atmosphere();lights(ambientTime);drawOwnerLabels();
   // Pak Tua dan papan barter adalah objek interaktif, bukan efek visual.
   // Rehitung posisi mereka terhadap kamera pada SETIAP frame, termasuk pan/zoom.
   drawFishingBoard();if(selected&&!photo){const p=screen(P(selected.x,selected.z));ctx.strokeStyle='#b18b43';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y,22,10,0,0,Math.PI*2);ctx.stroke();}if(now-lastLabels>150||!playing){lastLabels=now;callbacks.project?.(places.map(p=>{const b=buildings.find(b=>b.id===p.id),q=screen(P(b?.x??p.x,b?.z??p.z,(b?.h??2)+6));return {...p,sx:q.x,sy:q.y,visible:playing&&!photo&&(zoom>3.5&&['hall','market','bakery','cafe','jobs','land'].includes(p.id)||p.id==='hall')&&q.x>28&&q.x<width-28&&q.y>110&&q.y<height-90};}));}if(playing&&!paused)invalidate();}
