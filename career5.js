@@ -13,14 +13,16 @@
   var byId=function(id){return careers.find(function(c){return c.id===id})};
   var legacyStart=typeof startRound==='function'?startRound:null;
   var legacyWorkplace=typeof showWorkplace==='function'?showWorkplace:null;
-  var root=null,canvas=null,ctx=null,raf=0,last=0,career=null,session=null,masakFrame=null;
+  var root=null,canvas=null,ctx=null,raf=0,last=0,career=null,session=null,masakFrame=null,masakSaving=null,masakClosing=false,masakClaims=new Set();
   var player={x:2.6,z:8.5,tx:2.6,tz:8.5,phase:0,face:1,moving:false};
   var taskIndex=0,taskProgress=0,timeLeft=120,errors=0,running=false,busy=false,lastAction=0,roundStarted=0;
   var movers=[],particles=[];
   function safe(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function currentTask(){return career&&career.tasks[taskIndex]}
   function close(){running=false;cancelAnimationFrame(raf);raf=0;if(masakFrame){var frame=masakFrame;masakFrame=null;try{frame.contentWindow&&frame.contentWindow.MasakNusa&&frame.contentWindow.MasakNusa.tutup()}catch(_){}}root&&root.remove();root=null;canvas=null;ctx=null;document.body.classList.remove('nusa-career5-open')}
-  function openMasak(){close();root=document.createElement('section');root.id='nusaMasakHost';root.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#9ed7ca;overflow:hidden';masakFrame=document.createElement('iframe');masakFrame.src='masak.html?embed=1&v=20261027-g';masakFrame.title='Masak Nusa 3D';masakFrame.allow='fullscreen; autoplay';masakFrame.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0;background:#9ed7ca';root.appendChild(masakFrame);document.body.appendChild(root);document.body.classList.add('nusa-career5-open')}
+  function openMasak(){close();root=document.createElement('section');root.id='nusaMasakHost';root.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#9ed7ca;overflow:hidden';masakFrame=document.createElement('iframe');masakFrame.src='masak.html?embed=1&v=20261027-h';masakFrame.title='Masak Nusa 3D';masakFrame.allow='fullscreen; autoplay';masakFrame.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0;background:#9ed7ca';root.appendChild(masakFrame);document.body.appendChild(root);document.body.classList.add('nusa-career5-open')}
+  function recordMasak(detail,source){if(!detail||masakClaims.has(detail.id)||masakSaving)return;var s=state.me&&state.me.job;if(!s||s.id!=='chef')return;masakClaims.add(detail.id);var previous=Number(s.payout||0),score=Math.max(20,Math.min(100,Math.round(Number(detail.skor)||20))),token=s.token,sequence=s.sequence;masakSaving=act('jobRound',{token:token,sequence:sequence,score:score},true).then(function(){var job=state.me&&state.me.job,payout=Number(job&&job.payout||0);try{source&&source.postMessage({type:'masaknusa:reward',payout:payout,added:Math.max(0,payout-previous)},location.origin)}catch(_){}}).catch(function(e){masakClaims.delete(detail.id);toast(e.message||'Upah pesanan belum tersimpan.',true)}).finally(function(){masakSaving=null})}
+  async function finishMasak(){if(masakClosing)return;masakClosing=true;try{if(masakSaving)await masakSaving;var s=state.me&&state.me.job,pay=Number(s&&s.payout||0);if(s&&s.id==='chef'&&s.rounds){await act('finishJob',{token:s.token},true);if(typeof beep==='function')beep('good');toast(pay.toLocaleString('id-ID')+' koin Masak Nusa masuk ke dompet.')}close()}catch(e){toast(e.message||'Upah Masak Nusa belum dapat diambil.',true);close()}finally{masakClosing=false}}
   function iso(x,z,w,h){var tw=Math.min(w/7.4,76),th=tw*.51,ox=w/2,oy=Math.max(175,h*.31);return {x:ox+(x-z)*tw/2,y:oy+(x+z-10)*th/2,tw:tw,th:th}}
   function inverse(sx,sy,w,h){var p=iso(0,0,w,h),oy=Math.max(175,h*.31),u=(sx-w/2)/(p.tw/2),v=(sy-oy)/(p.th/2)+10;return {x:(u+v)/2,z:(v-u)/2}}
   function poly(points,fill,stroke,width){ctx.beginPath();points.forEach(function(p,i){i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)});ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=width||1;ctx.stroke()}}
@@ -63,5 +65,5 @@
   startRound=function(){var s=state.me&&state.me.job,c=byId(s&&s.id);if(c){closePanel();open(c.id)}else if(legacyStart)legacyStart()};
   showWorkplace=function(id){var c=careers.find(function(v){var j=catalog.jobs.find(function(x){return x.id===v.id});return j&&j.workplace===id});if(c)return info(c.id);return board()};
   window.NusaCareer5={open:open,close:close,list:function(){return careers.slice()},cancel:cancel};
-  window.addEventListener('message',function(e){if(e.origin===location.origin&&e.data&&e.data.type==='masaknusa:tutup')close()});
+  window.addEventListener('message',function(e){if(e.origin!==location.origin||!e.data)return;if(e.data.type==='masaknusa:order'){recordMasak(e.data.detail,e.source);return}if(e.data.type==='masaknusa:tutup')finishMasak()});
 })();
