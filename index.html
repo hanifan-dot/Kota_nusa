@@ -714,7 +714,7 @@ function publicPlayer(w, p) { const orchard=orchardState(p); let orchardInfo=nul
  orchardInfo={lot:Number.isInteger(p.orchardLot)?p.orchardLot:null,occupied:orchard.plots.filter(Boolean).length,
  mainType,harvests:orchard.harvests||0,lastHarvest:orchard.lastHarvest||0,
  ready:orchard.plots.filter(a=>a&&Date.now()>=a.nextAt).length,
- trees:orchard.plots.map(a=>a?{type:a.type,plantedAt:a.plantedAt,nextAt:a.nextAt,harvested:a.harvested}:null)};} return { id: p.id, name: p.name, color: p.color, role: role(w, p.id), home: p.home, ig: p.ig||'', bio: p.bio||'', apt: p.apt||null, houseLevel:p.home===null?0:(p.houseLevel||1), personalHouseLevel:Math.min(10,Math.max(0,p.personalHouseLevel||(p.home!==null?Math.min(10,p.houseLevel||1):0))), business:p.business?{name:p.business.name,type:p.business.type,level:p.business.level}:null, orchard:orchardInfo, xp: p.xp, life: p.life, jobs: p.jobs, joined: p.joined, decor: p.decor, career: career(p.xp) }; }
+ trees:orchard.plots.map(a=>a?{type:a.type,plantedAt:a.plantedAt,nextAt:a.nextAt,harvested:a.harvested}:null)};} const sg=p.sawitGardenV267;const sawitGarden=sg&&Array.isArray(sg.palms)?{punya:true,nama:sg.nama||('Kebun '+p.name),gold:sg.palms.filter(x=>x?.gold).length,ready:sg.palms.filter(x=>x&&Date.now()-x.plantedAt>=300000).length}:null; return { id: p.id, name: p.name, color: p.color, role: role(w, p.id), home: p.home, ig: p.ig||'', bio: p.bio||'', apt: p.apt||null, houseLevel:p.home===null?0:(p.houseLevel||1), personalHouseLevel:Math.min(10,Math.max(0,p.personalHouseLevel||(p.home!==null?Math.min(10,p.houseLevel||1):0))), business:p.business?{name:p.business.name,type:p.business.type,level:p.business.level}:null, orchard:orchardInfo, sawitGarden, xp: p.xp, life: p.life, jobs: p.jobs, joined: p.joined, decor: p.decor, career: career(p.xp) }; }
 function record(w, kind, text, actor, amount = 0, now = Date.now()) { w.ledger.unshift({ id: crypto.randomUUID(), kind, text, actor, amount, time: now }); w.ledger = w.ledger.slice(0, 200); }
 function demand(condition, message) { if (!condition)
     throw new Error(message); }
@@ -942,6 +942,54 @@ function orchardAction(w,p,b,now){
   return {message:picks.length+' pohon ditebang. Petak kembali kosong · +'+reward+' koin kayu/hasil tebang.'};
  }
  throw Error('Aksi kebun tidak dikenal.');
+}
+
+/* Kebun Sawit pribadi V2.67 — menggantikan kavling sawit bersama di peta. */
+const SAWIT_GROW_MS=5*60*1000,SAWIT_COUNT=20,SAWIT_REWARD=18,SAWIT_WATER_MS=4000,SAWIT_WATER_CD=9000;
+function sawitGardenState(p,now=Date.now(),migrate=true){
+ let f=p.sawitGardenV267;
+ if(f&&Array.isArray(f.palms)&&f.palms.length===SAWIT_COUNT)return f;
+ const old=orchardState(p);
+ if(!migrate||!old)return null;
+ f={owner:p.id,nama:'Kebun '+p.name,palms:[],earned:old.earned||0,harvests:old.harvests||0,createdAt:old.boughtAt||now,migratedAt:now};
+ for(let i=0;i<SAWIT_COUNT;i++){
+  const tree=old.plots[i],remaining=tree?Math.max(0,Number(tree.nextAt||now)-now):SAWIT_GROW_MS;
+  f.palms.push({plantedAt:now-(SAWIT_GROW_MS-Math.min(SAWIT_GROW_MS,remaining)),wAt:0,gold:tree?.type==='emas'});
+ }
+ p.sawitGardenV267=f;return f;
+}
+function sawitGardenView(p,now=Date.now()){
+ const f=sawitGardenState(p,now,true);
+ return {koin:Math.max(0,(p.coins||0)-(p.held||0)),punya:!!f,palms:f?structuredClone(f.palms):[],nama:f?.nama||('Kebun '+p.name),growMs:SAWIT_GROW_MS};
+}
+function sawitGardenAction(w,p,b,now){
+ const op=String(b.op||'state');let f=sawitGardenState(p,now,true);
+ if(op==='state')return {sawitGarden:sawitGardenView(p,now)};
+ if(op==='buy'){
+  demand(!f,'Kamu sudah punya kebun sawit pribadi.');
+  demand((p.coins||0)-(p.held||0)>=ORCHARD_COST,'Koin belum cukup untuk membeli kebun.');
+  p.coins-=ORCHARD_COST;
+  f=p.sawitGardenV267={owner:p.id,nama:'Kebun '+p.name,palms:Array.from({length:SAWIT_COUNT},()=>({plantedAt:now,wAt:0,gold:false})),earned:0,harvests:0,createdAt:now};
+  record(w,'sawit-garden','Membeli kebun sawit pribadi 20 pohon',p.id,-ORCHARD_COST,now);
+  return {ok:true,message:'Kebun sawit pribadi dibeli. 20 pohon mulai tumbuh selama 5 menit.',state:sawitGardenView(p,now),sawitGarden:sawitGardenView(p,now)};
+ }
+ demand(f,'Beli kebun sawit pribadi dahulu.');
+ if(op==='harvest'){
+  demand(Array.isArray(b.ids)&&b.ids.length>=1&&b.ids.length<=SAWIT_COUNT,'Daftar pohon panen tidak sah.');
+  const ids=[...new Set(b.ids.map(Number))].filter(i=>Number.isInteger(i)&&i>=0&&i<SAWIT_COUNT),harvested=[];
+  for(const i of ids){const tree=f.palms[i];if(tree&&now-tree.plantedAt>=SAWIT_GROW_MS){tree.plantedAt=now;tree.wAt=0;harvested.push(i)}}
+  demand(harvested.length>0,'Belum ada pohon yang matang.');
+  const gain=harvested.length*SAWIT_REWARD;p.coins+=gain;f.earned=(f.earned||0)+gain;f.harvests=(f.harvests||0)+harvested.length;f.lastHarvestAt=now;
+  record(w,'sawit-garden','Panen '+harvested.length+' pohon sawit pribadi',p.id,gain,now);
+  return {ok:true,koin:gain,ids:harvested,state:sawitGardenView(p,now),sawitGarden:sawitGardenView(p,now)};
+ }
+ if(op==='water'){
+  const id=amount(Number(b.id),0,SAWIT_COUNT-1),tree=f.palms[id];demand(tree,'Pohon tidak ditemukan.');
+  demand(now-tree.plantedAt<SAWIT_GROW_MS,'Pohon ini sudah matang.');demand(now-(tree.wAt||0)>=SAWIT_WATER_CD,'Tunggu sebentar sebelum menyiram lagi.');
+  tree.plantedAt-=SAWIT_WATER_MS;tree.wAt=now;
+  return {ok:true,state:sawitGardenView(p,now),sawitGarden:sawitGardenView(p,now)};
+ }
+ throw Error('Aksi kebun sawit tidak dikenal.');
 }
 
 const NUSA_FISH_END=Date.parse('2026-10-30T20:00:00+07:00');
@@ -1342,6 +1390,7 @@ async function POST(req) {
                 p.lastAction = now;
             }
             if (action === 'nusaFishing') return nusaFishingAction(w,p,b,now,spend);
+            if (action === 'sawitGardenV267') return sawitGardenAction(w,p,b,now);
             if (action === 'orchard') return orchardAction(w,p,b,now);
             if (action === 'heartbeat') {
                 tick(p, w, now);
@@ -1877,34 +1926,34 @@ return {claimGoogleWelcomeBonus(googleUid){
  if((W.vice===player.id)===!!enabled)return null;
  if(enabled){W.vice=player.id;}else if(W.vice===player.id)W.vice=null;
  refresh(W,Date.now());persist();return snapshot();
-},premiumCanPlant(){const p=W.players[uid];if(!p)return {ok:false,message:'Karakter belum masuk.'};const f=orchardState(p);if(!f)return {ok:false,message:'Kamu belum punya lahan kebun.'};if(!f.plots.some(t=>!t))return {ok:false,message:'Kebun penuh. Buka Shop Kebun lalu pakai menu Tebang Pohon dahulu.'};return {ok:true};},premiumSeedStatus(orderId=''){
- const p=W.players[uid],f=orchardState(p);
- if(!p||!f)return {ok:false,message:'Karakter ini belum memiliki lahan kebun.',goldPlots:[]};
- const goldPlots=f.plots.map((v,i)=>v?.type==='emas'?i+1:null).filter(Boolean);
+},premiumCanPlant(){const p=W.players[uid];if(!p)return {ok:false,message:'Karakter belum masuk.'};const f=sawitGardenState(p,Date.now(),true);if(!f)return {ok:false,message:'Beli Kebun Sawit pribadi dahulu.'};if(!f.palms.some(t=>t&&!t.gold))return {ok:false,message:'Semua pohon di kebun sudah menjadi Sawit Emas.'};return {ok:true};},premiumSeedStatus(orderId=''){
+ const p=W.players[uid],f=p?sawitGardenState(p,Date.now(),true):null;
+ if(!p||!f)return {ok:false,message:'Karakter ini belum memiliki Kebun Sawit pribadi.',goldPlots:[]};
+ const goldPlots=f.palms.map((v,i)=>v?.gold?i+1:null).filter(Boolean);
  const applied=(p.premiumSeedOrders||{})[String(orderId)]||null;
  return {ok:true,goldPlots,linkedPlot:Number.isInteger(applied?.plot)?applied.plot+1:null};
 },async premiumPlant(orderId=''){
  const p=W.players[uid];if(!p)return {ok:false,message:'Karakter belum masuk.'};
- const farm=orchardState(p);if(!farm)return {ok:false,message:'Beli kebun dahulu.'};
+ const farm=sawitGardenState(p,Date.now(),true);if(!farm)return {ok:false,message:'Beli Kebun Sawit pribadi dahulu.'};
  const id=String(orderId||'');if(!/^[A-Za-z0-9_-]{5,80}$/.test(id))return {ok:false,message:'Nomor pesanan tidak sah.'};
  if((p.premiumSeedOrders||{})[id])return {ok:false,message:'Bibit pesanan ini sudah tertanam. Cek Koleksi Premium.'};
- const slot=farm.plots.findIndex(t=>!t);if(slot<0)return {ok:false,message:'Semua petak kebun penuh. Gunakan menu Tebang Pohon dahulu.'};
+ const slot=farm.palms.findIndex(t=>t&&!t.gold);if(slot<0)return {ok:false,message:'Semua pohon di kebun sudah menjadi Sawit Emas.'};
  try{
   // mutate() adalah async. Harus di-await SEBELUM mengakses result.plot.
   const result=await mutate(w=>{
    const owner=w.players[uid];
    owner.premiumSeedOrders??={};
    if(owner.premiumSeedOrders[id])throw Error('Bibit pesanan ini sudah dipakai.');
-   const plot=owner.orchard.plots.findIndex(t=>!t);
-   if(plot<0)throw Error('Kebun penuh.');
+   const kebun=sawitGardenState(owner,Date.now(),true),plot=kebun?.palms.findIndex(t=>t&&!t.gold)??-1;
+   if(plot<0)throw Error('Semua pohon sudah menjadi Sawit Emas.');
    const now=Date.now();
-   owner.orchard.plots[plot]={type:'emas',plantedAt:now,nextAt:now+ORCHARD_TREES.emas.grow,harvested:0};
+   kebun.palms[plot].gold=true;kebun.palms[plot].plantedAt=now;kebun.palms[plot].wAt=0;
    owner.premiumSeedOrders[id]={plot,at:now};
    owner.xp=(owner.xp||0)+85;
    v2Memory(w,owner,'Menanam Sawit Emas premium di petak '+(plot+1),now);
    return {plot};
   });
-  return {ok:true,message:'Sawit Emas tumbuh di petak '+(result.result.plot+1)+' (+85 EXP).'};
+  return {ok:true,message:'Sawit Emas premium tumbuh di Kebun Sawit petak '+(result.result.plot+1)+' (+85 EXP).'};
  }catch(e){return {ok:false,message:String(e.message||e)}}
 },async request(url,body){if(loadError)throw Error(loadError);if(url==='/api/state')return snapshot();if(url.startsWith('/api/chat'))return chatLocal(body);if(url!=='/api/game')throw Error('Fitur ini membutuhkan server online.');
  if(body.action==='orchardRecoverLocal'){
@@ -2902,6 +2951,8 @@ function createWorld(canvas,places,callbacks={}){
   for(let i=0;i<8;i++){const x=-52+i*15,p=projects.find(p=>p.slot===i);tile(x,-71,12,12,'#c0d1a2');if(p){const complete=Date.now()>=p.ready;buildings.push({x,z:-71,w:10,d:9,h:complete?8:3,color:complete?'#e5d7b7':'#bfa079',roof:'#6d918c',kind:'tower',id:'project:'+i});}else{tile(x,-71,10,10,'#a5c292');text('＋',x,-71,.1,14,'#73986b');}}
   // Kavling follower dan Pulau Harapan tidak lagi digambar pada peta.
   // Catatan rumah milik warga tetap tersimpan untuk kompatibilitas.
+  // Pulau kebun bersama lama dipensiunkan. Kebun kini dibuka pribadi lewat tombol Kebunku.
+  if(false){
   // Pulau kebun terpisah: 20 petak lama tetap sama, 10 petak tambahan di sisi barat.
   const westX=-219,westZ=-18;
   box(westX,westZ,150,232,2.5,'#b9c99a',-2.5);
@@ -2936,6 +2987,7 @@ function createWorld(canvas,places,callbacks={}){
   tile(-105,76,8,35,'#d9d4b8',.34);tile(-105,76,5,35,'#617c7b',.39);
   tile(-87,60,40,8,'#d9d4b8',.34);tile(-87,60,40,5,'#617c7b',.39);
   text('KEBUN BARAT · 30 LAHAN',-260,-129,.3,11,'#274936');
+  }
   tile(0,0,15,15,'#e9dfc9');tile(0,0,3,15,'#f0e8d4');tile(0,0,15,3,'#f0e8d4');ellipse(0,0,.4,17,9,'#a3b9b1');ellipse(0,0,.8,14,7,'#6eb6c6');box(0,0,.6,.6,3,'#e9e4cc');ellipse(0,0,3,6,3,'#d9e4d6');
   tile(-42,70,27,14,'#dfd6b6');tile(-42,70,24,11,'#6d9f78');for(const z of [65,75])tile(-42,z,22,.15,'#e5e6cc',.1);for(const x of [-53,-42,-31])tile(x,70,.15,10,'#e5e6cc',.1);
   tile(43,70,26,14,'#e6d8b8');tile(43,70,22,10,'#76bdca');for(let x=35;x<53;x+=4)tile(x,70,.12,9,'#c2e4dc',.1);
@@ -3990,6 +4042,7 @@ function v2BusyAction(op,body={},onDone=()=>showNusaPlus()){
 function v2Stat(name,val){return `<div class="v2-stat"><small>${name}</small><strong>${val}</strong></div>`;}
 function showNusaPlus(section='hub'){
  if(!entered||!state.me)return join();const d=state.me.nusaV2||{},bag=d.bag||{};
+ if(section==='orchard'){closePanel();window.NusaKebunSawit?.open();return;}
  if(section==='hub'){
   v2Shell('Aktivitas Kota',`<p class="intro">Cari kegiatan untuk dimainkan. Hasil profesi masuk tas dan bisa dipakai sebagai bahan, dijual, atau dikirim memenuhi pesanan kota.</p><div class="v2-stats">${v2Stat('Koin tersedia',v2SafeMoney(state.me.coins-state.me.held))}${v2Stat('Jenis barang',Object.keys(bag).length+' item')}${v2Stat('Surat baru',v2InboxCount())}</div><button class="btn primary wide" id="nusaCityLifeButton" style="margin:0 0 10px;min-height:52px" onclick="window.NusaCityLife?.open()">🏘️ Kota Hidup · 3 Aktivitas NPC</button><button class="btn wide" id="nusaSettingsBackup" style="margin:0 0 14px;min-height:48px">⚙ Pengaturan &amp; Cadangan</button><div class="v2-actions"><button class="btn primary" id="nusaFishingEventOpen">🎣 Event Pak Tua · Mancing</button><button class="btn primary" data-v2-go="orchard">🌱 Shop & Kebun</button><button class="btn" data-v2-go="market">🏪 Pasar</button></div><details style="margin-top:12px"><summary style="padding:15px;background:#eaf2ed;border-radius:14px;cursor:pointer;font-weight:700">Lihat semua aktivitas lainnya ▾</summary>${V2_NAV.filter(x=>!['orchard','market'].includes(x[0])).map(([id,emoji,title,sub])=>`<button class="v2-nav" data-v2-go="${id}"><span class="v2-emoji">${emoji}</span><span><strong>${title}</strong><small>${sub}</small></span><span class="v2-chev">›</span></button>`).join('')}</details><button class="btn wide" id="v2Support" style="margin-top:14px">💚 Dukung Kota Nusa</button>`);
   $('#nusaFishingEventOpen').onclick=()=>{closePanel();window.NusaFishing?.open()};$('#v2Support').onclick=showSupport;return;
@@ -4590,7 +4643,7 @@ window.nkOpenGuide=function nkOpenGuide(index=0){
 function showNusaPremium(){
  if(!state.me)return join();
  const products=[
-  ['sawit','np-gold',NUSA_GOLDPALM_SVG,'Bibit Sawit Emas unik. Setelah pesanan diperiksa dan disetujui, bibit bisa ditanam di petak kosong kebun milikmu.','Stok koleksi 20 bibit'],
+  ['sawit','np-gold',NUSA_GOLDPALM_SVG,'Bibit Sawit Emas unik. Setelah pesanan diperiksa dan disetujui Presiden, satu pohon di Kebun Sawit pribadimu berubah menjadi emas.','Stok koleksi 20 bibit'],
   ['aura','np-chat',NUSA_CHAT_SVG,'Efek Chat Aura berkilau pada tampilan chat akunmu. Termasuk enam pilihan pratinjau warna.','Efek chat premium'],
   ['mansion','np-home',NUSA_HOUSE_SVG,'Rumah Selebritis terbatas 10 pemilik. Setelah Presiden menyetujui, mansion otomatis aktif di menu Rumahku. Tidak ada lahan selebriti terpisah di peta.','Mansion eksklusif']
  ];
@@ -4667,8 +4720,7 @@ window.NusaPremiumPlantHook=async orderId=>{
  try{
   const snapshot=await LocalNusa.request('/api/state');
   absorb(snapshot);
-  if(window.NusaOrchardCloud)await window.NusaOrchardCloud.publish(state.me);
- }catch(e){r.message+=' Pohon sudah tersimpan di HP, tetapi sinkron online belum dipastikan: '+String(e.message||e).slice(0,110);}
+ }catch(e){r.message+=' Pohon sudah tersimpan di progres karakter, tetapi tampilan belum berhasil dimuat ulang: '+String(e.message||e).slice(0,110);}
  return r;
 };
 window.NusaPremiumUser=()=>state.me?({id:String(state.me.id||''),name:String(state.me.name||'Warga').slice(0,24),role:state.me.role}):null;
@@ -5734,7 +5786,7 @@ function nkCheckUsedSeed(orderId){
 }
 function nkMansion(){if(window.NusaCelebrity?.openMyHome){window.NusaCelebrity.openMyHome();return;}const body=nkPopup('Rumah Selebritis','KOLEKSI · RUMAH SULTAN');body.innerHTML=`<div class="nk-mansion"><div class="nk-mansion-house">🏛️</div><strong>THE NUSA GRAND VILLA</strong><small>Grand lobby · Kolam biru · Taman tropis</small></div><div class="no-box">Selamat datang di rumah eksklusifmu! Halaman interior digital ini dapat dibuka setiap kali akunmu terhubung.</div><button id="nkReturn" class="no-btn ghost">← Barang Saya</button>`;body.querySelector('#nkReturn').onclick=nkInventory}
 async function nkPlant(orderId){const body=nkPopup('Tanam Sawit Emas','KOTA NUSA · KEBUN');
- body.innerHTML='<div class="no-box">Bibit emas ditanam pada petak kosong kebun karakter saat ini. Setiap bibit hanya bisa ditanam satu kali.</div><button class="no-btn" id="nkPlantNow">Tanam di Petak Kosong</button><div id="nkNotice" class="no-status"></div>';
+ body.innerHTML='<div class="no-box">Bibit emas mengubah satu pohon biasa di Kebun Sawit pribadimu menjadi Sawit Emas. Hanya pesanan yang disetujui Presiden dan setiap bibit cuma bisa dipakai sekali.</div><button class="no-btn" id="nkPlantNow">Tanam Sawit Emas</button><div id="nkNotice" class="no-status"></div>';
  body.querySelector('#nkPlantNow').onclick=async()=>{
   if(nkBusy)return;nkBusy=true;const btn=body.querySelector('#nkPlantNow');btn.disabled=true;
   try{
@@ -6913,6 +6965,7 @@ body.nusa-hud-hidden #nusaMyGarden{display:none!important}
 const icon='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21V10l9-7 9 7v11H3Z"/><path d="M8 21v-7h8v7M12 13c-2-2-2-4 0-6 2 2 2 4 0 6Z"/></svg>';
 function showButton(){const hud=document.getElementById('hud');if(!hud||hud.classList.contains('hidden'))return;let b=document.getElementById('nusaMyGarden');if(!b){b=document.createElement('button');b.id='nusaMyGarden';b.type='button';b.innerHTML=icon+'<span>Kebunku</span>';b.setAttribute('aria-label','Pergi ke kebunku');hud.appendChild(b);b.onclick=async()=>{
  if(typeof state==='undefined'||!state.me){return toast('Masuk ke kota terlebih dahulu.',true)}
+ if(window.NusaKebunSawit)return window.NusaKebunSawit.open();
  const me=state.me;let lot=Number(me.orchardLot),has=!!me.orchard&&Number.isInteger(lot)&&lot>=0&&lot<ORCHARD_MAP_SLOTS.length;
  const cloud=window.NusaOrchardCloud;
  if(!has){
@@ -7187,7 +7240,7 @@ document.getElementById('nusaV253Close').addEventListener('click',closePanel);sh
 const mk=(id,label,svg)=>{const b=document.createElement('button');b.id=id;b.type='button';b.setAttribute('aria-label',label);b.innerHTML=svg+'<span>'+label+'</span>';return b};
 const radioSvg='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="3"/><path d="m6 8 11-5M8 13h4M8 17h4M17 13h.01M17 17h.01"/></svg>';
 const gardenSvg='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V10l9-7 9 7v11H3Z"/><path d="M8 21v-7h8v7M12 12c-2-2-2-4 0-6 2 2 2 4 0 6Z"/></svg>';
-function garden(){const original=document.getElementById('nusaMyGarden');if(original&&typeof original.onclick==='function')original.click();else if(typeof toast==='function')toast('Kebunku belum siap, silakan coba lagi.',true)}
+function garden(){if(window.NusaKebunSawit)return window.NusaKebunSawit.open();const original=document.getElementById('nusaMyGarden');if(original&&typeof original.onclick==='function')original.click();else if(typeof toast==='function')toast('Kebunku belum siap, silakan coba lagi.',true)}
 function setupDock(){const dock=document.querySelector('#hud nav.dock');if(!dock)return false;dock.classList.add('nusa-v253-dock');if(!document.getElementById('nusaV253Garden')){const b=mk('nusaV253Garden','Kebunku',gardenSvg);b.addEventListener('click',garden);dock.appendChild(b)}if(!document.getElementById('nusaV253Radio')){const b=mk('nusaV253Radio','Radio FM',radioSvg);b.addEventListener('click',openPanel);dock.appendChild(b)}return true}
 setupDock();const hud=document.getElementById('hud')||document.getElementById('app');if(hud)new MutationObserver(()=>{if(!document.getElementById('nusaV253Radio'))setupDock()}).observe(hud,{childList:true,subtree:true});
 window.NusaRadio={open:openPanel,close:closePanel,stop,pause:()=>{audio.pause();sync()},play:toggle,track:i=>loadPlay(i),state};void scan();
@@ -7354,9 +7407,9 @@ $('#n262Refresh').onclick=refreshAuctions;void refreshAuctions();}
 async function createAuction(p){let hours=prompt('Durasi lelang berapa jam? (1–24)','1');if(hours===null)return;hours=Number(hours);if(!Number.isInteger(hours)||hours<1||hours>24){notice('Durasi harus 1 sampai 24 jam.',true);return}let start=Number(prompt('Tawaran awal minimal (koin)',String(800+valueOfTrees(p.orchard?.plots))));if(!Number.isInteger(start)||start<1){notice('Tawaran awal harus angka positif.',true);return}try{const {d,auth,db}=await fb(),uid=auth.currentUser.uid,id=String(p.orchardLot),ref=d.ref(db,root+'/'+id),now=Date.now();const result=await d.runTransaction(ref,old=>{if(old&&old.status==='open'&&old.endsAt>now)return;return {ownerUid:uid,ownerGameId:String(p.id),ownerName:String(p.name).slice(0,24),lot:Number(id),startPrice:start,status:'open',createdAt:now,endsAt:now+hours*3600000,bids:{}}},{applyLocally:false});if(!result.committed)throw Error('Kavling ini masih dilelang.');notice('Lelang dibuat! Harap tunggu pembeli. Pemenang akhir memerlukan konfirmasi aman.');refreshAuctions()}catch(e){notice('Gagal membuat lelang: '+e.message,true)}}
 async function refreshAuctions(){const box=$('#n262Auctions');if(!box)return;try{const {d,db,auth}=await fb(),snap=await d.get(d.ref(db,root)),now=Date.now();let arr=Object.entries(snap.val()||{}).map(([id,v])=>({id,...v}));box.innerHTML=arr.length?'':'Belum ada lelang. Warga yang punya lahan bisa membuka lelang.';arr.forEach(a=>{const bids=Object.entries(a.bids||{}).filter(([,b])=>b&&Number.isFinite(b.amount)).sort((x,y)=>y[1].amount-x[1].amount),top=bids[0],ended=now>=a.endsAt,valid=a.status==='open'&&!ended,card=document.createElement('div');card.className='n262-card';card.innerHTML=`<strong>Lahan #${Number(a.lot)+1} · ${clean(a.ownerName)}</strong><small>${ended?'Selesai menawar · hasil menunggu penyelesaian':valid?'⏳ Batas: '+new Date(a.endsAt).toLocaleString('id-ID'):'Status: '+clean(a.status)}</small><b>Tertinggi: ${money(top?top[1].amount:a.startPrice)} koin</b>${top?`<small>Penawar sementara: ${clean(top[1].name)}</small>`:''}${valid&&a.ownerUid!==auth.currentUser.uid?`<div class="n262-bid"><input inputmode="numeric" type="number" min="${Math.max(a.startPrice,top?top[1].amount+1:0)}" placeholder="Nominal tawaran"/><button class="n262-btn main">Tawar</button></div>`:''}${ended?'<p class="n262-note">Tidak ada perpindahan aset/koin otomatis. Penutupan dan pembayaran butuh sistem escrow/server.</p>':''}`;
  const button=card.querySelector('button');if(button)button.onclick=async()=>{const amount=Number(card.querySelector('input').value);if(!Number.isInteger(amount)||amount<=Math.max(a.startPrice-1,top?top[1].amount:0)){notice('Masukkan penawaran lebih tinggi.',true);return}try{const {d,db,auth}=await fb(),r=d.ref(db,root+'/'+a.id+'/bids/'+auth.currentUser.uid);const result=await d.runTransaction(r,old=>(!old||amount>Number(old.amount||0))?{amount,name:String(getMe()?.name||'Warga').slice(0,24),at:Date.now()}:undefined,{applyLocally:false});if(!result.committed)throw Error('Tawaran harus lebih tinggi dari sebelumnya.');refreshAuctions()}catch(e){notice('Penawaran gagal: '+e.message,true)}};box.append(card)});}catch(e){box.textContent='Lelang belum bisa dimuat: '+e.message}}
-function addDock(){const dock=$('#hud nav.dock');if(!dock||$('#n262LandNav'))return false;const btn=document.createElement('button');btn.id='n262LandNav';btn.type='button';btn.innerHTML='<span style="font-size:23px">🌴</span><span>Kelola Lahan</span>';btn.title='Kelola Lahan Saya · jual & lelang';btn.onclick=()=>open('land');dock.appendChild(btn);const kebun=$('#nusaV253Garden');if(kebun)kebun.addEventListener('click',e=>{e.stopImmediatePropagation();open('garden')},true);return true}
-function bind(){create();if(!addDock()){setTimeout(bind,600);return} const kob=$('#nusaMyGarden');if(kob)kob.addEventListener('click',e=>{e.stopImmediatePropagation();open('garden')},true)}
-document.addEventListener('click',e=>{if(e.target.closest?.('#nusaV253Garden,#nusaMyGarden')){e.preventDefault();e.stopImmediatePropagation();open('garden')}},true);
+function addDock(){document.getElementById('n262LandNav')?.remove();return true}
+function bind(){create();addDock()}
+document.addEventListener('click',e=>{if(e.target.closest?.('#nusaV253Garden,#nusaMyGarden')){e.preventDefault();e.stopImmediatePropagation();window.NusaKebunSawit?.open()}},true);
 window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
 })();
 </script><script src="city-life.js?v=1" defer></script>
@@ -8408,6 +8461,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
 })();
 </script>
 <script src="career5.js?v=20261026-2"></script>
+<script src="kebun-sawit-bridge.js?v=20261027-1"></script>
 
 <!-- Kurir Nusa · Tahap A — satu blok mandiri, hanya aktif ketika pekerjaan Kurir dibuka. -->
 <style id="nusa-kurir-job-style">
