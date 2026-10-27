@@ -4720,6 +4720,7 @@ window.NusaPremiumPlantHook=async orderId=>{
  try{
   const snapshot=await LocalNusa.request('/api/state');
   absorb(snapshot);
+  if(state.me?.sawitGardenV267&&window.NusaSawitCloud)await window.NusaSawitCloud.publish({punya:true,palms:state.me.sawitGardenV267.palms});
  }catch(e){r.message+=' Pohon sudah tersimpan di progres karakter, tetapi tampilan belum berhasil dimuat ulang: '+String(e.message||e).slice(0,110);}
  return r;
 };
@@ -8461,7 +8462,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
 })();
 </script>
 <script src="career5.js?v=20261026-2"></script>
-<script src="kebun-sawit-bridge.js?v=20261027-2"></script>
+<script src="kebun-sawit-bridge.js?v=20261027-3"></script>
 
 <!-- Kurir Nusa · Tahap A — satu blok mandiri, hanya aktif ketika pekerjaan Kurir dibuka. -->
 <style id="nusa-kurir-job-style">
