@@ -20,6 +20,7 @@
 #dapurNusa .dn-btn{pointer-events:auto;appearance:none;border:0;border-radius:16px;background:linear-gradient(180deg,#ff6a4a,#d9301b);color:#fff;font:inherit;font-weight:900;font-size:26px;letter-spacing:.02em;padding:16px 40px;min-width:240px;min-height:60px;box-shadow:0 6px 0 #8f1c0c,0 12px 22px rgba(0,0,0,.4);cursor:pointer}
 #dapurNusa .dn-btn:active{transform:translateY(4px);box-shadow:0 2px 0 #8f1c0c}
 #dapurNusa .dn-btn.dn-2{background:rgba(255,255,255,.14);box-shadow:none;font-size:16px;min-height:44px;padding:10px 22px;min-width:0;font-weight:700}
+#dapurNusa .dn-btn.dn-finish{background:linear-gradient(180deg,#48a86d,#26784a);box-shadow:0 5px 0 #174c30,0 10px 18px rgba(0,0,0,.3);font-size:16px;min-height:48px;padding:11px 20px;min-width:250px}
 #dapurNusa .dn-how{font-size:13px;color:#ffd9bd;line-height:1.5;max-width:330px}
 #dapurNusa .dn-how b{color:#ffd23f}
 #dapurNusa .dn-mis{width:min(100%,330px);display:flex;flex-direction:column;gap:8px;text-align:left}
@@ -63,6 +64,7 @@
       <div class="dn-how"><b>Ketuk</b> tepat waktu untuk mengiris dan menghias. <b>Tahan</b> layar untuk menaikkan api dan menuang. Ada 4 langkah tiap masakan: iris, masak, aduk/tuang, lalu hias. Rangkai <b>SEMPURNA</b> beruntun sampai <b>API MENYALA</b>.</div>
       <div class="dn-mis" id="dnMis"></div>
       <div class="dn-cap" id="dnCap"></div>
+      <button class="dn-btn dn-finish" id="dnFinishMenu" type="button" hidden>AKHIRI PEKERJAAN &amp; AMBIL KOIN</button>
     </div>
     <div class="dn-panel" id="dnOver" hidden>
       <div class="dn-rec" id="dnRec" hidden>REKOR BARU!</div>
@@ -75,6 +77,7 @@
       </div>
       <div class="dn-koin" id="dnKoin"></div>
       <div class="dn-note" id="dnNote"></div>
+      <button class="dn-btn dn-finish" id="dnFinishOver" type="button" hidden>AKHIRI PEKERJAAN &amp; AMBIL KOIN</button>
       <button class="dn-btn" id="dnAgain" type="button">MASAK LAGI</button>
       <button class="dn-btn dn-2" id="dnMenuBtn" type="button">Menu</button>
     </div>
@@ -655,6 +658,7 @@ function drawHUD(){
   var bw=W-28,fr=clamp(G.left/ROUND,0,1);ctx.fillStyle='rgba(0,0,0,.4)';rr(14,y0+30,bw,9,4);ctx.fill();ctx.fillStyle=low?'#ff6b6b':fr>.5?'#7ddc7a':'#ffb020';rr(14,y0+30,Math.max(6,bw*fr),9,4);ctx.fill();
   if(G.rush>0){var rf=G.rush/G.rushMax;ctx.fillStyle='rgba(0,0,0,.4)';rr(14,y0+42,bw,6,3);ctx.fill();ctx.fillStyle='#ff8a2a';rr(14,y0+42,Math.max(4,bw*rf),6,3);ctx.fill();txt('API MENYALA',14,y0+66,12,'#ffd23f','left')}
   txt(G.served+' disajikan',14,VH-26,14,'#ffd9bd','left');
+  if(EMBED)txt('Upah waktu ±'+Math.min(50,5+Math.floor(G.time/30)*8)+' koin',W-14,VH-26,13,'#ffd23f','right');
   if(G.intro>0)txt(G.intro>.4?'SIAP...':'MASAK!',W/2,VH*.45,52,'#ffd23f');
   if(G.banner>0){var k=clamp(G.banner,0,1);ctx.globalAlpha=k;txt(G.bannerT,W/2,VH*.46-(1-k)*20,38+Math.max(0,G.banner-1)*20,G.bannerC);ctx.globalAlpha=1}
   if(G.flash>0){ctx.fillStyle='rgba(255,255,255,'+clamp(G.flash*.5,0,.35)+')';ctx.fillRect(0,0,W,VH)}
@@ -686,7 +690,10 @@ $('dnResume').addEventListener('click',function(){ac();setPause(false);last=perf
 $('dnPlay').addEventListener('click',startGame);
 $('dnAgain').addEventListener('click',function(){if(performance.now()-G.lastEnd>600)startGame()});
 $('dnMenuBtn').addEventListener('click',showMenu);
-$('dnX').addEventListener('click',function(){if(G.state==='play'){G.paused=false;showMenu()}else if(G.state==='over')showMenu();else if(EMBED)api.tutup()});
+function finishWork(){if(!EMBED)return;if(G.state==='play'&&!confirm('Akhiri pekerjaan sekarang? Putaran yang belum selesai tidak dihitung.'))return;api.tutup()}
+$('dnFinishMenu').hidden=!EMBED;$('dnFinishOver').hidden=!EMBED;
+$('dnFinishMenu').addEventListener('click',finishWork);$('dnFinishOver').addEventListener('click',finishWork);
+$('dnX').addEventListener('click',function(){if(EMBED){finishWork();return}if(G.state==='play'){G.paused=false;showMenu()}else if(G.state==='over')showMenu()});
 function setSndIcon(){$('dnSndW').style.display=muted?'none':'';$('dnSnd').style.opacity=muted?.6:1}
 $('dnSnd').addEventListener('click',function(){ac();muted=!muted;ls('dn_mute',muted?'1':'0');if(master)master.gain.value=muted?0:.8;setSndIcon()});
 window.addEventListener('resize',function(){if(!root.hidden)resize()});
