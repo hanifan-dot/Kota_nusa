@@ -6698,7 +6698,7 @@ window.addEventListener('storage',e=>{if(e.key?.startsWith('kota-nusa-news-read-
    Jangan menghapus simpanan game saat pengguna keluar atau berpindah Google. */
 const NGW_CONFIG={apiKey:'AIzaSyDFWMOCTkEzMemUrG_0uz74540VNcIGDMI',authDomain:'kotanusa-6ed9c.firebaseapp.com',databaseURL:'https://kotanusa-6ed9c-default-rtdb.asia-southeast1.firebasedatabase.app',projectId:'kotanusa-6ed9c',appId:'1:231262289343:web:486166f2e4fc6fb196350a'};
 const NGW_ICON='<svg viewBox="0 0 24 24" aria-label="Google"><path fill="#4285F4" d="M21.6 12.23c0-.66-.06-1.3-.17-1.92H12v3.64h5.4a4.61 4.61 0 0 1-2 3.03v2.49h3.23c1.89-1.74 2.97-4.3 2.97-7.24Z"/><path fill="#34A853" d="M12 22a9.83 9.83 0 0 0 6.63-2.43l-3.23-2.49a6 6 0 0 1-8.95-3.16H3.1v2.57A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.45 13.92A6 6 0 0 1 6.13 12c0-.66.11-1.31.32-1.92V7.5H3.1A10 10 0 0 0 2 12c0 1.62.39 3.15 1.1 4.5l3.35-2.58Z"/><path fill="#EA4335" d="M12 5.96c1.46 0 2.76.5 3.79 1.48l2.84-2.84A9.78 9.78 0 0 0 12 2a10 10 0 0 0-8.9 5.5l3.35 2.58A5.99 5.99 0 0 1 12 5.96Z"/></svg>';
-let ngwAuth=null,ngwSdk=null,ngwDbLib=null,ngwDb=null,ngwPending=false,ngwReady=false,ngwSeenUid='',ngwMenu=false;
+let ngwAuth=null,ngwSdk=null,ngwDbLib=null,ngwDb=null,ngwPending=false,ngwReady=false,ngwSeenUid='',ngwMenu=false,ngwAutoTried='';
 const ngwUser=()=>ngwAuth?.currentUser?.providerData?.some(v=>v.providerId==='google.com')?ngwAuth.currentUser:null;
 const ngwPlayer=()=>window.NusaPremiumLocalPlayer?.()||null;
 const ngwToast=(text,bad=false)=>window.NusaCloudBridge?.toast?.(text,bad);
@@ -6737,7 +6737,7 @@ async function ngwSDK(){
  ngwDbLib=dbLib;ngwDb=dbLib.getDatabase(app);
  await authLib.setPersistence(ngwAuth,authLib.browserLocalPersistence);
  ngwReady=true;
- authLib.onAuthStateChanged(ngwAuth,()=>{ngwRender();void ngwAward();});
+ authLib.onAuthStateChanged(ngwAuth,()=>{ngwRender();void ngwAward();setTimeout(()=>void ngwRecover(true),900);});
  ngwRender();
 }
 async function ngwLogin(switchAccount=false){
@@ -6753,24 +6753,26 @@ async function ngwLogin(switchAccount=false){
  }catch(e){ngwToast('Login Google gagal: '+ngwErr(e)+'. Gunakan Chrome biasa.',true)}
  finally{ngwPending=false;ngwRender();void ngwAward();}
 }
-async function ngwRecover(){
+async function ngwRecover(automatic=false){
  if(ngwPending)return;
- const p=ngwPlayer();if(!p){ngwToast('Masuk ke karakter Kota Nusa dahulu.',true);return;}
+ const p=ngwPlayer();if(!p){if(!automatic)ngwToast('Masuk ke karakter Kota Nusa dahulu.',true);return;}
  ngwPending=true;ngwRender();
  try{
-  if(!ngwReady)await ngwSDK();const u=ngwUser();if(!u)throw Error('Hubungkan akun Google lama dahulu.');
+  if(!ngwReady)await ngwSDK();const u=ngwUser();if(!u){if(automatic)return;throw Error('Hubungkan akun Google lama dahulu.');}
+  const autoKey=u.uid+':'+p.id;if(automatic&&ngwAutoTried===autoKey)return;
   const profile=(await ngwDbLib.get(ngwDbLib.ref(ngwDb,'nusaCivicProfilesV1/'+u.uid))).val();
-  if(!profile?.gameId)throw Error('Belum ada identitas karakter lama pada akun Google ini. Cari file Kota_Nusa_Cadangan.json di folder Unduhan.');
+  if(!profile?.gameId){if(automatic){ngwAutoTried=autoKey;return;}throw Error('Belum ada identitas karakter lama pada akun Google ini. Cari file Kota_Nusa_Cadangan.json di folder Unduhan.');}
+  if(automatic)ngwAutoTried=autoKey;
   const [lotsSnap,fishSnap]=await Promise.all([
    ngwDbLib.get(ngwDbLib.ref(ngwDb,'nusaOrchardLotsV1')).catch(()=>null),
    ngwDbLib.get(ngwDbLib.ref(ngwDb,'nusaFishingLeaderboardV1/'+u.uid)).catch(()=>null)
   ]);
   const lots=lotsSnap?.val?.()||{},oldFarm=Object.entries(lots).find(([,v])=>v?.uid===u.uid&&v?.gameId===profile.gameId),fish=fishSnap?.val?.()||null;
   const same=p.id===profile.gameId,cloudTrees=oldFarm?(()=>{try{return JSON.parse(oldFarm[1].trees||'[]').filter(Boolean).length}catch{return 0}})():0;
-  if(same&&(!oldFarm||p.orchard)){ngwToast('Karakter Google ini sudah cocok dengan progres di HP.');return;}
+  if(same&&(!oldFarm||p.orchard)){if(!automatic)ngwToast('Karakter Google ini sudah cocok dengan progres di HP.');return;}
   const summary='Profil lama: '+profile.name+' · '+Math.max(0,Math.floor(Number(profile.xp)||0))+' EXP'+(oldFarm?' · kebun '+cloudTrees+' pohon':'')+(fish?' · skor mancing '+Math.floor(Number(fish.score)||0):'');
   const warning=same?'Pulihkan kebun cloud ke karakter ini?':'Ganti identitas karakter BARU di HP ini dengan identitas Google lama? Arsip pengaman dibuat dulu. Koin, rumah, pekerjaan dan inventaris yang tidak pernah tersimpan di cloud tidak bisa dibuat ulang otomatis.';
-  if(!confirm(summary+'\n\n'+warning))return;
+  if(!automatic&&!confirm(summary+'\n\n'+warning))return;
   const result=LocalNusa.recoverGoogleIdentityV268({googleUid:u.uid,profile,fishing:fish,confirmed:true});absorb(result.snapshot);
   let farmMessage='';
   if(oldFarm&&!state.me?.orchard){
@@ -6779,7 +6781,7 @@ async function ngwRecover(){
   }
   ngwMenu=false;ngwRender();updateHud();window.NusaLiveCount?.refreshIdentity?.();window.NusaCivic?.refreshRoles?.().catch(()=>{});
   ngwToast('✅ '+result.message+farmMessage);
- }catch(e){ngwToast('Pemulihan dihentikan: '+ngwErr(e),true)}
+ }catch(e){if(automatic)console.info('Pemulihan Google otomatis menunggu:',ngwErr(e));else ngwToast('Pemulihan dihentikan: '+ngwErr(e),true)}
  finally{ngwPending=false;ngwRender();}
 }
 async function ngwLogout(){
@@ -6813,7 +6815,7 @@ const ngwObserve=new MutationObserver(()=>ngwMount());
 ngwObserve.observe(document.getElementById('app')||document.body,{childList:true,subtree:true});
 ngwMount();
 ngwSDK().catch(e=>{ngwReady=false;if(!window.NusaFirebaseSDK?.isLocal?.())ngwToast('Firebase Google tidak dapat dimuat: '+ngwErr(e),true);ngwRender()});
-setInterval(()=>{if(ngwPlayer()){ngwMount();ngwRender();if(ngwReady&&ngwUser())void ngwAward();}},4500);
+setInterval(()=>{if(ngwPlayer()){ngwMount();ngwRender();if(ngwReady&&ngwUser()){void ngwAward();setTimeout(()=>void ngwRecover(true),700);}}},4500);
 </script>
 
 <script id="nusa-v8-tidy-js">
