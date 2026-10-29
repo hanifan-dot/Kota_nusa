@@ -18,9 +18,8 @@ h1{margin:0;font-size:26px;line-height:1.1}h1 small{display:block;font-size:13px
 .announce{border-left:6px solid var(--gold);background:#fffdf3}
 label{display:block;font-size:13px;font-weight:700;margin-top:10px}
 input,textarea{width:100%;margin-top:4px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font:inherit;background:#fff;color:#000000;caret-color:#000000}
-input[readonly]{background:#f4f1e8;color:#263e35}
 textarea{min-height:84px;resize:vertical}
-button{appearance:none;border:0;border-radius:12px;background:var(--green);color:#fff;font:inherit;font-weight:800;padding:12px 20px;min-height:44px;cursor:pointer}
+button{appearance:none;border:0;border-radius:12px;background:var(--green);color:#fff;font:inherit;font-weight:800;padding:12px 20px;cursor:pointer}
 button:disabled{opacity:.55;cursor:default}
 button.secondary{background:var(--cream);color:var(--ink);border:1px solid var(--border)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
@@ -54,8 +53,8 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
 
   <section class="card" aria-label="Tulis pesan">
     <h2>✏️ Tulis pesan</h2>
-    <label for="nama">Nama akun warga
-      <input id="nama" maxlength="24" placeholder="Masuk ke Kota Nusa dahulu" autocomplete="off" readonly aria-readonly="true">
+    <label for="nama">Nama warga (maks. 24 huruf)
+      <input id="nama" maxlength="24" placeholder="mis. Warga Nusa" autocomplete="off">
     </label>
     <label for="pesan">Pesan (maks. 220 huruf)
       <textarea id="pesan" maxlength="220" placeholder="Halo warga Kota Nusa!"></textarea>
@@ -63,9 +62,11 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
     <div class="row">
       <button id="kirim" type="button">Kirim pesan</button>
       <button id="muat" class="secondary" type="button">Muat ulang</button>
+      <button id="modeUji" class="secondary" type="button">Aktifkan Mode Uji (lokal)</button>
       <span class="msg" id="info"></span>
     </div>
-    <p class="msg">Nama dan status chat mengikuti akun warga di perangkat ini. Pesan kasar, akun dibisukan, akun ditangguhkan, dan pengunjung tanpa karakter tidak dapat mengirim. Jeda anti-spam: 3 menit per perangkat.</p>
+    <p class="msg" id="ujiNote" hidden>Mode Uji aktif: halaman tidak terhubung ke Firebase. Pesan hanya tersimpan di perangkat ini dan TIDAK dikirim ke papan produksi.</p>
+    <p class="msg">Jeda anti-spam: 3 menit per perangkat. Pesan tersimpan di papan publik Kota Nusa (jalur chat publik yang sudah ada), jadi bisa dibaca dari game utama juga. Untuk menguji tanpa menulis ke server produksi, pakai tombol Mode Uji (lokal) di atas.</p>
   </section>
 
   <section aria-label="Daftar pesan">
@@ -74,7 +75,7 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
   </section>
 
   <footer>
-    Papan ini membaca jalur chat publik Kota Nusa yang sudah ada. Jika koneksi Firebase tidak tersedia, halaman tetap dapat dibuka sebagai pratinjau lokal tanpa mengubah progres, akun, atau pembelian warga.
+    Papan ini memakai jalur chat publik Kota Nusa yang sudah ada di Firebase, sehingga tidak perlu perubahan aturan database. Jika koneksi Firebase tidak tersedia, halaman berjalan dalam mode pratinjau lokal dan pesan hanya tersimpan di perangkat ini.
   </footer>
 </main>
 <script type="module">
@@ -90,10 +91,9 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
   var APP_NAME = 'nusa-ktp-cloud';
   var CHAT_PATH = 'chat/global';
   var COOLDOWN_MS = 180000;
-  var SAVE_KEY = 'kota-nusa-trebedit-save-v1';
-  var RECOVERY_KEY = 'kota-nusa-recovery-v268';
   var LS_LAST = 'nusaPapanWarga:lastPost:v1';
   var LS_LOCAL = 'nusaPapanWarga:local:v1';
+  var LS_UID = 'nusaPapanWarga:uid:v1';
 
   var statusEl = document.getElementById('status');
   var daftarEl = document.getElementById('daftar');
@@ -103,9 +103,20 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
   var pesanEl = document.getElementById('pesan');
   var kirimBtn = document.getElementById('kirim');
   var muatBtn = document.getElementById('muat');
+  var modeUjiBtn = document.getElementById('modeUji');
+  var ujiNoteEl = document.getElementById('ujiNote');
+  var LS_UJI = 'nusaPapanWarga:uji:v1';
+  // Mode Uji: true bila dibuka dengan ?uji=1 atau tombol Mode Uji pernah ditekan.
+  // Dalam mode ini Firebase TIDAK diinisialisasi, jadi pengujian tidak pernah
+  // menulis ke chat/global produksi.
+  var ujiMode = false;
+  try {
+    var q = new URLSearchParams(location.search);
+    ujiMode = q.get('uji') === '1' || localStorage.getItem(LS_UJI) === '1';
+  } catch (e) {}
 
   var mode = 'lokal';
-  var db = null, dbMod = null, citizen = null;
+  var db = null, dbMod = null, authUid = null;
   var seenKeys = {};
   var messages = [];
 
@@ -132,48 +143,15 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
     infoEl.textContent = text || '';
     infoEl.className = 'msg' + (isErr ? ' err' : '');
   }
-  function readCitizen() {
+  function getUid() {
     try {
-      var raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem(RECOVERY_KEY);
-      var saved = JSON.parse(raw || 'null');
-      var player = saved && saved.world && saved.world.players && saved.world.players['local-user'];
-      if (!player || typeof player.id !== 'string' || typeof player.name !== 'string') return null;
-      return {
-        id: player.id.slice(0, 64),
-        name: player.name.trim().slice(0, 24),
-        banned: !!player.banned,
-        expelled: !!player.expelled,
-        bannedUntil: Number(player.bannedUntil) || 0,
-        mutedUntil: Number(player.mutedUntil) || 0
-      };
-    } catch (e) { return null; }
-  }
-  function classifyChat(message) {
-    var t = String(message || '').normalize('NFKC').toLowerCase()
-      .replace(/[013457]/g, function (c) { return ({'0':'o','1':'i','3':'e','4':'a','5':'s','7':'t'})[c]; })
-      .replace(/(.)\1{2,}/g, '$1$1');
-    if (/\b(?:akan|bakal|mau)\s+(?:bunuh|bantai)\s+(?:kamu|lu|lo|kalian)\b|\b(?:ajak|ayo)\s+(?:bunuh|bantai)\b/.test(t)) return 5;
-    if (/\b(?:kirim|minta)\s+foto\s+(?:telanjang|bugil)|\b(?:paksa|maksa)\s+(?:seks|berhubungan)|\b(?:semua|dasar)\s+(?:ras|suku|agama)\s+\w+\s+(?:sampah|binatang)\b/.test(t)) return 4;
-    if (/\b(?:kontol|memek|ngentot|ngewe|fuck|pepek)\b/.test(t)) return 3;
-    if (/\b(?:goblok|tolol|bangsat|bajingan)\b|\b(?:lu|lo|kau|kamu)\s+(?:anjing|babi)\b/.test(t)) return 2;
-    if (/\b(?:kampret|sialan|anjir|anjrit|bego)\b/.test(t)) return 1;
-    return 0;
-  }
-  function citizenBlockReason() {
-    if (!citizen) return 'Buat atau pulihkan akun warga di Kota Nusa dahulu.';
-    if (citizen.expelled) return 'Akun ini telah dikeluarkan dari Kota Nusa.';
-    if (citizen.banned && (!citizen.bannedUntil || citizen.bannedUntil > Date.now())) return 'Akses akun ini sedang ditangguhkan.';
-    if (citizen.mutedUntil > Date.now()) return 'Chat dibisukan sampai ' + fmtWaktu(citizen.mutedUntil) + '.';
-    return '';
-  }
-  function syncCitizen() {
-    citizen = readCitizen();
-    namaEl.value = citizen ? citizen.name : '';
-    var reason = citizenBlockReason();
-    if (reason) {
-      kirimBtn.disabled = true;
-      setInfo(reason, true);
-    }
+      var id = localStorage.getItem(LS_UID);
+      if (!id) {
+        id = 'pengunjung-' + Math.random().toString(36).slice(2, 14);
+        localStorage.setItem(LS_UID, id);
+      }
+      return String(id).slice(0, 64);
+    } catch (e) { return 'pengunjung'; }
   }
   function readLocal() {
     try {
@@ -210,10 +188,10 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
         kirimBtn.textContent = 'Tunggu ' + Math.ceil(sisa / 1000) + ' dtk';
         window.setTimeout(refreshCooldown, 1000);
       } else {
-        kirimBtn.disabled = !!citizenBlockReason();
+        kirimBtn.disabled = false;
         kirimBtn.textContent = 'Kirim pesan';
       }
-    } catch (e) { kirimBtn.disabled = !!citizenBlockReason(); }
+    } catch (e) { kirimBtn.disabled = false; }
   }
 
   async function muatFirebase() {
@@ -221,7 +199,7 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
     try {
       var snap = await dbMod.get(dbMod.query(
         dbMod.ref(db, CHAT_PATH),
-        dbMod.orderByKey(),
+        dbMod.orderByChild('t'),
         dbMod.limitToLast(50)
       ));
       var val = snap.val() || {};
@@ -244,7 +222,14 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
 
   async function init() {
     refreshCooldown();
-    syncCitizen();
+    if (ujiMode) {
+      mode = 'lokal';
+      setStatus('Mode Uji (lokal)', false);
+      ujiNoteEl.hidden = false;
+      modeUjiBtn.textContent = 'Keluar dari Mode Uji';
+      muatLokal();
+      return;
+    }
     try {
       var parts = await Promise.all([
         import('https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js'),
@@ -259,14 +244,16 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
       try { await authMod.setPersistence(auth, authMod.browserLocalPersistence); } catch (e) {}
       try {
         if (typeof auth.authStateReady === 'function') await auth.authStateReady();
-      } catch (e) { /* jalur chat publik tetap dapat dibaca tanpa login */ }
+        if (!auth.currentUser) await authMod.signInAnonymously(auth);
+      } catch (e) { /* lanjut tanpa login: jalur publik tetap bisa dibaca/ditulis */ }
+      authUid = auth.currentUser ? auth.currentUser.uid : null;
       db = dbMod.getDatabase(app);
       mode = 'firebase';
       setStatus('Terhubung: Firebase', true);
       try {
         var q = dbMod.query(
           dbMod.ref(db, CHAT_PATH),
-          dbMod.orderByKey(),
+          dbMod.orderByChild('t'),
           dbMod.limitToLast(50)
         );
         dbMod.onChildAdded(q, function (snap) {
@@ -283,14 +270,10 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
   }
 
   kirimBtn.addEventListener('click', async function () {
-    syncCitizen();
-    var blocked = citizenBlockReason();
-    if (blocked) { setInfo(blocked, true); return; }
-    var nama = citizen.name;
+    var nama = (namaEl.value || '').trim().slice(0, 24) || 'Warga Nusa';
     var teks = (pesanEl.value || '').trim();
     if (!teks) { setInfo('Tulis dulu pesannya.', true); pesanEl.focus(); return; }
     if (teks.length > 220) { setInfo('Pesan maksimal 220 huruf.', true); return; }
-    if (classifyChat(teks)) { setInfo('Pesan tidak dikirim. Gunakan bahasa yang sopan sesuai aturan Chat Kota.', true); return; }
     var last = 0;
     try { last = Number(localStorage.getItem(LS_LAST) || 0); } catch (e) {}
     if (Date.now() - last < COOLDOWN_MS) {
@@ -299,7 +282,7 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
       return;
     }
     kirimBtn.disabled = true;
-    var data = { n: nama, u: citizen.id, m: teks };
+    var data = { n: nama, u: (authUid || getUid()).slice(0, 64), m: teks };
     if (mode === 'firebase' && db) {
       try {
         var baru = dbMod.push(dbMod.ref(db, CHAT_PATH));
@@ -328,6 +311,16 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
     if (mode === 'firebase') { messages = []; seenKeys = {}; muatFirebase(); }
     else muatLokal();
     setInfo('Daftar pesan dimuat ulang.');
+  });
+
+  // Saklar Mode Uji: selalu reload ke URL bersih agar tidak ada sisa state
+  // Firebase dari sesi sebelumnya. Keluar dari Mode Uji = kembali ke alur normal.
+  modeUjiBtn.addEventListener('click', function () {
+    try {
+      if (ujiMode) { localStorage.removeItem(LS_UJI); }
+      else { localStorage.setItem(LS_UJI, '1'); }
+    } catch (e) {}
+    location.href = location.href.split('?')[0];
   });
 
   init();
