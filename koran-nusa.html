@@ -25,7 +25,7 @@ ul li:first-child{border-top:0;padding-top:0}
 ul li b{display:block}ul li small{color:var(--muted)}
 ul li p{margin:4px 0 0;white-space:pre-wrap;word-break:break-word}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
-button{appearance:none;border:0;border-radius:12px;background:var(--green);color:#fff;font:inherit;font-weight:800;padding:10px 18px;cursor:pointer}
+button{appearance:none;border:0;border-radius:12px;background:var(--green);color:#fff;font:inherit;font-weight:800;padding:10px 18px;min-height:44px;cursor:pointer}
 button.secondary{background:var(--cream);color:var(--ink);border:1px solid var(--border)}
 nav a{color:var(--green);font-weight:700;text-decoration:none}
 nav a:hover{text-decoration:underline}
@@ -181,11 +181,10 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
       try { await authMod.setPersistence(auth, authMod.browserLocalPersistence); } catch (e) {}
       try {
         if (typeof auth.authStateReady === 'function') await auth.authStateReady();
-        if (!auth.currentUser) await authMod.signInAnonymously(auth);
-      } catch (e) { /* lanjut: jalur publik tetap bisa dibaca */ }
+      } catch (e) { /* jalur publik tetap dapat dibaca tanpa membuat akun baru */ }
       authed = !!auth.currentUser;
       db = dbMod.getDatabase(app);
-      setStatus(authed ? 'Terhubung: Firebase' : 'Terhubung: jalur publik', true);
+      setStatus(authed ? 'Memuat data akun…' : 'Memuat data publik…', true);
       return true;
     } catch (e) {
       setStatus('Mode lokal (pratinjau)', false);
@@ -203,50 +202,53 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
       renderList(document.getElementById('datang'), [], 'Jadwal kedatangan belum bisa dimuat.');
       return;
     }
-    // Berita resmi (butuh login; anonim sudah cukup menurut aturan)
+    var loadedSections = 0, failedSections = 0;
+    // Berita resmi membutuhkan sesi Firebase yang sudah dimiliki game utama.
     try {
-      var sNews = await dbMod.get(dbMod.query(
-        dbMod.ref(db, P_NEWS), dbMod.orderByChild('time'), dbMod.limitToLast(10)));
+      if (!authed) throw new Error('perlu akun');
+      var sNews = await dbMod.get(dbMod.ref(db, P_NEWS));
       var news = sNews.val() || {};
       var newsList = Object.keys(news).map(function (k) { return news[k]; })
         .filter(function (v) { return v && typeof v.title === 'string'; })
-        .sort(function (a, b) { return (Number(b.time) || 0) - (Number(a.time) || 0); });
+        .sort(function (a, b) { return (Number(b.time) || 0) - (Number(a.time) || 0); }).slice(0, 10);
       document.getElementById('angkaBerita').textContent = String(newsList.length);
       document.getElementById('beritaInfo').textContent = newsList.length ?
         'Dari pengumuman resmi kota.' : 'Belum ada berita resmi yang diterbitkan.';
       renderList(document.getElementById('berita'), newsList.map(function (v) {
         return { title: v.title, meta: (v.author || 'Redaksi') + ' · ' + fmtWaktu(v.time), body: v.text };
       }), 'Belum ada berita resmi yang diterbitkan.');
+      loadedSections++;
     } catch (e) {
-      document.getElementById('beritaInfo').textContent = 'Berita resmi tidak bisa dibaca saat ini.';
-      renderList(document.getElementById('berita'), [], 'Berita resmi tidak bisa dibaca saat ini.');
+      document.getElementById('beritaInfo').textContent = authed ? 'Berita resmi tidak bisa dibaca saat ini.' : 'Buka game utama dengan akun warga untuk membaca berita resmi.';
+      renderList(document.getElementById('berita'), [], authed ? 'Berita resmi tidak bisa dibaca saat ini.' : 'Belum ada sesi akun warga di perangkat ini.');
+      if (authed) failedSections++;
     }
     // Kabar warga dari papan pesan
     try {
-      var sChat = await dbMod.get(dbMod.query(
-        dbMod.ref(db, P_CHAT), dbMod.orderByChild('t'), dbMod.limitToLast(50)));
+      var sChat = await dbMod.get(dbMod.ref(db, P_CHAT));
       var chats = sChat.val() || {};
       var chatList = Object.keys(chats).map(function (k) { return chats[k]; })
         .filter(function (v) { return v && typeof v.m === 'string'; })
-        .sort(function (a, b) { return (Number(b.t) || 0) - (Number(a.t) || 0); });
+        .sort(function (a, b) { return (Number(b.t) || 0) - (Number(a.t) || 0); }).slice(0, 50);
       document.getElementById('angkaPesan').textContent = String(chatList.length);
       document.getElementById('kabarInfo').textContent = chatList.length ?
         'Menampilkan sapaan terbaru.' : 'Belum ada sapaan warga.';
       renderList(document.getElementById('kabar'), chatList.slice(0, 10).map(function (v) {
         return { title: v.n || 'Warga', meta: fmtWaktu(v.t), body: v.m };
       }), 'Belum ada sapaan warga.');
+      loadedSections++;
     } catch (e) {
       document.getElementById('kabarInfo').textContent = 'Kabar warga tidak bisa dibaca saat ini.';
       renderList(document.getElementById('kabar'), [], 'Kabar warga tidak bisa dibaca saat ini.');
+      failedSections++;
     }
     // Jadwal kedatangan (jalur publik)
     try {
-      var sAir = await dbMod.get(dbMod.query(
-        dbMod.ref(db, P_AIRPORT), dbMod.orderByChild('t'), dbMod.limitToLast(20)));
+      var sAir = await dbMod.get(dbMod.ref(db, P_AIRPORT));
       var airs = sAir.val() || {};
       var airList = Object.keys(airs).map(function (k) { return airs[k]; })
         .filter(function (v) { return v && typeof v.ig === 'string'; })
-        .sort(function (a, b) { return (Number(b.t) || 0) - (Number(a.t) || 0); });
+        .sort(function (a, b) { return (Number(b.t) || 0) - (Number(a.t) || 0); }).slice(0, 20);
       document.getElementById('angkaDatang').textContent = String(airList.length);
       document.getElementById('datangInfo').textContent = airList.length ?
         'Menampilkan catatan kedatangan terbaru.' : 'Belum ada catatan kedatangan.';
@@ -258,9 +260,11 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
           body: 'Tercatat di bandara kota.'
         };
       }), 'Belum ada catatan kedatangan.');
+      loadedSections++;
     } catch (e) {
       document.getElementById('datangInfo').textContent = 'Jadwal kedatangan tidak bisa dibaca saat ini.';
       renderList(document.getElementById('datang'), [], 'Jadwal kedatangan tidak bisa dibaca saat ini.');
+      failedSections++;
     }
     // Sesi warga (butuh login; hitung kunci sesi, dibatasi tampilannya)
     try {
@@ -274,9 +278,13 @@ footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
         else if (sessions) total += 1;
       });
       document.getElementById('angkaOnline').textContent = total > 2000 ? '2000+' : String(total);
+      loadedSections++;
     } catch (e) {
       document.getElementById('angkaOnline').textContent = '—';
+      if (authed) failedSections++;
     }
+    if (loadedSections) setStatus(failedSections ? 'Sebagian data tersedia' : (authed ? 'Terhubung: akun warga' : 'Terhubung: data publik'), !failedSections);
+    else setStatus('Data kota belum tersedia', false);
   }
 
   document.getElementById('muat').addEventListener('click', muat);
