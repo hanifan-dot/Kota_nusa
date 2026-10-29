@@ -37,13 +37,19 @@ function enableHorizontalPan(){
  let drag=null;
  scene.addEventListener('pointerdown',e=>{
   if(!e.isPrimary||e.target.closest('button'))return;
-  drag={id:e.pointerId,x:e.clientX,y:e.clientY,start:housePan,active:false};
+  drag={id:e.pointerId,x:e.clientX,y:e.clientY,start:housePan,startScroll:scene.scrollTop,mode:null};
+  try{scene.setPointerCapture(e.pointerId)}catch(_){}
  },{passive:true});
  scene.addEventListener('pointermove',e=>{
   if(!drag||e.pointerId!==drag.id)return;
   const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
-  if(!drag.active && Math.abs(dx)>10 && Math.abs(dx)>Math.abs(dy)*1.2)drag.active=true;
-  if(!drag.active)return;
+  if(!drag.mode&&Math.hypot(dx,dy)>8)drag.mode=Math.abs(dx)>Math.abs(dy)?'horizontal':'vertical';
+  if(!drag.mode)return;
+  if(drag.mode==='vertical'){
+   scene.scrollTop=Math.max(0,drag.startScroll-dy);
+   scene.classList.add('rh-camera-used');
+   return;
+  }
   const cv=scene.querySelector('.rh-stage2-canvas')||scene.querySelector('.rh-stage1-canvas');
   const extra=cv?Math.max(0,(cv.getBoundingClientRect().width-scene.clientWidth)/2):0;
   housePan=Math.max(-extra,Math.min(extra,drag.start+dx));
