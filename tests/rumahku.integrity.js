@@ -4,6 +4,7 @@ const vm = require('node:vm');
 
 const html = fs.readFileSync('index.html', 'utf8');
 const rumahku = fs.readFileSync('rumahku.js', 'utf8');
+const rumahkuVisual = fs.readFileSync('rumahku-visual.html', 'utf8');
 
 new vm.Script(rumahku, { filename: 'rumahku.js' });
 
@@ -45,7 +46,13 @@ assert.match(html, /const TEST_FANI=\{uid:'preview-fani-celebrity-v1'/);
 assert.match(html, /function visitGameHome\(gameId\)/);
 assert.match(rumahku, /window\.NusaCelebrity\?\.hasGameHome\?\.\(p\.id\)/);
 assert.match(rumahku, /if\(target\)window\.NusaRumahku\.open\(target\)/);
-assert.match(rumahku, /data-house-celebrity=/);
+assert.match(rumahku, /celebrity:celebrity\(p\)/);
+assert.match(rumahku, /rumahku-visual\.html/);
+assert.match(rumahku, /if\(a===['"]kunjungi['"]\)\{visit\(\)/);
+assert.match(rumahku, /Hias Rumah · Coming Soon/);
+assert.match(rumahkuVisual, /parent\.postMessage\(\{type:['"]rumahku:aksi['"]/);
+assert.match(rumahkuVisual, /data-a=['"]kunjungi['"]/);
+assert.match(rumahkuVisual, /COMING SOON/);
 assert.match(html, /isOnline:id=>\(state\.online\|\|\[\]\)\.some/);
 assert.match(html, /window\.NusaRumahku\?\.displayed\?\.\(\)/);
 assert.match(html, /const TEST_HOST=location\.hostname===['"]kota-nusa-tes-rumahku\.netlify\.app/);

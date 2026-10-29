@@ -83,6 +83,7 @@
 .nusa-mini-info{display:flex;align-items:center;justify-content:space-between;margin:9px 0;font-size:12px;color:#214e5b}.nusa-mini-controls{display:flex;justify-content:space-between;align-items:center;gap:10px;user-select:none;touch-action:none}.nusa-mini-dpad{display:flex;align-items:center;gap:4px}.nusa-mini-dpad>div{display:flex;flex-direction:column;gap:3px}.nusa-mini-dpad button,.nusa-mini-act{min-height:48px;min-width:54px;border:1px solid #d1e4e6;border-radius:13px;background:#dce9e9;color:#163e50;font-weight:800;touch-action:none}.nusa-mini-dpad button:active,.nusa-mini-act:active{background:#a8d8d5}.nusa-mini-act{min-width:120px;background:#e4c075;color:#15384b;border-color:#c4a158}.nusa-mini-feedback{display:block;padding:8px 2px 2px;color:#58757e;font-size:11px}
 .office-v3{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.office-v3 .btn{display:flex;flex-direction:column;align-items:flex-start;min-height:80px;white-space:normal;text-align:left;gap:7px;padding:14px}.office-v3 .btn small{font-weight:450;line-height:1.4;color:#65818a}.office-v3-btn{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}.office-v3-btn .btn{flex:1;min-width:130px}
 .ktp-photo-wrap{position:relative}.ktp-photo-wrap img{position:absolute;left:5%;top:22.3%;width:21.7%;height:42.2%;object-fit:cover;border-radius:13px;border:2px solid #fff9ec;pointer-events:none}.ktp-photo-note{font-size:10px;color:#7a8390;line-height:1.5;margin:7px 0}
+.nkj-subhud{position:absolute;z-index:4;left:10px;right:10px;top:calc(max(9px,env(safe-area-inset-top)) + 61px);display:flex;gap:7px;pointer-events:none}.nkj-subhud span{min-width:86px;padding:7px 11px;border:1px solid #ffffff46;border-radius:14px;background:#123d4bdc;color:#fff8df;font-size:11px;font-weight:900;box-shadow:0 5px 15px #082b3844}.nkj-subhud span:last-child{margin-left:auto;text-align:right}.nkj-combo-pop{animation:nkjcombo .36s cubic-bezier(.2,.85,.3,1.4)}@keyframes nkjcombo{50%{transform:scale(1.2);background:#e6a832;color:#173842}}.nkj-callout{position:absolute;z-index:5;left:0;right:0;top:27%;text-align:center;color:#fff6c4;font-size:clamp(27px,8vw,42px);font-weight:1000;text-shadow:0 4px 0 #164756,0 9px 22px #082c44;opacity:0;pointer-events:none}.nkj-callout.show{animation:nkjcall .72s ease-out}@keyframes nkjcall{0%{opacity:0;transform:translateY(12px) scale(.72)}22%,70%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-12px) scale(1.06)}}
 </style>
 <style id="nusa-premium-collection">
 .np-wrap{font-family:inherit;color:#18393f;display:grid;gap:14px;padding-bottom:12px}
@@ -713,7 +714,7 @@ function publicPlayer(w, p) { const orchard=orchardState(p); let orchardInfo=nul
  orchardInfo={lot:Number.isInteger(p.orchardLot)?p.orchardLot:null,occupied:orchard.plots.filter(Boolean).length,
  mainType,harvests:orchard.harvests||0,lastHarvest:orchard.lastHarvest||0,
  ready:orchard.plots.filter(a=>a&&Date.now()>=a.nextAt).length,
- trees:orchard.plots.map(a=>a?{type:a.type,plantedAt:a.plantedAt,nextAt:a.nextAt,harvested:a.harvested}:null)};} return { id: p.id, name: p.name, color: p.color, role: role(w, p.id), home: p.home, ig: p.ig||'', bio: p.bio||'', apt: p.apt||null, houseLevel:p.home===null?0:(p.houseLevel||1), personalHouseLevel:Math.min(10,Math.max(0,p.personalHouseLevel||(p.home!==null?Math.min(10,p.houseLevel||1):0))), business:p.business?{name:p.business.name,type:p.business.type,level:p.business.level}:null, orchard:orchardInfo, xp: p.xp, life: p.life, jobs: p.jobs, joined: p.joined, decor: p.decor, career: career(p.xp) }; }
+ trees:orchard.plots.map(a=>a?{type:a.type,plantedAt:a.plantedAt,nextAt:a.nextAt,harvested:a.harvested}:null)};} const sg=p.sawitGardenV267;const sawitGarden=sg&&Array.isArray(sg.palms)?{punya:true,nama:sg.nama||('Kebun '+p.name),gold:sg.palms.filter(x=>x?.gold).length,ready:sg.palms.filter(x=>x&&Date.now()-x.plantedAt>=300000).length,palms:sg.palms.map(x=>x?{plantedAt:Number(x.plantedAt)||0,gold:!!x.gold}:null)}:null; return { id: p.id, name: p.name, color: p.color, role: role(w, p.id), home: p.home, ig: p.ig||'', bio: p.bio||'', apt: p.apt||null, houseLevel:p.home===null?0:(p.houseLevel||1), personalHouseLevel:Math.min(10,Math.max(0,p.personalHouseLevel||(p.home!==null?Math.min(10,p.houseLevel||1):0))), business:p.business?{name:p.business.name,type:p.business.type,level:p.business.level}:null, orchard:orchardInfo, sawitGarden, xp: p.xp, life: p.life, jobs: p.jobs, joined: p.joined, decor: p.decor, career: career(p.xp) }; }
 function record(w, kind, text, actor, amount = 0, now = Date.now()) { w.ledger.unshift({ id: crypto.randomUUID(), kind, text, actor, amount, time: now }); w.ledger = w.ledger.slice(0, 200); }
 function demand(condition, message) { if (!condition)
     throw new Error(message); }
@@ -767,7 +768,7 @@ function die(w, p, now) { if (w.vote?.owner === p.id && ['open', 'tie'].includes
 
 function view(w, uid) { const p = w.players[uid]; return { me: p ? { ...p, role: role(w, p.id), career: career(p.xp), nusaV2: v2View(w,p) } : null, city: { tax: w.tax, pendingTax: w.pendingTax, treasury: w.treasury, civicXP:500, civicQueue:Object.values(w.players).filter(p=>!p.banned&&p.xp>=500&&p.id!==w.president&&p.id!==w.vice).sort((a,b)=>a.civicQualifiedAt-b.civicQualifiedAt||a.id.localeCompare(b.id)).map(p=>({id:p.id,name:p.name,xp:p.xp,at:p.civicQualifiedAt})), termDays: w.termDays, mayorUntil: w.mayorUntil, president: w.president, vice: w.vice, mayor: w.mayor, youtube: w.youtube, channels: w.channels ?? DEFAULT_CHANNELS, created: w.created, news: w.news, projects: w.projects, events: w.events.filter(e => e.until > Date.now()), vote: w.vote ? { ...w.vote, votes: undefined, counts: w.vote.options.map((_, i) => Object.values(w.vote.votes).filter(v => v === i).length), myVote: p ? w.vote.votes[p.id] ?? null : null } : null }, citizens: Object.values(w.players).filter(x => !x.banned).map(x => publicPlayer(w, x)), ledger: p ? w.ledger.filter(x => ['president', 'vice'].includes(role(w, p.id)) || x.actor === p.id || ['tax', 'build', 'vote', 'office', 'salary'].includes(x.kind)).slice(0, 50) : [], bannedCitizens: p && role(w, p.id) === 'president' ? Object.values(w.players).filter(x => x.banned).map(x => publicPlayer(w, x)) : [], reports: p && ['president', 'vice'].includes(role(w, p.id)) ? w.reports : [], now: Date.now() }; }
 
-function refresh(w,now){legacyRefresh(w,now);for(const owner of Object.values(w.players))orchardHarvest(w,owner,now);for(const p of Object.values(w.players)){if(p.bannedUntil&&p.bannedUntil<=now&&!p.expelled){p.banned=false;p.bannedUntil=0;}if(p.expelled)p.banned=true;}const eligible=p=>!p.banned&&p.xp>=500&&p.id!==w.president&&p.id!==w.vice;
+function refresh(w,now){legacyRefresh(w,now);for(const owner of Object.values(w.players)){orchardHarvest(w,owner,now);if(orchardState(owner))sawitGardenState(owner,now,true)}for(const p of Object.values(w.players)){if(p.bannedUntil&&p.bannedUntil<=now&&!p.expelled){p.banned=false;p.bannedUntil=0;}if(p.expelled)p.banned=true;}const eligible=p=>!p.banned&&p.xp>=500&&p.id!==w.president&&p.id!==w.vice;
  for(const p of Object.values(w.players)){p.houseLevel=p.home===null?0:Math.max(1,Math.min(20,Math.trunc(p.houseLevel||1)));if(p.xp>=500&&!p.civicQualifiedAt)p.civicQualifiedAt=now;if(p.xp<500)p.civicQualifiedAt=null;}
  // V2.20.2: only a confirmed Firebase office can grant mayor privileges.
  const office=w.civicOfficialV220?.mayor;
@@ -943,6 +944,54 @@ function orchardAction(w,p,b,now){
  throw Error('Aksi kebun tidak dikenal.');
 }
 
+/* Kebun Sawit pribadi V2.67 — menggantikan kavling sawit bersama di peta. */
+const SAWIT_GROW_MS=5*60*1000,SAWIT_COUNT=20,SAWIT_REWARD=18,SAWIT_WATER_MS=4000,SAWIT_WATER_CD=9000;
+function sawitGardenState(p,now=Date.now(),migrate=true){
+ let f=p.sawitGardenV267;
+ if(f&&Array.isArray(f.palms)&&f.palms.length===SAWIT_COUNT)return f;
+ const old=orchardState(p);
+ if(!migrate||!old)return null;
+ f={owner:p.id,nama:'Kebun '+p.name,palms:[],earned:old.earned||0,harvests:old.harvests||0,createdAt:old.boughtAt||now,migratedAt:now};
+ for(let i=0;i<SAWIT_COUNT;i++){
+  const tree=old.plots[i],remaining=tree?Math.max(0,Number(tree.nextAt||now)-now):SAWIT_GROW_MS;
+  f.palms.push({plantedAt:now-(SAWIT_GROW_MS-Math.min(SAWIT_GROW_MS,remaining)),wAt:0,gold:tree?.type==='emas'});
+ }
+ p.sawitGardenV267=f;return f;
+}
+function sawitGardenView(p,now=Date.now()){
+ const f=sawitGardenState(p,now,true);
+ return {koin:Math.max(0,(p.coins||0)-(p.held||0)),punya:!!f,palms:f?structuredClone(f.palms):[],nama:f?.nama||('Kebun '+p.name),growMs:SAWIT_GROW_MS};
+}
+function sawitGardenAction(w,p,b,now){
+ const op=String(b.op||'state');let f=sawitGardenState(p,now,true);
+ if(op==='state')return {sawitGarden:sawitGardenView(p,now)};
+ if(op==='buy'){
+  demand(!f,'Kamu sudah punya kebun sawit pribadi.');
+  demand((p.coins||0)-(p.held||0)>=ORCHARD_COST,'Koin belum cukup untuk membeli kebun.');
+  p.coins-=ORCHARD_COST;
+  f=p.sawitGardenV267={owner:p.id,nama:'Kebun '+p.name,palms:Array.from({length:SAWIT_COUNT},()=>({plantedAt:now,wAt:0,gold:false})),earned:0,harvests:0,createdAt:now};
+  record(w,'sawit-garden','Membeli kebun sawit pribadi 20 pohon',p.id,-ORCHARD_COST,now);
+  return {ok:true,message:'Kebun sawit pribadi dibeli. 20 pohon mulai tumbuh selama 5 menit.',state:sawitGardenView(p,now),sawitGarden:sawitGardenView(p,now)};
+ }
+ demand(f,'Beli kebun sawit pribadi dahulu.');
+ if(op==='harvest'){
+  demand(Array.isArray(b.ids)&&b.ids.length>=1&&b.ids.length<=SAWIT_COUNT,'Daftar pohon panen tidak sah.');
+  const ids=[...new Set(b.ids.map(Number))].filter(i=>Number.isInteger(i)&&i>=0&&i<SAWIT_COUNT),harvested=[];
+  for(const i of ids){const tree=f.palms[i];if(tree&&now-tree.plantedAt>=SAWIT_GROW_MS){tree.plantedAt=now;tree.wAt=0;harvested.push(i)}}
+  demand(harvested.length>0,'Belum ada pohon yang matang.');
+  const gain=harvested.length*SAWIT_REWARD;p.coins+=gain;f.earned=(f.earned||0)+gain;f.harvests=(f.harvests||0)+harvested.length;f.lastHarvestAt=now;
+  record(w,'sawit-garden','Panen '+harvested.length+' pohon sawit pribadi',p.id,gain,now);
+  return {ok:true,koin:gain,ids:harvested,state:sawitGardenView(p,now),sawitGarden:sawitGardenView(p,now)};
+ }
+ if(op==='water'){
+  const id=amount(Number(b.id),0,SAWIT_COUNT-1),tree=f.palms[id];demand(tree,'Pohon tidak ditemukan.');
+  demand(now-tree.plantedAt<SAWIT_GROW_MS,'Pohon ini sudah matang.');demand(now-(tree.wAt||0)>=SAWIT_WATER_CD,'Tunggu sebentar sebelum menyiram lagi.');
+  tree.plantedAt-=SAWIT_WATER_MS;tree.wAt=now;
+  return {ok:true,state:sawitGardenView(p,now),sawitGarden:sawitGardenView(p,now)};
+ }
+ throw Error('Aksi kebun sawit tidak dikenal.');
+}
+
 const NUSA_FISH_END=Date.parse('2026-10-30T20:00:00+07:00');
 const NUSA_FISH_TIERS=[
  {id:'common',name:'Selar Pesisir',rarity:'Common',pts:5},
@@ -1014,6 +1063,17 @@ function nusaFishSellPrice(fish){
  const byScore=Math.max(6,Math.floor((Number(fish?.score)||0)*0.32));
  return Math.max(byTier,byScore);
 }
+function nusaFishRollTier(f,attempt){
+ const cosmicChancePercent=attempt.pass?0.15:0.0012,draw=nusaFishRandom()*100;
+ if(draw<cosmicChancePercent)return 7;
+ const bait=NUSA_FISH_BAITS[attempt.bait]||NUSA_FISH_BAITS[0],luck=bait.luck+(attempt.pass ? .045 : 0);
+ const scaled=Math.max(0,Math.min(1,(draw-cosmicChancePercent)/(100-cosmicChancePercent)));
+ const commonStreak=Math.min(5,Math.max(0,f.commonStreak||0));
+ const relief=commonStreak>=5?1:(commonStreak>=3 ? .14*(commonStreak-2) : 0);
+ const commonLimit=commonStreak>=5?0:Math.max(0,.58-.2*luck-relief);
+ const thresholds=[commonLimit,.84-.13*luck,.947-.075*luck,.985-.02*luck,.9965-.006*luck,.9992-.001*luck,1];
+ const idx=thresholds.findIndex(t=>scaled<t);return idx<0?6:idx;
+}
 function nusaFishingAction(w,p,b,now,spend){
  const f=nusaFishState(p),op=String(b.op||'status');
  if(op==='status')return {fishing:structuredClone(f)};
@@ -1048,7 +1108,8 @@ function nusaFishingAction(w,p,b,now,spend){
   let id=f.bait;demand((f.baits[id]||0)>0,'Umpan habis. Beli dulu di Kedai Ikan.');
   demand((f.lastCast||0)+3000<=now,'Tunggu 3 detik sebelum lempar lagi.');
   f.baits[id]--;f.lastCast=now;f.pendingCast={bait:id,rod:f.rod,pass:!!(f.pass||window.NusaFishingAuraConfirmed===true) && window.NusaFishingAuraEquipped!==false,at:now,used:false};
-  return {message:'Umpan dipasang.',fishingCast:true};
+  f.pendingCast.tier=NUSA_FISH_TIERS[nusaFishRollTier(f,f.pendingCast)].id;
+  return {message:'Umpan dipasang.',fishingCast:true,fishingCastPreview:{tier:f.pendingCast.tier}};
  }
  if(op==='fail'){if(f.pendingCast&&!f.pendingCast.used){f.pendingCast.used=true;f.pendingCast=null;}return {message:'Ikan lolos. Coba lagi.'};}
  if(op==='sellSelected'){
@@ -1109,21 +1170,10 @@ function nusaFishingAction(w,p,b,now,spend){
   demand(attempt&&!attempt.used,'Belum ada lemparan aktif atau hasil sudah diambil.');
   demand(now-attempt.at>=1500&&now-attempt.at<95000,'Tangkapan sudah tidak berlaku.');
   attempt.used=true;f.pendingCast=null;
-  // Cosmic (Ikan Mistik Kosmik): Pancing Aura aktif = 0,15% per tangkapan berhasil.
-  // Tanpa Aura tetap 0,0012%. Tidak dipengaruhi umpan, pity, ataupun Common streak.
-  const cosmicChancePercent=attempt.pass ? 0.15 : 0.0012;
-  const draw=nusaFishRandom()*100;
-  const cosmic=draw<cosmicChancePercent;
-  const bait=NUSA_FISH_BAITS[attempt.bait]||NUSA_FISH_BAITS[0];
-  const luck=bait.luck+(attempt.pass?.045:0);
-  const scaled=Math.max(0,Math.min(1,(draw-cosmicChancePercent)/(100-cosmicChancePercent)));
-  // Penawar monoton: setelah 3 Common berturut-turut, peluang Common berkurang.
-  // Setelah 5 Common, tangkapan berikutnya minimal Uncommon; TIDAK menjamin Rare/Cosmic.
+  // Tier sudah diundi saat umpan dilempar agar tingkat kesulitan pertarungan sesuai ikannya.
+  // Pending lama tetap aman: jika belum menyimpan tier, lakukan undian kompatibilitas di sini.
   const commonStreak=Math.min(5,Math.max(0,f.commonStreak||0));
-  const relief=commonStreak>=5?1:commonStreak>=3?.14*(commonStreak-2):0;
-  const commonLimit=commonStreak>=5?0:Math.max(0,.58-.2*luck-relief);
-  const thresholds=[commonLimit,.84-.13*luck,.947-.075*luck,.985-.02*luck,.9965-.006*luck,.9992-.001*luck,1];
-  let idx=cosmic?7:thresholds.findIndex(t=>scaled<t);idx=idx<0?6:idx;
+  let idx=NUSA_FISH_TIERS.findIndex(x=>x.id===attempt.tier);if(idx<0)idx=nusaFishRollTier(f,attempt);
   const item=NUSA_FISH_TIERS[idx];
   // Spesies bervariasi, namun nilai tier dan skor tetap sama.
   const species=nusaFishSpecies(f,item.id);
@@ -1341,6 +1391,7 @@ async function POST(req) {
                 p.lastAction = now;
             }
             if (action === 'nusaFishing') return nusaFishingAction(w,p,b,now,spend);
+            if (action === 'sawitGardenV267') return sawitGardenAction(w,p,b,now);
             if (action === 'orchard') return orchardAction(w,p,b,now);
             if (action === 'heartbeat') {
                 tick(p, w, now);
@@ -1491,7 +1542,25 @@ async function POST(req) {
                 s.rounds++;
                 s.score += score;
                 s.sequence++;
-                s.lastRound = now;s.expires=now+900000;const j=JOBS.find(j=>j.id===s.id);s.payout=(s.payout||0)+Math.round((j.pay/5)*(.6+.4*score/100)*(1+career(p.xp).bonus/100));
+                s.lastRound = now;s.expires=now+900000;const j=JOBS.find(j=>j.id===s.id);
+                if(s.id==='chef'&&Number.isFinite(Number(b.survivalSeconds))){
+                    const survived=Math.floor(num(b.survivalSeconds,5,180));
+                    demand(survived<=Math.floor((now-s.started)/1000)+5,'Durasi Dapur Nusa tidak sesuai sesi kerja.');
+                    const timePay=Math.min(50,5+Math.floor(survived/30)*8);
+                    s.payout=(s.payout||0)+Math.round(timePay*(.8+.2*score/100)*(1+career(p.xp).bonus/100));
+                }else if(s.id==='wood'&&Number.isFinite(Number(b.survivalSeconds))){
+                    const survived=Math.floor(num(b.survivalSeconds,1,300)),quests=Math.floor(num(b.questsCompleted,0,20));
+                    demand(survived<=Math.floor((now-s.started)/1000)+5,'Durasi proyek tidak sesuai sesi kerja.');
+                    demand(quests<=Math.floor(survived/3)+1,'Jumlah quest proyek tidak sesuai durasi.');
+                    const timePay=Math.min(40,survived>=10?2+Math.floor(survived/30)*4:0),questPay=Math.min(36,quests*6);
+                    s.payout=(s.payout||0)+Math.round((timePay+questPay)*(1+career(p.xp).bonus/100));
+                }else if(s.id==='traffic'&&Number.isFinite(Number(b.survivalSeconds))){
+                    const survived=Math.floor(num(b.survivalSeconds,1,300)),caught=Math.floor(num(b.questsCompleted,0,20));
+                    demand(survived<=Math.floor((now-s.started)/1000)+5,'Durasi pengejaran tidak sesuai sesi kerja.');
+                    demand(caught<=Math.floor(survived/4)+1,'Jumlah tangkapan tidak sesuai durasi.');
+                    const timePay=Math.min(40,survived>=10?2+Math.floor(survived/30)*4:0),capturePay=Math.min(42,caught*7);
+                    s.payout=(s.payout||0)+Math.round((timePay+capturePay)*(1+career(p.xp).bonus/100));
+                }else s.payout=(s.payout||0)+Math.round((j.pay/5)*(.6+.4*score/100)*(1+career(p.xp).bonus/100));
                 if (s.risk >= 2 && score < 45) {
                     p.health = Math.max(0, p.health - (s.risk * 5 + 3));
                     if (!p.health) {
@@ -1876,34 +1945,34 @@ return {claimGoogleWelcomeBonus(googleUid){
  if((W.vice===player.id)===!!enabled)return null;
  if(enabled){W.vice=player.id;}else if(W.vice===player.id)W.vice=null;
  refresh(W,Date.now());persist();return snapshot();
-},premiumCanPlant(){const p=W.players[uid];if(!p)return {ok:false,message:'Karakter belum masuk.'};const f=orchardState(p);if(!f)return {ok:false,message:'Kamu belum punya lahan kebun.'};if(!f.plots.some(t=>!t))return {ok:false,message:'Kebun penuh. Buka Shop Kebun lalu pakai menu Tebang Pohon dahulu.'};return {ok:true};},premiumSeedStatus(orderId=''){
- const p=W.players[uid],f=orchardState(p);
- if(!p||!f)return {ok:false,message:'Karakter ini belum memiliki lahan kebun.',goldPlots:[]};
- const goldPlots=f.plots.map((v,i)=>v?.type==='emas'?i+1:null).filter(Boolean);
+},premiumCanPlant(){const p=W.players[uid];if(!p)return {ok:false,message:'Karakter belum masuk.'};const f=sawitGardenState(p,Date.now(),true);if(!f)return {ok:false,message:'Beli Kebun Sawit pribadi dahulu.'};if(!f.palms.some(t=>t&&!t.gold))return {ok:false,message:'Semua pohon di kebun sudah menjadi Sawit Emas.'};return {ok:true};},premiumSeedStatus(orderId=''){
+ const p=W.players[uid],f=p?sawitGardenState(p,Date.now(),true):null;
+ if(!p||!f)return {ok:false,message:'Karakter ini belum memiliki Kebun Sawit pribadi.',goldPlots:[]};
+ const goldPlots=f.palms.map((v,i)=>v?.gold?i+1:null).filter(Boolean);
  const applied=(p.premiumSeedOrders||{})[String(orderId)]||null;
  return {ok:true,goldPlots,linkedPlot:Number.isInteger(applied?.plot)?applied.plot+1:null};
 },async premiumPlant(orderId=''){
  const p=W.players[uid];if(!p)return {ok:false,message:'Karakter belum masuk.'};
- const farm=orchardState(p);if(!farm)return {ok:false,message:'Beli kebun dahulu.'};
+ const farm=sawitGardenState(p,Date.now(),true);if(!farm)return {ok:false,message:'Beli Kebun Sawit pribadi dahulu.'};
  const id=String(orderId||'');if(!/^[A-Za-z0-9_-]{5,80}$/.test(id))return {ok:false,message:'Nomor pesanan tidak sah.'};
  if((p.premiumSeedOrders||{})[id])return {ok:false,message:'Bibit pesanan ini sudah tertanam. Cek Koleksi Premium.'};
- const slot=farm.plots.findIndex(t=>!t);if(slot<0)return {ok:false,message:'Semua petak kebun penuh. Gunakan menu Tebang Pohon dahulu.'};
+ const slot=farm.palms.findIndex(t=>t&&!t.gold);if(slot<0)return {ok:false,message:'Semua pohon di kebun sudah menjadi Sawit Emas.'};
  try{
   // mutate() adalah async. Harus di-await SEBELUM mengakses result.plot.
   const result=await mutate(w=>{
    const owner=w.players[uid];
    owner.premiumSeedOrders??={};
    if(owner.premiumSeedOrders[id])throw Error('Bibit pesanan ini sudah dipakai.');
-   const plot=owner.orchard.plots.findIndex(t=>!t);
-   if(plot<0)throw Error('Kebun penuh.');
+   const kebun=sawitGardenState(owner,Date.now(),true),plot=kebun?.palms.findIndex(t=>t&&!t.gold)??-1;
+   if(plot<0)throw Error('Semua pohon sudah menjadi Sawit Emas.');
    const now=Date.now();
-   owner.orchard.plots[plot]={type:'emas',plantedAt:now,nextAt:now+ORCHARD_TREES.emas.grow,harvested:0};
+   kebun.palms[plot].gold=true;kebun.palms[plot].plantedAt=now;kebun.palms[plot].wAt=0;
    owner.premiumSeedOrders[id]={plot,at:now};
    owner.xp=(owner.xp||0)+85;
    v2Memory(w,owner,'Menanam Sawit Emas premium di petak '+(plot+1),now);
    return {plot};
   });
-  return {ok:true,message:'Sawit Emas tumbuh di petak '+(result.result.plot+1)+' (+85 EXP).'};
+  return {ok:true,message:'Sawit Emas premium tumbuh di Kebun Sawit petak '+(result.result.plot+1)+' (+85 EXP).'};
  }catch(e){return {ok:false,message:String(e.message||e)}}
 },async request(url,body){if(loadError)throw Error(loadError);if(url==='/api/state')return snapshot();if(url.startsWith('/api/chat'))return chatLocal(body);if(url!=='/api/game')throw Error('Fitur ini membutuhkan server online.');
  if(body.action==='orchardRecoverLocal'){
@@ -2901,6 +2970,8 @@ function createWorld(canvas,places,callbacks={}){
   for(let i=0;i<8;i++){const x=-52+i*15,p=projects.find(p=>p.slot===i);tile(x,-71,12,12,'#c0d1a2');if(p){const complete=Date.now()>=p.ready;buildings.push({x,z:-71,w:10,d:9,h:complete?8:3,color:complete?'#e5d7b7':'#bfa079',roof:'#6d918c',kind:'tower',id:'project:'+i});}else{tile(x,-71,10,10,'#a5c292');text('＋',x,-71,.1,14,'#73986b');}}
   // Kavling follower dan Pulau Harapan tidak lagi digambar pada peta.
   // Catatan rumah milik warga tetap tersimpan untuk kompatibilitas.
+  // Pulau kebun bersama lama dipensiunkan. Kebun kini dibuka pribadi lewat tombol Kebunku.
+  if(false){
   // Pulau kebun terpisah: 20 petak lama tetap sama, 10 petak tambahan di sisi barat.
   const westX=-219,westZ=-18;
   box(westX,westZ,150,232,2.5,'#b9c99a',-2.5);
@@ -2935,6 +3006,7 @@ function createWorld(canvas,places,callbacks={}){
   tile(-105,76,8,35,'#d9d4b8',.34);tile(-105,76,5,35,'#617c7b',.39);
   tile(-87,60,40,8,'#d9d4b8',.34);tile(-87,60,40,5,'#617c7b',.39);
   text('KEBUN BARAT · 30 LAHAN',-260,-129,.3,11,'#274936');
+  }
   tile(0,0,15,15,'#e9dfc9');tile(0,0,3,15,'#f0e8d4');tile(0,0,15,3,'#f0e8d4');ellipse(0,0,.4,17,9,'#a3b9b1');ellipse(0,0,.8,14,7,'#6eb6c6');box(0,0,.6,.6,3,'#e9e4cc');ellipse(0,0,3,6,3,'#d9e4d6');
   tile(-42,70,27,14,'#dfd6b6');tile(-42,70,24,11,'#6d9f78');for(const z of [65,75])tile(-42,z,22,.15,'#e5e6cc',.1);for(const x of [-53,-42,-31])tile(x,70,.15,10,'#e5e6cc',.1);
   tile(43,70,26,14,'#e6d8b8');tile(43,70,22,10,'#76bdca');for(let x=35;x<53;x+=4)tile(x,70,.12,9,'#c2e4dc',.1);
@@ -3161,10 +3233,10 @@ function createWorld(canvas,places,callbacks={}){
   seaLife(ambientTime,!fastGesture);
   activity(ambientTime);
   constructionWorkers(ambientTime);
-  orchardHaul(ambientTime);
+  orchardHarvestHotspots.length=0;
   planeLife(ambientTime);
-  if(!fastGesture)orchardGoldShimmer(ambientTime);skyLife(ambientTime,!fastGesture);
-  stadiumMatch(ambientTime);g=staticContext;ctx.restore();atmosphere();lights(ambientTime);drawOwnerLabels();drawHarvestButton();
+  skyLife(ambientTime,!fastGesture);
+  stadiumMatch(ambientTime);g=staticContext;ctx.restore();atmosphere();lights(ambientTime);drawOwnerLabels();
   // Pak Tua dan papan barter adalah objek interaktif, bukan efek visual.
   // Rehitung posisi mereka terhadap kamera pada SETIAP frame, termasuk pan/zoom.
   drawFishingBoard();if(selected&&!photo){const p=screen(P(selected.x,selected.z));ctx.strokeStyle='#b18b43';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y,22,10,0,0,Math.PI*2);ctx.stroke();}if(now-lastLabels>150||!playing){lastLabels=now;callbacks.project?.(places.map(p=>{const b=buildings.find(b=>b.id===p.id),q=screen(P(b?.x??p.x,b?.z??p.z,(b?.h??2)+6));return {...p,sx:q.x,sy:q.y,visible:playing&&!photo&&(zoom>3.5&&['hall','market','bakery','cafe','jobs','land'].includes(p.id)||p.id==='hall')&&q.x>28&&q.x<width-28&&q.y>110&&q.y<height-90};}));}if(playing&&!paused)invalidate();}
@@ -3989,8 +4061,9 @@ function v2BusyAction(op,body={},onDone=()=>showNusaPlus()){
 function v2Stat(name,val){return `<div class="v2-stat"><small>${name}</small><strong>${val}</strong></div>`;}
 function showNusaPlus(section='hub'){
  if(!entered||!state.me)return join();const d=state.me.nusaV2||{},bag=d.bag||{};
+ if(section==='orchard'){closePanel();window.NusaKebunSawit?.open();return;}
  if(section==='hub'){
-  v2Shell('Aktivitas Kota',`<p class="intro">Cari kegiatan untuk dimainkan. Hasil profesi masuk tas dan bisa dipakai sebagai bahan, dijual, atau dikirim memenuhi pesanan kota.</p><div class="v2-stats">${v2Stat('Koin tersedia',v2SafeMoney(state.me.coins-state.me.held))}${v2Stat('Jenis barang',Object.keys(bag).length+' item')}${v2Stat('Surat baru',v2InboxCount())}</div><button class="btn primary wide" id="nusaCityLifeButton" style="margin:0 0 10px;min-height:52px" onclick="window.NusaCityLife?.open()">🏘️ Kota Hidup · 3 Aktivitas NPC</button><button class="btn wide" id="nusaSettingsBackup" style="margin:0 0 14px;min-height:48px">⚙ Pengaturan &amp; Cadangan</button><div class="v2-actions"><button class="btn primary" id="nusaFishingEventOpen">🎣 Event Pak Tua · Mancing</button><button class="btn primary" data-v2-go="orchard">🌱 Shop & Kebun</button><button class="btn" data-v2-go="market">🏪 Pasar</button></div><details style="margin-top:12px"><summary style="padding:15px;background:#eaf2ed;border-radius:14px;cursor:pointer;font-weight:700">Lihat semua aktivitas lainnya ▾</summary>${V2_NAV.filter(x=>!['orchard','market'].includes(x[0])).map(([id,emoji,title,sub])=>`<button class="v2-nav" data-v2-go="${id}"><span class="v2-emoji">${emoji}</span><span><strong>${title}</strong><small>${sub}</small></span><span class="v2-chev">›</span></button>`).join('')}</details><button class="btn wide" id="v2Support" style="margin-top:14px">💚 Dukung Kota Nusa</button>`);
+  v2Shell('Aktivitas Kota',`<p class="intro">Cari kegiatan untuk dimainkan. Hasil profesi masuk tas dan bisa dipakai sebagai bahan, dijual, atau dikirim memenuhi pesanan kota.</p><div class="v2-stats">${v2Stat('Koin tersedia',v2SafeMoney(state.me.coins-state.me.held))}${v2Stat('Jenis barang',Object.keys(bag).length+' item')}${v2Stat('Surat baru',v2InboxCount())}</div><button class="btn primary wide" id="nusaCityLifeButton" style="margin:0 0 10px;min-height:52px" onclick="window.NusaCityLife?.open()">🏘️ Kota Hidup · 3 Aktivitas NPC</button><button class="btn wide" id="nusaSettingsBackup" style="margin:0 0 14px;min-height:48px">⚙ Pengaturan &amp; Cadangan</button><div class="v2-actions"><button class="btn primary" id="nusaFishingEventOpen">🎣 Event Mancing Nusa</button><button class="btn primary" data-v2-go="orchard">🌱 Shop & Kebun</button><button class="btn" data-v2-go="market">🏪 Pasar</button></div><details style="margin-top:12px"><summary style="padding:15px;background:#eaf2ed;border-radius:14px;cursor:pointer;font-weight:700">Lihat semua aktivitas lainnya ▾</summary>${V2_NAV.filter(x=>!['orchard','market'].includes(x[0])).map(([id,emoji,title,sub])=>`<button class="v2-nav" data-v2-go="${id}"><span class="v2-emoji">${emoji}</span><span><strong>${title}</strong><small>${sub}</small></span><span class="v2-chev">›</span></button>`).join('')}</details><button class="btn wide" id="v2Support" style="margin-top:14px">💚 Dukung Kota Nusa</button>`);
   $('#nusaFishingEventOpen').onclick=()=>{closePanel();window.NusaFishing?.open()};$('#v2Support').onclick=showSupport;return;
  }
  if(section==='orchard'){
@@ -4589,7 +4662,7 @@ window.nkOpenGuide=function nkOpenGuide(index=0){
 function showNusaPremium(){
  if(!state.me)return join();
  const products=[
-  ['sawit','np-gold',NUSA_GOLDPALM_SVG,'Bibit Sawit Emas unik. Setelah pesanan diperiksa dan disetujui, bibit bisa ditanam di petak kosong kebun milikmu.','Stok koleksi 20 bibit'],
+  ['sawit','np-gold',NUSA_GOLDPALM_SVG,'Bibit Sawit Emas unik. Setelah pesanan diperiksa dan disetujui Presiden, satu pohon di Kebun Sawit pribadimu berubah menjadi emas.','Stok koleksi 20 bibit'],
   ['aura','np-chat',NUSA_CHAT_SVG,'Efek Chat Aura berkilau pada tampilan chat akunmu. Termasuk enam pilihan pratinjau warna.','Efek chat premium'],
   ['mansion','np-home',NUSA_HOUSE_SVG,'Rumah Selebritis terbatas 10 pemilik. Setelah Presiden menyetujui, mansion otomatis aktif di menu Rumahku. Tidak ada lahan selebriti terpisah di peta.','Mansion eksklusif']
  ];
@@ -4666,8 +4739,8 @@ window.NusaPremiumPlantHook=async orderId=>{
  try{
   const snapshot=await LocalNusa.request('/api/state');
   absorb(snapshot);
-  if(window.NusaOrchardCloud)await window.NusaOrchardCloud.publish(state.me);
- }catch(e){r.message+=' Pohon sudah tersimpan di HP, tetapi sinkron online belum dipastikan: '+String(e.message||e).slice(0,110);}
+  if(state.me?.sawitGardenV267&&window.NusaSawitCloud)await window.NusaSawitCloud.publish({punya:true,palms:state.me.sawitGardenV267.palms});
+ }catch(e){r.message+=' Pohon sudah tersimpan di progres karakter, tetapi tampilan belum berhasil dimuat ulang: '+String(e.message||e).slice(0,110);}
  return r;
 };
 window.NusaPremiumUser=()=>state.me?({id:String(state.me.id||''),name:String(state.me.name||'Warga').slice(0,24),role:state.me.role}):null;
@@ -5733,7 +5806,7 @@ function nkCheckUsedSeed(orderId){
 }
 function nkMansion(){if(window.NusaCelebrity?.openMyHome){window.NusaCelebrity.openMyHome();return;}const body=nkPopup('Rumah Selebritis','KOLEKSI · RUMAH SULTAN');body.innerHTML=`<div class="nk-mansion"><div class="nk-mansion-house">🏛️</div><strong>THE NUSA GRAND VILLA</strong><small>Grand lobby · Kolam biru · Taman tropis</small></div><div class="no-box">Selamat datang di rumah eksklusifmu! Halaman interior digital ini dapat dibuka setiap kali akunmu terhubung.</div><button id="nkReturn" class="no-btn ghost">← Barang Saya</button>`;body.querySelector('#nkReturn').onclick=nkInventory}
 async function nkPlant(orderId){const body=nkPopup('Tanam Sawit Emas','KOTA NUSA · KEBUN');
- body.innerHTML='<div class="no-box">Bibit emas ditanam pada petak kosong kebun karakter saat ini. Setiap bibit hanya bisa ditanam satu kali.</div><button class="no-btn" id="nkPlantNow">Tanam di Petak Kosong</button><div id="nkNotice" class="no-status"></div>';
+ body.innerHTML='<div class="no-box">Bibit emas mengubah satu pohon biasa di Kebun Sawit pribadimu menjadi Sawit Emas. Hanya pesanan yang disetujui Presiden dan setiap bibit cuma bisa dipakai sekali.</div><button class="no-btn" id="nkPlantNow">Tanam Sawit Emas</button><div id="nkNotice" class="no-status"></div>';
  body.querySelector('#nkPlantNow').onclick=async()=>{
   if(nkBusy)return;nkBusy=true;const btn=body.querySelector('#nkPlantNow');btn.disabled=true;
   try{
@@ -5911,6 +5984,9 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
 #nusaFishingOverlay .nf-action{border-radius:15px;padding:16px 10px;min-height:57px;border:2px solid #aee5ff;background:linear-gradient(145deg,#43b7f2,#087fbd);color:#fff;font-weight:900!important;box-shadow:0 5px 0 #073b63}
 #nusaFishingOverlay .nf-action.reel{background:linear-gradient(145deg,#ffdf83,#d99328);color:#273238;border-color:#ffefaf;box-shadow:0 5px 0 #765023;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #nusaFishingOverlay .nf-status{text-align:center;background:#0a2a43c8;border:1px solid #71a7ac78;padding:9px;border-radius:11px;font-size:12px;color:#d4eeee}
+#nusaFishingOverlay .nf-promo{position:absolute;z-index:8;left:12px;right:12px;top:calc(70px + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid #ffe18b;background:linear-gradient(115deg,#503d16f2,#183d54f2);border-radius:14px;box-shadow:0 8px 26px #0019;animation:nfPromoIn .28s ease-out}
+#nusaFishingOverlay .nf-promo span{flex:1;font-size:11px;line-height:1.45;color:#fff4c8}#nusaFishingOverlay .nf-promo button{border:1px solid #fff0b0;background:#f4d274;color:#173047;border-radius:10px;padding:9px 11px;font-weight:900;font-size:10px;white-space:nowrap}
+@keyframes nfPromoIn{from{opacity:0;transform:translateY(-10px)}}
 #nusaFishingOverlay .nf-box{background:#10304ddc;border:1px solid #e0c37570;border-radius:16px;padding:14px;display:grid;gap:10px}
 #nusaFishingOverlay .nf-box h3{font:700 18px Georgia,serif;color:#ffe4a4;margin:0}
 #nusaFishingOverlay .nf-card{display:flex;align-items:center;gap:10px;border:1px solid #81a8ac58;background:#ffffff0b;border-radius:13px;padding:11px}
@@ -5960,8 +6036,11 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
  ];
  const RODS=[['Pancing Bambu',0,1],['Kayu Nelayan',220,1.18],['Fiberglass',650,1.42],['Karbon Laut',1600,1.72],['Titanium',4200,2.02],['Samudra Pro',11000,2.3],['Leviathan Rod',28000,2.65],['Pancing Raja Nusa',65000,3.12]];
  const BAITS=[['Cacing Pesisir',4],['Udang Kecil',9],['Ikan Teri',18],['Cumi Segar',32],['Udang Emas',60],['Larva Biru',105],['Kerang Mutiara',190],['Laut Dalam',340],['Esensi Roh',650],['Nebula Pesisir',1200]];
+ const TIER_DIFFICULTY={common:1.25,uncommon:1.65,rare:2.15,epic:3.55,legendary:4.45,mythic:5.35,mistis:6.9,cosmic:8.05};
+ const ROD_SPEED=[1,1.03,1.07,1.12,1.18,1.25,1.33,1.42],ROD_FX=['#d5b58a','#e8a85d','#6ed8c5','#56c7ff','#e4edf6','#3fa9ff','#bb75ff','#ffd95c'];
  let overlay=null,pane='play',F={rod:0,rods:[0],bait:0,baits:[12,...Array(9).fill(0)],fish:[],score:0,total:0,pass:false},
-  phase='idle',biteTimeout=0,castTimeout=0,last=0,tension=.2,progress=0,hold=false,fishFactor=1,drawId=0,secTimer=0,reward=null,ctx=null,canvas=null,disposed=true,fishMove=0,audio=null,rankState=[],waveNode=null;
+  phase='idle',biteTimeout=0,castTimeout=0,last=0,tension=.2,progress=0,hold=false,fishFactor=1,drawId=0,secTimer=0,reward=null,ctx=null,canvas=null,disposed=true,fishMove=0,audio=null,rankState=[],waveNode=null,
+  fightZone=.3,fightVelocity=0,fishPosition=.5,fishTarget=.5,fishTargetTimer=0,shadowSchool=[],failStreak=0,pendingTier='common',escapeAt=0,escapeReason='';
  const $=(s)=>overlay?.querySelector(s);
  const fmt=n=>Math.max(0,Math.floor(n||0)).toLocaleString('id-ID');
  const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -5988,7 +6067,7 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
   try{localStorage.setItem(auraKey(),on?'on':'off')}catch{}
   window.NusaFishingAuraEquipped=!!on;
   if(overlay){overlay.classList.toggle('nf-equipped-aura',!!on);renderControls();if(pane==='shop')drawShop()}
-  showMessage(on?'✨ Pancing Aura DIPAKAI! Kilau samudra aktif dan tarik lebih kuat.':'Pancing Aura disimpan. Pancing biasa kembali digunakan.');
+  showMessage(on?'✨ Pancing Aura dipakai: partikel emas, zona +15%, kecepatan +10%, Cosmic 0,15%.':'Pancing Aura disimpan. Pancing biasa kembali digunakan.');
   if(on)sfx('success');else sfx('buy');
  }
  function refreshAuraState(){
@@ -6024,14 +6103,45 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
   return `<svg viewBox="0 0 160 94" width="${size}" height="94" role="img" aria-label="${safe(d[1])}"><defs><linearGradient id="nfG${i}" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#f7f0bc"/><stop offset=".45" stop-color="${col}"/><stop offset="1" stop-color="${cos?'#090d5a':'#194a69'}"/></linearGradient><filter id="nfF${i}"><feGaussianBlur stdDeviation="3"/></filter></defs>${cos?'<ellipse cx="80" cy="46" rx="66" ry="40" fill="#ba70ff" opacity=".3" filter="url(#nfF7)"/>':''}<path d="M35 45 L9 25 L13 64 L35 48" fill="${col}" stroke="#d6e9f9" stroke-width="1.7"/><path d="M32 45 Q70 12 118 37 Q139 43 146 45 Q134 49 116 59 Q71 81 32 45Z" fill="url(#nfG${i})" stroke="${cos?'#b0faff':'#e1e7ed'}" stroke-width="2.3"/>${extra}${markings}<path d="M64 29 Q72 8 94 28" fill="${col}" stroke="#ffffff99" stroke-width="1.5"/><path d="M65 65 Q83 79 97 61" fill="${col}"/><circle cx="126" cy="42" r="4" fill="#0e2138"/><circle cx="127.2" cy="40.8" r="1.2" fill="white"/>${cos?'<g stroke="#fbed9d" stroke-width="2"><path d="M43 24v11m-5-6h11M92 10v16m-7-8h14M114 63v12m-6-6h12"/></g><ellipse cx="81" cy="46" rx="61" ry="31" fill="none" stroke="#9b6af6" stroke-width="3" stroke-dasharray="9 4"/>':''}</svg>`
  }
  function showMessage(text){const el=$('#nfStatus');if(el)el.textContent=text}
+ function showAuraPromo(){if(!overlay||hasAura()||overlay.querySelector('.nf-promo'))return;const n=document.createElement('div');n.className='nf-promo';n.innerHTML='<span><b>Tiga ikan berhasil lolos?</b><br>Pancing Aura memberi zona tangkap +15% dan tarikan +10%. Tetap perlu dimainkan—bukan jaminan selalu dapat ikan.</span><button type="button">Lihat Pancing</button>';overlay.querySelector('.nf-shell')?.append(n);n.querySelector('button').onclick=()=>{n.remove();switchTab('shop')};setTimeout(()=>n.isConnected&&n.remove(),8500)}
  function getF(){return F}
  async function sync(){try{const x=await act('nusaFishing',{op:'status'},true);F=x.fishing||F;return F}catch(e){showMessage('Gagal membaca save: '+e.message);return F}}
  function resetPhase(){phase='idle';hold=false;tension=.2;progress=0;clearTimeout(biteTimeout);clearTimeout(castTimeout);renderControls()}
  function close(){if(!overlay)return;oceanSound(false);disposed=true;try{world?.pause(false)}catch(e){};document.documentElement.style.overflow='';clearTimeout(biteTimeout);clearTimeout(castTimeout);clearInterval(secTimer);cancelAnimationFrame(drawId);overlay.remove();overlay=null;canvas=null;ctx=null;hold=false;phase='idle';document.removeEventListener('keydown',eventKeyHandler);}
- function closeAsk(){if(phase==='waiting'||phase==='bite'||phase==='fight'){if(!confirm('Keluar memancing? Umpan yang sudah dilempar tidak dikembalikan.'))return;}close()}
- function renderControls(){if(!overlay)return;overlay.classList.toggle('nf-equipped-aura',auraActive());const ar=$('#nfAuraChip');if(ar){ar.hidden=!hasAura();ar.textContent=auraActive()?'⚡ PANCING AURA AKTIF':'✨ AURA DIMILIKI · BELUM DIPAKAI';}$('#nfCast').disabled=!(phase==='idle');$('#nfReel').disabled=!(phase==='bite'||phase==='fight');$('#nfCast').textContent=phase==='idle'?'🎣 Lempar Kail':phase==='casting'?'Melempar…':phase==='waiting'?'Menunggu…':phase==='bite'?'Ikan menggigit!':'Sedang tarik';$('#nfReel').textContent=phase==='bite'?'⚡ SAMBAR!':phase==='fight'?'🎣 TAHAN & TARIK':'Tarik Ikan';$('#nfRod').textContent=auraActive()?'✨ Pancing Aura · '+(RODS[F.rod]?.[0]||'Pancing Bambu'):(RODS[F.rod]?.[0]||'Pancing Bambu');$('#nfBait').textContent=(BAITS[F.bait]?.[0]||'Cacing')+' ×'+(F.baits?.[F.bait]||0);$('#nfFight').hidden=phase!=='fight';if($('#nfCast').disabled===false&&(F.baits?.[F.bait]||0)<=0)$('#nfCast').disabled=true;}
+ function closeAsk(){if(phase==='waiting'||phase==='bite'||phase==='fight'||phase==='escape'){if(!confirm('Keluar memancing? Umpan yang sudah dilempar tidak dikembalikan.'))return;}close()}
+ function renderControls(){if(!overlay)return;overlay.classList.toggle('nf-equipped-aura',auraActive());const ar=$('#nfAuraChip');if(ar){ar.hidden=!hasAura();ar.textContent=auraActive()?'⚡ PANCING AURA AKTIF':'✨ AURA DIMILIKI · BELUM DIPAKAI';}$('#nfCast').disabled=!(phase==='idle');$('#nfReel').disabled=!(phase==='bite'||phase==='fight');$('#nfCast').textContent=phase==='idle'?'🎣 Lempar Kail':phase==='casting'?'Melempar…':phase==='waiting'?'Menunggu…':phase==='bite'?'Ikan menggigit!':phase==='escape'?'Ikan kabur…':'Sedang tarik';$('#nfReel').textContent=phase==='bite'?'⚡ SAMBAR!':phase==='fight'?'🎣 TAHAN & TARIK':'Tarik Ikan';$('#nfRod').textContent=auraActive()?'✨ Pancing Aura · '+(RODS[F.rod]?.[0]||'Pancing Bambu'):(RODS[F.rod]?.[0]||'Pancing Bambu');$('#nfBait').textContent=(BAITS[F.bait]?.[0]||'Cacing')+' ×'+(F.baits?.[F.bait]||0);$('#nfFight').hidden=phase!=='fight';if($('#nfCast').disabled===false&&(F.baits?.[F.bait]||0)<=0)$('#nfCast').disabled=true;}
  function switchTab(next){pane=next;overlay?.querySelectorAll('.nf-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===next));overlay?.querySelectorAll('.nf-pane').forEach(e=>e.classList.toggle('active',e.id==='nf'+next[0].toUpperCase()+next.slice(1)));if(next==='shop')drawShop();if(next==='bag')drawBag();if(next==='ranks')loadLeaderboard();}
- function playCanvas(){const canvas0=$('#nfCanvas');if(!canvas0)return;canvas=canvas0;ctx=canvas.getContext('2d');last=performance.now();disposed=false;drawId=requestAnimationFrame(draw)}
+ function shadowTier(){const r=Math.random()*100,cos=auraActive()?.15:.0012;if(r<cos)return 7;if(r<cos+.28)return 6;if(r<cos+1.05)return 5;if(r<cos+3.15)return 4;if(r<cos+8.8)return 3;if(r<cos+20.5)return 2;if(r<cos+42)return 1;return 0}
+ function seedShadow(s,initial){const tier=shadowTier(),dir=Math.random()<.5?1:-1;s.tier=tier;s.dir=dir;s.x=initial?Math.random()*430:(dir>0?-55:415);s.y=238+Math.random()*190;s.speed=(9+Math.random()*16)*(1+tier*.055);s.scale=.48+Math.random()*.74+(tier>=4?.18:0);s.wave=Math.random()*7;s.alpha=.11+Math.min(.24,tier*.025)+Math.random()*.07;return s}
+ function initShadows(){shadowSchool=[];for(let i=0;i<18;i++)shadowSchool.push(seedShadow({},true))}
+ function playCanvas(){const canvas0=$('#nfCanvas');if(!canvas0)return;canvas=canvas0;ctx=canvas.getContext('2d');initShadows();last=performance.now();disposed=false;drawId=requestAnimationFrame(draw)}
+ function drawShadowFish(g,s,tm){
+  s.x+=s.dir*s.speed/60;if((s.dir>0&&s.x>420)||(s.dir<0&&s.x<-60))seedShadow(s,false);
+  const y=s.y+Math.sin(tm*(.55+s.speed*.012)+s.wave)*5,flip=s.dir<0?-1:1,col=FS[s.tier]?.[3]||'#082f49';
+  g.save();g.translate(s.x,y);g.scale(flip*s.scale,s.scale);g.globalAlpha=s.alpha;g.shadowBlur=s.tier>=4?12+s.tier*2:0;g.shadowColor=col;g.fillStyle=s.tier>=4?col:'#032c48';
+  g.beginPath();g.ellipse(0,0,22,8,0,0,7);g.fill();g.beginPath();g.moveTo(-18,0);g.lineTo(-34,-11);g.lineTo(-32,11);g.closePath();g.fill();
+  if(s.tier>=5){g.strokeStyle=col;g.lineWidth=1.2;g.beginPath();g.ellipse(0,0,28,13,0,0,7);g.stroke()}g.restore();
+  if(s.tier>=4&&Math.sin(tm*.7+s.wave)>.975){g.save();g.globalAlpha=.72;g.textAlign='center';g.font='800 8px system-ui';g.fillStyle=col;g.fillText((FS[s.tier]?.[2]||'Langka').toUpperCase(),s.x,y-15);g.restore()}
+ }
+ function drawBait(g,x,y){
+  const kind=F.bait||0;g.save();g.translate(x,y);g.strokeStyle='#f7f2db';g.lineWidth=1.2;g.beginPath();g.moveTo(0,-10);g.lineTo(0,0);g.stroke();
+  const colors=['#d99a62','#f19b7a','#c8d7df','#ead4a4','#f6c451','#64b7df','#efe8cf','#3e94ad','#b78cff','#6d54d8'];g.fillStyle=colors[kind]||colors[0];g.strokeStyle='#102d3d';g.lineWidth=.7;
+  if(kind===0||kind===5){g.beginPath();g.moveTo(-1,0);g.quadraticCurveTo(8,4,-1,10);g.quadraticCurveTo(-7,14,0,17);g.strokeStyle=colors[kind];g.lineWidth=3;g.stroke()}
+  else if(kind===1||kind===4){g.beginPath();g.ellipse(0,6,6,4,.4,0,7);g.fill();g.stroke();g.beginPath();g.moveTo(4,5);g.lineTo(9,1);g.moveTo(5,7);g.lineTo(10,9);g.stroke()}
+  else if(kind===2){g.beginPath();g.ellipse(0,6,8,3,0,0,7);g.fill();g.beginPath();g.moveTo(-7,6);g.lineTo(-12,2);g.lineTo(-12,10);g.fill()}
+  else if(kind===3){g.beginPath();g.ellipse(0,5,5,7,0,0,7);g.fill();for(let i=-4;i<=4;i+=4){g.beginPath();g.moveTo(i,10);g.quadraticCurveTo(i+3,15,i,17);g.strokeStyle=colors[kind];g.lineWidth=1.5;g.stroke()}}
+  else{g.beginPath();g.arc(0,6,5+(kind>7?2:0),0,7);g.fill();g.stroke();if(kind>=8){g.shadowBlur=10;g.shadowColor=colors[kind];g.fillStyle='#fff6bc';g.beginPath();g.arc(-1,4,1.6,0,7);g.fill()}}g.restore();
+ }
+ function rodZoneBonus(){return 1+Math.min(.05,Math.max(0,F.rod||0)/7*.05)}
+ function drawRodParticles(g,tm,bx,by){const level=Math.max(0,Math.min(7,F.rod||0)),count=3+level*3,col=ROD_FX[level];g.save();g.shadowColor=col;g.shadowBlur=level*2.4;for(let k=0;k<count;k++){const f=(k/count+tm*(.08+level*.012+k%3*.012))%1,x=96*(1-f)*(1-f)+2*133*f*(1-f)+174*f*f,y=120*(1-f)*(1-f)+2*57*f*(1-f)+92*f*f,orbit=5+level*1.5;g.globalAlpha=.28+.55*Math.sin(tm*3+k)**2;g.fillStyle=k%4===0?'#fff8d2':col;g.beginPath();g.arc(x+Math.sin(k*4.1+tm)*orbit,y+Math.cos(k*2.3+tm)*orbit*.55,.8+level*.16+(k%3)*.35,0,7);g.fill()}for(let k=0;k<level;k++){const a=tm*(.8+level*.06)+k*6.28/Math.max(1,level),r=12+level*2+k%3*4;g.globalAlpha=.32+level*.06;g.fillStyle=col;g.beginPath();g.arc(bx+Math.cos(a)*r,by+Math.sin(a)*r*.42,1.2+level*.22,0,7);g.fill()}g.restore()}
+ function drawEscapeFish(g,tm,bx,by){if(phase!=='escape')return;const k=Math.min(1,(performance.now()-escapeAt)/780),dir=Math.sin(escapeAt)>.1?1:-1,x=bx+dir*(32+k*190),y=by+30+k*75;g.save();g.strokeStyle='#eef7ee99';g.lineWidth=1.2;g.setLineDash([7,6]);g.beginPath();g.moveTo(bx,by+8);g.quadraticCurveTo(bx+dir*28,by+26,x-dir*20,y);g.stroke();g.setLineDash([]);g.translate(x,y);g.scale(dir,1);g.globalAlpha=1-k*.45;g.fillStyle=FS[Math.max(0,FS.findIndex(v=>v[0]===pendingTier))]?.[3]||'#9dbcc9';g.beginPath();g.ellipse(0,0,18,7,0,0,7);g.fill();g.beginPath();g.moveTo(-15,0);g.lineTo(-29,-10);g.lineTo(-28,10);g.fill();g.restore();g.save();g.globalAlpha=1-k;g.fillStyle='#fff';g.font='900 15px system-ui';g.textAlign='center';g.fillText('IKAN KABUR!',180,235-k*25);g.restore()}
+ function drawCatchBar(g){if(phase!=='fight')return;const x=300,y=58,w=31,h=330,d=TIER_DIFFICULTY[pendingTier]||2,zone=Math.max(.105,.27-d*.014)*rodZoneBonus()*(auraActive()?1.15:1),Y=v=>y+h*(1-v);
+  g.save();g.fillStyle='#031b2dcc';g.fillRect(x-5,y-5,w+10,h+10);g.fillStyle='#ffffff1f';g.fillRect(x,y,w,h);
+  const inside=Math.abs(fishPosition-fightZone)<=zone/2;g.fillStyle=inside?'#f8fff4':'#ffffffd9';g.shadowBlur=inside?10:0;g.shadowColor='#8cff9b';g.fillRect(x,Y(fightZone+zone/2),w,h*zone);g.shadowBlur=0;
+  const tier=Math.max(0,FS.findIndex(v=>v[0]===pendingTier));g.fillStyle=FS[tier][3];g.beginPath();g.ellipse(x+w/2,Y(fishPosition),10,4.5,Math.PI/2,0,7);g.fill();g.beginPath();g.moveTo(x+w/2,Y(fishPosition)+7);g.lineTo(x+4,Y(fishPosition)+14);g.lineTo(x+w-4,Y(fishPosition)+14);g.fill();
+  g.fillStyle='#062238';g.fillRect(338,y-5,12,h+10);const pg=g.createLinearGradient(0,y+h,0,y);pg.addColorStop(0,'#ff6a4d');pg.addColorStop(.5,'#ffd166');pg.addColorStop(1,'#59e07f');g.fillStyle=pg;g.fillRect(340,y+h*(1-progress),8,h*progress);
+  g.fillStyle='#fff';g.textAlign='center';g.font='900 9px system-ui';g.fillText('TANGKAP',x+w/2,y-12);g.restore();
+ }
  function oceanFrame(ts){if(!ctx||!canvas)return;const w=360,h=490;
   if(canvas.width!==720||canvas.height!==980){canvas.width=720;canvas.height=980}ctx.setTransform(2,0,0,2,0,0);
   const g=ctx,tm=ts*.001;let sky=g.createLinearGradient(0,0,0,160);sky.addColorStop(0,'#8be1f3');sky.addColorStop(1,'#f6d39e');g.fillStyle=sky;g.fillRect(0,0,w,168);
@@ -6062,14 +6172,14 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
   g.strokeStyle='#2b2c2b';g.lineCap='round';g.lineWidth=4;g.beginPath();g.moveTo(96,120);g.quadraticCurveTo(133,57,174,92);g.stroke();g.strokeStyle='#e4bf80';g.lineWidth=1.4;g.beginPath();g.moveTo(105,104);g.quadraticCurveTo(140,62,173,91);g.stroke();
   g.strokeStyle='#e7efe9';g.lineWidth=1.5;g.beginPath();g.moveTo(174,92);g.lineTo(212,215+(phase==='waiting'?Math.sin(tm*2)*3:0));g.stroke();
   const bx=212,by=215+(phase==='waiting'?Math.sin(tm*2)*3:0);g.fillStyle='#f4e8de';g.beginPath();g.arc(bx,by,8,0,Math.PI*2);g.fill();g.fillStyle='#e96b53';g.beginPath();g.arc(bx,by,8,Math.PI,2*Math.PI);g.fill();
-  for(let i=0;i<7;i++){const x=((i*76+tm*13*(i%2?1:-1))%450+450)%450-40,y=280+i*29+Math.sin(tm+i)*8;g.save();g.globalAlpha=.13+i*.027;g.translate(x,y);g.fillStyle=['#001b3e','#54adbe','#c7ad7f'][i%3];g.beginPath();g.ellipse(0,0,17+i%3*7,7,0,0,7);g.fill();g.beginPath();g.moveTo(-15,0);g.lineTo(-30,-10);g.lineTo(-30,10);g.fill();g.restore()}
+  drawBait(g,bx,by+12);for(let i=0;i<shadowSchool.length;i++)drawShadowFish(g,shadowSchool[i],tm);drawRodParticles(g,tm,bx,by);drawEscapeFish(g,tm,bx,by);
   if(phase==='bite'||phase==='fight'){const t=ts*.001;g.strokeStyle='#fbea8b';g.lineWidth=3;for(let j=1;j<=3;j++){g.beginPath();g.ellipse(bx,by,18+j*11+Math.sin(t*9)*4,(9+j*6),0,0,7);g.stroke()}g.fillStyle='#ffee9b';g.font='900 23px system-ui';g.fillText('!',bx+10,by-22)}
   if(auraActive()){
    g.save();const a=.7+.3*Math.sin(tm*4);
    g.shadowBlur=27;g.shadowColor='#ffdb72';g.strokeStyle='#ffe99b';g.lineWidth=4;g.beginPath();g.moveTo(96,120);g.quadraticCurveTo(133,57,174,92);g.stroke();
-   g.shadowBlur=13;g.strokeStyle='#c1fbff';g.lineWidth=1.5;g.beginPath();g.moveTo(174,92);g.lineTo(bx,by);g.stroke();
-   for(let k=0;k<15;k++){const f=(k/15+tm*(.15+k%3*.06))%1;const x=96*(1-f)*(1-f)+2*133*f*(1-f)+174*f*f,y=120*(1-f)*(1-f)+2*57*f*(1-f)+92*f*f;g.fillStyle=k%3===0?'#8fffff':'#ffe889';g.globalAlpha=(.45+.55*Math.sin(tm*5+k)**2)*a;g.beginPath();g.arc(x+Math.sin(k*5)*9,y+Math.cos(k*2+tm*2)*8,1.2+(k%3),0,7);g.fill()}
-   for(let k=0;k<7;k++){const angle=tm*(1.5+k*.08)+k*Math.PI*2/7,rad=21+k%3*8;g.fillStyle=k%2?'#a2f9ff':'#fff0a5';g.globalAlpha=.45+.45*a;g.beginPath();g.arc(bx+Math.cos(angle)*rad,by+Math.sin(angle)*rad*.45,2+k%3,0,7);g.fill()}
+   g.shadowBlur=13;g.strokeStyle='#fff1a8';g.lineWidth=1.8;g.beginPath();g.moveTo(174,92);g.lineTo(bx,by);g.stroke();
+   for(let k=0;k<22;k++){const f=(k/22+tm*(.15+k%3*.06))%1;const x=96*(1-f)*(1-f)+2*133*f*(1-f)+174*f*f,y=120*(1-f)*(1-f)+2*57*f*(1-f)+92*f*f;g.fillStyle=k%3===0?'#fff7c7':k%2?'#ffc83f':'#ffe889';g.globalAlpha=(.45+.55*Math.sin(tm*5+k)**2)*a;g.beginPath();g.arc(x+Math.sin(k*5)*10,y+Math.cos(k*2+tm*2)*9,1.4+(k%3),0,7);g.fill()}
+   for(let k=0;k<11;k++){const angle=tm*(1.5+k*.08)+k*Math.PI*2/11,rad=21+k%3*8;g.fillStyle=k%2?'#ffd34e':'#fff5b0';g.globalAlpha=.5+.45*a;g.beginPath();g.arc(bx+Math.cos(angle)*rad,by+Math.sin(angle)*rad*.45,2+k%3,0,7);g.fill()}
    g.globalAlpha=.21+.12*a;g.fillStyle='#ffe6a5';g.beginPath();g.ellipse(bx,by+6,42+Math.sin(tm*4)*6,12,0,0,7);g.fill();g.restore();
   }
   // Cahaya permukaan, rumpun rumput laut, batu karang, dan gelembung bergerak.
@@ -6082,39 +6192,42 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
    const x=(k*97+54)%w,y=472+(k%4)*2,r=3+(k*7)%10;
    g.fillStyle=['#214d59','#5a8786','#356878','#51777a'][k%4];g.beginPath();g.ellipse(x,y,r*2,r*.55,(k%2?-.3:.2),0,7);g.fill();
   }
-  // Bayangan ikan cosmic jauh di dasar laut hanya sesekali terlihat.
-  const pulse=.5+.5*Math.sin(tm*.22);g.save();g.globalAlpha=.06+pulse*.07;g.shadowColor='#af71ff';g.shadowBlur=15;
-  g.fillStyle='#8e78ef';g.beginPath();g.ellipse(284,409+Math.sin(tm*.28)*7,44,14,-.18,0,7);g.fill();g.beginPath();g.moveTo(245,408);g.lineTo(224,391);g.lineTo(225,430);g.fill();g.restore();
-  g.fillStyle='#0c4059e5';g.fillRect(0,456,w,34);g.font='bold 13px system-ui';g.fillStyle='#f1ead1';g.textAlign='center';g.fillText(phase==='waiting'?'Tunggu sampai pelampung bergerak…':phase==='bite'?'IKAN MAKAN! Cepat tekan Tarik!':phase==='fight'?'Tahan Tarik, lalu lepas agar senar tidak putus':'Pak Tua siap membantumu di Dermaga Timur',180,476);g.textAlign='left';
+  drawCatchBar(g);
+  g.fillStyle='#0c4059e5';g.fillRect(0,456,w,34);g.font='bold 13px system-ui';g.fillStyle='#f1ead1';g.textAlign='center';g.fillText(phase==='waiting'?'Tunggu sampai pelampung bergerak…':phase==='bite'?'IKAN MAKAN! Cepat tekan Tarik!':phase==='fight'?'Tahan untuk naik · lepas untuk turun':phase==='escape'?'Benang lepas—ikan berenang menjauh!':'Bayangan ikan langka bisa melintas kapan saja',180,476);g.textAlign='left';
  }
+ function triggerEscape(msg){if(phase!=='fight')return;phase='escape';hold=false;escapeAt=performance.now();escapeReason=msg||'Progres habis, benang lepas dan ikan kabur.';sfx('fail');showMessage(escapeReason);renderControls();castTimeout=setTimeout(()=>{if(phase==='escape')failCast(escapeReason,true)},820)}
  function draw(ts){if(disposed||!overlay)return;const dt=Math.min(.055,(ts-last)/1000||.016);last=ts;if(pane==='play')oceanFrame(ts);
   if(phase==='fight'){
    fishMove+=dt;
-   const pull=hold?(.095+(RODS[F.rod]?.[2]||1)*.048+(auraActive()?.13:0)):0;
-   tension=Math.max(0,Math.min(1.07,tension+dt*(hold?(.15+fishFactor*.035)*(auraActive()?.72:1):-(.21+fishFactor*.02))));
-   if(hold)progress+=dt*pull;
-   else progress=Math.max(0,progress-dt*.01);
-   if(tension>=1){failCast('Senarnya putus! Lepaskan Tarik sesekali agar tidak terlalu tegang.');}
-   else if(progress>=1){phase='reward';hold=false;sfx('success');finishCatch();}
+   const difficulty=TIER_DIFFICULTY[pendingTier]||2,zone=Math.max(.105,.27-difficulty*.014)*rodZoneBonus()*(auraActive()?1.15:1);
+   fightVelocity=Math.max(-1.05,Math.min(1.05,fightVelocity+(hold?2.45:-2.2)*dt));fightZone+=fightVelocity*dt;
+   const lo=zone/2,hi=1-zone/2;if(fightZone<lo){fightZone=lo;fightVelocity=Math.abs(fightVelocity)*.22}if(fightZone>hi){fightZone=hi;fightVelocity=-Math.abs(fightVelocity)*.22}
+   fishTargetTimer-=dt;if(fishTargetTimer<=0){fishTarget=.06+Math.random()*.88;fishTargetTimer=(.48+Math.random()*.9)/(1+difficulty*.09)}
+   const swim=(.28+difficulty*.052)*dt;fishPosition+=Math.max(-swim,Math.min(swim,fishTarget-fishPosition));
+   const inside=Math.abs(fishPosition-fightZone)<=zone/2,pull=.285*(ROD_SPEED[F.rod]||1)*(auraActive()?1.10:1);
+   progress=Math.max(0,Math.min(1,progress+(inside?pull:-.115-difficulty*.005)*dt));
+   if(inside&&Math.random()<dt*3)try{navigator.vibrate?.(7)}catch(e){}
+   if(progress>=1){phase='reward';hold=false;sfx('success');finishCatch();}
+   else if(progress<=0){triggerEscape('Progres habis! Benang lepas dan ikan kabur.');}
    else if(fishMove>29){failCast('Ikan lolos karena terlalu lama ditarik.');}
-   const t=$('#nfNeedle'),pr=$('#nfProgress');if(t)t.style.left=Math.max(0,Math.min(99,tension*98))+'%';if(pr)pr.style.width=Math.min(100,progress*100)+'%';
+   const t=$('#nfNeedle'),pr=$('#nfProgress');if(t)t.style.left=Math.max(0,Math.min(99,fishPosition*98))+'%';if(pr)pr.style.width=Math.min(100,progress*100)+'%';
   }
   drawId=requestAnimationFrame(draw);
  }
  async function cast(){if(ttl()<=0){switchTab('play');showMessage('Event berakhir. Akses ditutup.');return}if(phase!=='idle')return;
   if((F.baits[F.bait]||0)<=0){showMessage('Umpan habis. Buka tab Kedai Ikan!');switchTab('shop');return}
   phase='casting';renderControls();sfx('cast');showMessage('Melempar kail ke laut…');
-  try{await act('nusaFishing',{op:'useBait'},true);await sync();phase='waiting';renderControls();sfx('splash');showMessage('Pelampung mengapung. Perhatikan gerakannya!');
+  try{const castResult=await act('nusaFishing',{op:'useBait'},true);pendingTier=castResult?.fishingCastPreview?.tier||'common';await sync();phase='waiting';renderControls();sfx('splash');showMessage('Pelampung mengapung. Perhatikan gerakannya!');
    const delay=1600+Math.random()*2200*(auraActive()?.70:1);
    biteTimeout=setTimeout(()=>{if(phase==='waiting'){phase='bite';renderControls();sfx('bite');showMessage('IKAN MENGGIGIT! Tekan TARIK sekarang!');castTimeout=setTimeout(()=>{if(phase==='bite')failCast('Terlambat! Ikannya kabur.');},2300);}},delay);
   }catch(e){resetPhase();showMessage('Gagal melempar: '+e.message)}
  }
- async function failCast(msg){if(phase==='idle'||phase==='reward')return;phase='idle';hold=false;clearTimeout(castTimeout);clearTimeout(biteTimeout);renderControls();sfx('fail');showMessage(msg);try{await act('nusaFishing',{op:'fail'},true);await sync();renderControls()}catch(e){} }
+ async function failCast(msg,animated=false){if(phase==='idle'||phase==='reward')return;phase='idle';hold=false;clearTimeout(castTimeout);clearTimeout(biteTimeout);renderControls();if(!animated)sfx('fail');showMessage(msg);failStreak++;if(failStreak>=3&&failStreak%3===0)setTimeout(showAuraPromo,350);try{await act('nusaFishing',{op:'fail'},true);await sync();renderControls()}catch(e){} }
  async function finishCatch(){showMessage('Ikan tertangkap! Menyimpan koleksi…');renderControls();
-  try{const r=await act('nusaFishing',{op:'catch'},true);reward=r.fishingReward;await sync();sfx('success');showReward(reward);window.NusaFishingCloud?.publish(F).catch(()=>{});window.NusaAchievements?.onCatch?.(reward)?.catch?.(err=>console.info('Pengumuman tangkapan belum terkirim:',err));}
+  try{const r=await act('nusaFishing',{op:'catch'},true);reward=r.fishingReward;failStreak=0;await sync();sfx('success');showReward(reward);window.NusaFishingCloud?.publish(F).catch(()=>{});window.NusaAchievements?.onCatch?.(reward)?.catch?.(err=>console.info('Pengumuman tangkapan belum terkirim:',err));}
   catch(e){reward=null;showMessage('Gagal mencatat hasil: '+e.message+' (jangan lempar lagi sebelum diperiksa)');phase='idle';renderControls()}
  }
- function startReel(){if(phase==='bite'){clearTimeout(castTimeout);phase='fight';tension=.28;progress=0;fishMove=0;fishFactor=.7+Math.random()*.6;hold=true;sfx('pull');showMessage('Tarik saat aman, lepas sebentar jika senar tegang!');renderControls()}else if(phase==='fight'){hold=true}}
+ function startReel(){if(phase==='bite'){clearTimeout(castTimeout);phase='fight';tension=.28;progress=.3;fishMove=0;fishFactor=.7+Math.random()*.6;fightZone=.3;fightVelocity=0;fishPosition=.5;fishTarget=.5;fishTargetTimer=0;hold=true;sfx('pull');const tierName=FS.find(v=>v[0]===pendingTier)?.[2]||'Common',level=['common','uncommon','rare'].includes(pendingTier)?'MUDAH':['epic','legendary','mythic'].includes(pendingTier)?'MENANTANG':'HARD';showMessage(tierName+' · '+level+' — tahan untuk naik, lepas untuk turun.');renderControls()}else if(phase==='fight'){hold=true}}
  function showReward(r){if(!overlay||!r)return;const i=FS.findIndex(x=>x[0]===r.tier),k=Math.max(0,i);
   const body=$('#nfPlay');const w=body?.querySelector('.nf-reward');w?.remove();const node=document.createElement('div');node.className='nf-reward';let sellPrice=null;try{if(typeof nusaFishSellPrice==='function'){const v=Number(nusaFishSellPrice(r));if(Number.isFinite(v)&&v>0)sellPrice=v}}catch(e){}
   node.style.setProperty('--tc',FS[k][3]);
@@ -6123,7 +6236,8 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
   node.querySelector('#nfBackFishing').onclick=()=>{node.remove();body.querySelector('.nf-illustration').hidden=false;body.querySelector('.nf-fight').hidden=false;body.querySelector('.nf-controls').hidden=false;reward=null;resetPhase();showMessage('Selamat! Ikan masuk ke Koleksi Ikan.');};
  }
  function renderStats(){const row=$('#nfWallet');if(row)row.textContent=fmt(state?.me?.coins-(state?.me?.held||0))+' koin';}
- function drawShop(){const box=$('#nfShop');if(!box)return;renderStats();box.innerHTML=`<div class="nf-box"><h3>🎣 Kedai Pancing Pak Tua</h3><div class="nf-caption" style="color:#ffe3a0;font-weight:900">🪙 Saldo: ${fmt(state?.me?.coins-(state?.me?.held||0))} koin Kota Nusa</div><div class="nf-caption">Pancing lebih kuat mempercepat progres tarik dan mempermudah menjaga ketegangan. Pancing biasa dan umpan dibayar memakai koin game. Gamepass Aura memakai QRIS Rp5.000.</div><div class="nf-card nf-pass-card ${auraActive()?'nf-aura':''}"><span class="nf-emoji">✨</span><div class="nf-pass-details"><b>Pancing Aura · Gamepass</b><small>${hasAura()?'Sudah dimiliki. Aktifkan untuk partikel kilau emas-biru, tarikan lebih kuat, kendali senar lebih mudah, dan peluang Cosmic 0,15% saat dipakai.':'Partikel emas-biru saat memancing, tarikan lebih kuat, waktu sambaran lebih cepat, serta peluang ikan Mistik Kosmik 0,15% per tangkapan berhasil ketika Aura aktif. Harga Rp5.000 via QRIS, verifikasi manual Presiden.'} Berlaku hingga event berakhir.</small></div><div class="nf-pass-actions"><button id="nfAuraQris" ${hasAura()||ttl()<=0?'disabled':''}>${hasAura()?'✓ Dimiliki':ttl()<=0?'Event Berakhir':'Beli Rp5.000'}</button>${hasAura()?`<button id="nfAuraEquip" class="${auraActive()?'owned':''}" aria-pressed="${auraActive()}">${auraActive()?'⚡ Dipakai · Lepas':'✨ Pakai Aura'}</button>`:''}</div></div>${RODS.map((r,i)=>`<div class="nf-card"><span class="nf-emoji">${['🎋','🪵','🎣','🪝','⚓','🌊','🔱','👑'][i]}</span><div><b>${safe(r[0])}</b><small>Kekuatan ×${r[2]} · ${i===0?'Gratis':fmt(r[1])+' koin'}</small></div><button class="${F.rods.includes(i)?'owned':''}" data-rod="${i}" ${F.rod===i?'disabled':''}>${F.rod===i?'Dipakai':F.rods.includes(i)?'Pakai':'Beli'}</button></div>`).join('')}</div><div class="nf-box"><h3>🪱 Umpan Ikan · 10 Jenis</h3><div class="nf-caption">Sekarang ada 37 spesies ikan dengan variasi nama. Umpan lebih mahal sedikit memperbesar peluang Rare–Mistis; setelah 5 Common berturut-turut kamu minimal dapat Uncommon. Cosmic: 0,0012% tanpa Aura; 0,15% saat Pancing Aura dipakai (per tangkapan berhasil).</div>${BAITS.map((b,i)=>`<div class="nf-card"><span class="nf-emoji">${['🪱','🦐','🐟','🦑','🦐','🪲','🦪','🌊','✨','🌌'][i]}</span><div><b>${safe(b[0])}</b><small>${fmt(b[1]*5)} koin/5 · Stok: ${F.baits[i]||0} ${F.bait===i?'· Dipakai':''}</small></div><button data-bait="${i}">Beli ×5</button>${(F.baits[i]||0)>0&&F.bait!==i?`<button class="owned" data-equip-bait="${i}">Pakai</button>`:''}</div>`).join('')}</div>`;
+ function drawShop(){const box=$('#nfShop');if(!box)return;renderStats();box.innerHTML=`<div class="nf-box"><h3>🎣 Kedai Pancing Nusa</h3><div class="nf-caption" style="color:#ffe3a0;font-weight:900">🪙 Saldo: ${fmt(state?.me?.coins-(state?.me?.held||0))} koin Kota Nusa</div><div class="nf-caption">Pancing lebih kuat mempercepat progres tarik. Pancing biasa dan umpan dibayar memakai koin game. Gamepass Aura memakai QRIS Rp5.000.</div><div class="nf-card nf-pass-card ${auraActive()?'nf-aura':''}"><span class="nf-emoji">✨</span><div class="nf-pass-details"><b>Pancing Aura · Gamepass</b><small>${hasAura()?'Sudah dimiliki. Saat dipakai: partikel emas premium, zona tangkap 15% lebih lebar, tarikan 10% lebih cepat, dan peluang Cosmic 0,15%.':'Efek partikel emas premium, zona tangkap 15% lebih lebar, tarikan 10% lebih cepat, dan peluang Cosmic 0,15% per tangkapan berhasil saat Aura dipakai. Tidak menjamin ikan langka. Harga Rp5.000 via QRIS, verifikasi manual Presiden.'} Berlaku hingga event berakhir.</small></div><div class="nf-pass-actions"><button id="nfAuraQris" ${hasAura()||ttl()<=0?'disabled':''}>${hasAura()?'✓ Dimiliki':ttl()<=0?'Event Berakhir':'Beli Rp5.000'}</button>${hasAura()?`<button id="nfAuraEquip" class="${auraActive()?'owned':''}" aria-pressed="${auraActive()}">${auraActive()?'⚡ Dipakai · Lepas':'✨ Pakai Aura'}</button>`:''}</div></div>${RODS.map((r,i)=>`<div class="nf-card"><span class="nf-emoji">${['🎋','🪵','🎣','🪝','⚓','🌊','🔱','👑'][i]}</span><div><b>${safe(r[0])}</b><small>Kekuatan ×${r[2]} · ${i===0?'Gratis':fmt(r[1])+' koin'}</small></div><button class="${F.rods.includes(i)?'owned':''}" data-rod="${i}" ${F.rod===i?'disabled':''}>${F.rod===i?'Dipakai':F.rods.includes(i)?'Pakai':'Beli'}</button></div>`).join('')}</div><div class="nf-box"><h3>Umpan Ikan · 10 Jenis</h3><div class="nf-caption">Bentuk umpan sekarang terlihat langsung di ujung kail. Umpan lebih mahal sedikit memperbesar peluang Rare–Mistis; setelah 5 Common berturut-turut kamu minimal dapat Uncommon. Cosmic: 0,0012% tanpa Aura; 0,15% saat Pancing Aura dipakai.</div>${BAITS.map((b,i)=>`<div class="nf-card"><span class="nf-emoji">${['◜','◉','◁','♢','◉','◜','●','≈','✦','✧'][i]}</span><div><b>${safe(b[0])}</b><small>${fmt(b[1]*5)} koin/5 · Stok: ${F.baits[i]||0} ${F.bait===i?'· Dipakai':''}</small></div><button data-bait="${i}">Beli ×5</button>${(F.baits[i]||0)>0&&F.bait!==i?`<button class="owned" data-equip-bait="${i}">Pakai</button>`:''}</div>`).join('')}</div>`;
+  const fxNames=['debu bambu','serpih kayu','kilau hijau','percikan karbon','bintang titanium','ombak biru','petir ungu','badai emas'];box.querySelectorAll('button[data-rod]').forEach(btn=>{const i=Number(btn.dataset.rod),small=btn.closest('.nf-card')?.querySelector('small'),zone=Math.round(i/7*5),speed=Math.round(((ROD_SPEED[i]||1)-1)*100);if(small)small.textContent=`Efek ${fxNames[i]} · zona +${zone}% · progres +${speed}% · ${i===0?'Gratis':fmt(RODS[i][1])+' koin'}`});
   const equip=box.querySelector('#nfAuraEquip');if(equip)equip.onclick=()=>saveAuraEquip(!auraActive());
   const qris=box.querySelector('#nfAuraQris');if(qris)qris.onclick=()=>{
    if(ttl()<=0){showMessage('Event telah berakhir. Pembelian Gamepass ditutup.');return}
@@ -6144,7 +6258,7 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
  }
  async function open(){if(overlay)return;const expired=ttl()<=0;
   overlay=document.createElement('div');overlay.id='nusaFishingOverlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
-  overlay.innerHTML=`<div class="nf-shell"><header class="nf-top"><div class="nf-title"><small>🎣 EVENT PESISIR TIMUR · 7 HARI</small><b>Bantu Pak Tua Mancing!</b></div><div class="nf-time" id="nfCountdown">${countdown()}</div><button class="nf-close" aria-label="Tutup event" id="nfExit">×</button></header><nav class="nf-tabs">${[['play','🎮 Mancing'],['shop','🏪 Kedai'],['bag','🐠 Ikan'],['ranks','🏆 Peringkat']].map(([id,t],i)=>`<button class="nf-tab ${i===0?'active':''}" data-tab="${id}">${t}</button>`).join('')}</nav><section class="nf-body"><div class="nf-pane active" id="nfPlay"><div class="nf-status" style="font-size:11px">Pak Tua: “Tolong bantu aku mencari ikan misterius di pesisir!”</div><div class="nf-illustration"><canvas id="nfCanvas"></canvas><div class="nf-fisher" aria-hidden="true"><b>🎣 Pak Tua</b><br>“${expired?'Aduh, event sudah berakhir. Terima kasih sudah membantu!':'Tolong, ikan langka di laut sulit sekali kupancing!'}”</div></div><div class="nf-aura-chip" id="nfAuraChip" hidden>⚡ PANCING AURA AKTIF</div><div class="nf-fight" id="nfFight" hidden><div>🧵 Tegangan senar <span style="float:right;font-size:10px">Jangan sampai merah!</span></div><div class="nf-meter"><span class="nf-needle" id="nfNeedle"></span></div><div class="nf-progress"><i id="nfProgress"></i></div></div><div class="nf-controls"><button id="nfCast" class="nf-action">🎣 Lempar Kail</button><button id="nfReel" class="nf-action reel">Tarik Ikan</button></div><div class="nf-status" id="nfStatus">${expired?'Event berakhir. Akses mancing tidak bisa dibuka.':'Lempar kail, tunggu ikan, lalu tahan Tarik untuk menangkapnya.'}</div><div class="nf-card"><span class="nf-emoji">🪝</span><div><b id="nfRod">Pancing Bambu</b><small id="nfBait">Cacing Pesisir ×12</small></div><button id="nfGoShop">Kedai</button></div></div><div class="nf-pane" id="nfShop"></div><div class="nf-pane" id="nfBag"></div><div class="nf-pane" id="nfRanks"></div></section><div style="text-align:center;font-size:9px;padding:7px;background:#0a243c;color:#aac9cf">Kota Nusa · Game lokal + leaderboard Firebase opsional · Pancing Aura Rp5.000 via QRIS · verifikasi manual Presiden.</div></div>`;
+  overlay.innerHTML=`<div class="nf-shell"><header class="nf-top"><div class="nf-title"><small>🎣 EVENT PESISIR TIMUR · 7 HARI</small><b>Mancing Nusa</b></div><div class="nf-time" id="nfCountdown">${countdown()}</div><button class="nf-close" aria-label="Tutup event" id="nfExit">×</button></header><nav class="nf-tabs">${[['play','🎮 Mancing'],['shop','🏪 Kedai'],['bag','🐠 Ikan'],['ranks','🏆 Peringkat']].map(([id,t],i)=>`<button class="nf-tab ${i===0?'active':''}" data-tab="${id}">${t}</button>`).join('')}</nav><section class="nf-body"><div class="nf-pane active" id="nfPlay"><div class="nf-status" style="font-size:11px">Cari bayangan ikan, lempar kail, lalu jaga zona putih tetap mengenai ikan.</div><div class="nf-illustration"><canvas id="nfCanvas"></canvas></div><div class="nf-aura-chip" id="nfAuraChip" hidden>⚡ PANCING AURA AKTIF</div><div class="nf-fight" id="nfFight" hidden><div>Zona tangkap <span style="float:right;font-size:10px">Tahan naik · lepas turun</span></div><div class="nf-meter"><span class="nf-needle" id="nfNeedle"></span></div><div class="nf-progress"><i id="nfProgress"></i></div></div><div class="nf-controls"><button id="nfCast" class="nf-action">🎣 Lempar Kail</button><button id="nfReel" class="nf-action reel">Tarik Ikan</button></div><div class="nf-status" id="nfStatus">${expired?'Event berakhir. Akses mancing tidak bisa dibuka.':'Lempar kail, tunggu ikan menggigit, lalu tahan Tarik.'}</div><div class="nf-card"><span class="nf-emoji">🪝</span><div><b id="nfRod">Pancing Bambu</b><small id="nfBait">Cacing Pesisir ×12</small></div><button id="nfGoShop">Kedai</button></div></div><div class="nf-pane" id="nfShop"></div><div class="nf-pane" id="nfBag"></div><div class="nf-pane" id="nfRanks"></div></section><div style="text-align:center;font-size:9px;padding:7px;background:#0a243c;color:#aac9cf">Kota Nusa · Mancing baru terhubung ke koleksi dan akunmu.</div></div>`;
   document.body.append(overlay);overlay.oncontextmenu=e=>e.preventDefault();oceanSound(true);try{world?.pause(true)}catch(e){};document.documentElement.style.overflow='hidden';$('#nfExit').onclick=closeAsk;overlay.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));$('#nfGoShop').onclick=()=>switchTab('shop');$('#nfCast').onclick=cast;$('#nfReel').addEventListener('pointerdown',e=>{e.preventDefault();startReel()});$('#nfReel').addEventListener('pointerup',()=>hold=false);$('#nfReel').addEventListener('pointerleave',()=>hold=false);$('#nfReel').addEventListener('pointercancel',()=>hold=false);$('#nfReel').addEventListener('click',()=>{if(phase==='bite')startReel()});
   document.addEventListener('keydown',eventKeyHandler);
   secTimer=setInterval(()=>{const t=$('#nfCountdown');if(t)t.textContent=countdown();if(ttl()<=0&&phase!=='idle'&&phase!=='reward')failCast('Event telah berakhir.');if(ttl()<=0&&$('#nfCast'))$('#nfCast').disabled=true;},1000);
@@ -6156,7 +6270,7 @@ nkApi().then(x=>x.b.onAuthStateChanged(x.auth,user=>{if(user&&!user.isAnonymous)
  if(!document.getElementById('nusaFishingJump')){
   const jump=document.createElement('button');jump.id='nusaFishingJump';jump.textContent='🎣 Dermaga';jump.title='Arahkan peta ke event mancing';
   jump.style.cssText='position:fixed;z-index:15;right:12px;bottom:112px;background:#18445af2;color:#ffe9ab;border:1px solid #c3a565;box-shadow:0 5px 18px #10273455;border-radius:12px;padding:8px 10px;font:800 9px system-ui;max-width:78px';
-  jump.onclick=()=>{try{if(!entered){toast('Masuk ke Kota Nusa dahulu.');return;}world.navigate(162,52);toast('Pak Tua di dermaga! Ketuk bannernya untuk mulai mancing.');}catch{window.NusaFishing?.open()}};
+  jump.onclick=()=>{try{if(!entered){toast('Masuk ke Kota Nusa dahulu.');return;}world.navigate(162,52);toast('Mancing Nusa ada di dermaga! Ketuk bannernya untuk mulai.');}catch{window.NusaFishing?.open()}};
   document.body.appendChild(jump);
  }
 })();
@@ -6912,6 +7026,7 @@ body.nusa-hud-hidden #nusaMyGarden{display:none!important}
 const icon='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21V10l9-7 9 7v11H3Z"/><path d="M8 21v-7h8v7M12 13c-2-2-2-4 0-6 2 2 2 4 0 6Z"/></svg>';
 function showButton(){const hud=document.getElementById('hud');if(!hud||hud.classList.contains('hidden'))return;let b=document.getElementById('nusaMyGarden');if(!b){b=document.createElement('button');b.id='nusaMyGarden';b.type='button';b.innerHTML=icon+'<span>Kebunku</span>';b.setAttribute('aria-label','Pergi ke kebunku');hud.appendChild(b);b.onclick=async()=>{
  if(typeof state==='undefined'||!state.me){return toast('Masuk ke kota terlebih dahulu.',true)}
+ if(window.NusaKebunSawit)return window.NusaKebunSawit.open();
  const me=state.me;let lot=Number(me.orchardLot),has=!!me.orchard&&Number.isInteger(lot)&&lot>=0&&lot<ORCHARD_MAP_SLOTS.length;
  const cloud=window.NusaOrchardCloud;
  if(!has){
@@ -7186,7 +7301,7 @@ document.getElementById('nusaV253Close').addEventListener('click',closePanel);sh
 const mk=(id,label,svg)=>{const b=document.createElement('button');b.id=id;b.type='button';b.setAttribute('aria-label',label);b.innerHTML=svg+'<span>'+label+'</span>';return b};
 const radioSvg='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="3"/><path d="m6 8 11-5M8 13h4M8 17h4M17 13h.01M17 17h.01"/></svg>';
 const gardenSvg='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V10l9-7 9 7v11H3Z"/><path d="M8 21v-7h8v7M12 12c-2-2-2-4 0-6 2 2 2 4 0 6Z"/></svg>';
-function garden(){const original=document.getElementById('nusaMyGarden');if(original&&typeof original.onclick==='function')original.click();else if(typeof toast==='function')toast('Kebunku belum siap, silakan coba lagi.',true)}
+function garden(){if(window.NusaKebunSawit)return window.NusaKebunSawit.open();const original=document.getElementById('nusaMyGarden');if(original&&typeof original.onclick==='function')original.click();else if(typeof toast==='function')toast('Kebunku belum siap, silakan coba lagi.',true)}
 function setupDock(){const dock=document.querySelector('#hud nav.dock');if(!dock)return false;dock.classList.add('nusa-v253-dock');if(!document.getElementById('nusaV253Garden')){const b=mk('nusaV253Garden','Kebunku',gardenSvg);b.addEventListener('click',garden);dock.appendChild(b)}if(!document.getElementById('nusaV253Radio')){const b=mk('nusaV253Radio','Radio FM',radioSvg);b.addEventListener('click',openPanel);dock.appendChild(b)}return true}
 setupDock();const hud=document.getElementById('hud')||document.getElementById('app');if(hud)new MutationObserver(()=>{if(!document.getElementById('nusaV253Radio'))setupDock()}).observe(hud,{childList:true,subtree:true});
 window.NusaRadio={open:openPanel,close:closePanel,stop,pause:()=>{audio.pause();sync()},play:toggle,track:i=>loadPlay(i),state};void scan();
@@ -7353,9 +7468,9 @@ $('#n262Refresh').onclick=refreshAuctions;void refreshAuctions();}
 async function createAuction(p){let hours=prompt('Durasi lelang berapa jam? (1–24)','1');if(hours===null)return;hours=Number(hours);if(!Number.isInteger(hours)||hours<1||hours>24){notice('Durasi harus 1 sampai 24 jam.',true);return}let start=Number(prompt('Tawaran awal minimal (koin)',String(800+valueOfTrees(p.orchard?.plots))));if(!Number.isInteger(start)||start<1){notice('Tawaran awal harus angka positif.',true);return}try{const {d,auth,db}=await fb(),uid=auth.currentUser.uid,id=String(p.orchardLot),ref=d.ref(db,root+'/'+id),now=Date.now();const result=await d.runTransaction(ref,old=>{if(old&&old.status==='open'&&old.endsAt>now)return;return {ownerUid:uid,ownerGameId:String(p.id),ownerName:String(p.name).slice(0,24),lot:Number(id),startPrice:start,status:'open',createdAt:now,endsAt:now+hours*3600000,bids:{}}},{applyLocally:false});if(!result.committed)throw Error('Kavling ini masih dilelang.');notice('Lelang dibuat! Harap tunggu pembeli. Pemenang akhir memerlukan konfirmasi aman.');refreshAuctions()}catch(e){notice('Gagal membuat lelang: '+e.message,true)}}
 async function refreshAuctions(){const box=$('#n262Auctions');if(!box)return;try{const {d,db,auth}=await fb(),snap=await d.get(d.ref(db,root)),now=Date.now();let arr=Object.entries(snap.val()||{}).map(([id,v])=>({id,...v}));box.innerHTML=arr.length?'':'Belum ada lelang. Warga yang punya lahan bisa membuka lelang.';arr.forEach(a=>{const bids=Object.entries(a.bids||{}).filter(([,b])=>b&&Number.isFinite(b.amount)).sort((x,y)=>y[1].amount-x[1].amount),top=bids[0],ended=now>=a.endsAt,valid=a.status==='open'&&!ended,card=document.createElement('div');card.className='n262-card';card.innerHTML=`<strong>Lahan #${Number(a.lot)+1} · ${clean(a.ownerName)}</strong><small>${ended?'Selesai menawar · hasil menunggu penyelesaian':valid?'⏳ Batas: '+new Date(a.endsAt).toLocaleString('id-ID'):'Status: '+clean(a.status)}</small><b>Tertinggi: ${money(top?top[1].amount:a.startPrice)} koin</b>${top?`<small>Penawar sementara: ${clean(top[1].name)}</small>`:''}${valid&&a.ownerUid!==auth.currentUser.uid?`<div class="n262-bid"><input inputmode="numeric" type="number" min="${Math.max(a.startPrice,top?top[1].amount+1:0)}" placeholder="Nominal tawaran"/><button class="n262-btn main">Tawar</button></div>`:''}${ended?'<p class="n262-note">Tidak ada perpindahan aset/koin otomatis. Penutupan dan pembayaran butuh sistem escrow/server.</p>':''}`;
  const button=card.querySelector('button');if(button)button.onclick=async()=>{const amount=Number(card.querySelector('input').value);if(!Number.isInteger(amount)||amount<=Math.max(a.startPrice-1,top?top[1].amount:0)){notice('Masukkan penawaran lebih tinggi.',true);return}try{const {d,db,auth}=await fb(),r=d.ref(db,root+'/'+a.id+'/bids/'+auth.currentUser.uid);const result=await d.runTransaction(r,old=>(!old||amount>Number(old.amount||0))?{amount,name:String(getMe()?.name||'Warga').slice(0,24),at:Date.now()}:undefined,{applyLocally:false});if(!result.committed)throw Error('Tawaran harus lebih tinggi dari sebelumnya.');refreshAuctions()}catch(e){notice('Penawaran gagal: '+e.message,true)}};box.append(card)});}catch(e){box.textContent='Lelang belum bisa dimuat: '+e.message}}
-function addDock(){const dock=$('#hud nav.dock');if(!dock||$('#n262LandNav'))return false;const btn=document.createElement('button');btn.id='n262LandNav';btn.type='button';btn.innerHTML='<span style="font-size:23px">🌴</span><span>Kelola Lahan</span>';btn.title='Kelola Lahan Saya · jual & lelang';btn.onclick=()=>open('land');dock.appendChild(btn);const kebun=$('#nusaV253Garden');if(kebun)kebun.addEventListener('click',e=>{e.stopImmediatePropagation();open('garden')},true);return true}
-function bind(){create();if(!addDock()){setTimeout(bind,600);return} const kob=$('#nusaMyGarden');if(kob)kob.addEventListener('click',e=>{e.stopImmediatePropagation();open('garden')},true)}
-document.addEventListener('click',e=>{if(e.target.closest?.('#nusaV253Garden,#nusaMyGarden')){e.preventDefault();e.stopImmediatePropagation();open('garden')}},true);
+function addDock(){document.getElementById('n262LandNav')?.remove();return true}
+function bind(){create();addDock()}
+document.addEventListener('click',e=>{if(e.target.closest?.('#nusaV253Garden,#nusaMyGarden')){e.preventDefault();e.stopImmediatePropagation();window.NusaKebunSawit?.open()}},true);
 window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
 })();
 </script><script src="city-life.js?v=1" defer></script>
@@ -7437,7 +7552,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
  land:()=>window.NusaRumahku?.open(),
  decorate:color=>window.NusaRumahkuTest?.enabled?window.NusaRumahkuTest.decorate(color):act('decorate',{decor:color},true),
  toast
-};</script><script src="rumahku.js?v=20261026-visit7"></script>
+};</script><script src="rumahku.js?v=20261027-claude2"></script>
 
 <style id="nusa-no-zeppelin">#nusaScarvAirship{display:none!important;pointer-events:none!important}</style>
 <!-- Rumahku Tahap 1: hanya render halaman (tanpa mengubah fitur lain) -->
@@ -7576,6 +7691,43 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     line(g,iso(x,z+.29,bottom+36),iso(x,z+.29,bottom),2,"#d7e7db");
     polygon(g,[iso(x,z-.03,bottom-2),iso(x,z+.63,bottom-2),
       iso(x+.065,z+.65,bottom-6),iso(x+.065,z-.03,bottom-6)],"#ddd7c8");
+  }
+  /* Model Rumahku bergaya diorama Claude: tiap level mengubah siluet,
+     jumlah lantai, sayap, atap, teras, dan kaca—bukan sekadar warna. */
+  function catalogHome(g,decor,night,level){
+    level=Math.max(1,Math.min(10,Math.floor(Number(level)||1)));
+    var cfg=[
+      {w:2.45,d:2.45,f:1,h:66,roof:'shed',wall:'#c9aa7e',side:'#9a7959',top:'#7d898a'},
+      {w:2.85,d:2.75,f:1,h:78,roof:'gable',wall:'#ddb98d',side:'#a98563',top:'#765641'},
+      {w:3.05,d:3.00,f:2,h:61,roof:'gable',wall:'#ead6ad',side:'#b89e78',top:'#5f776d'},
+      {w:3.30,d:3.18,f:2,h:65,roof:'gable',wall:'#c98264',side:'#9f604d',top:'#8d4d3e'},
+      {w:3.72,d:3.38,f:2,h:67,roof:'hip',wall:'#eedbb9',side:'#c3aa82',top:'#a86642'},
+      {w:3.82,d:3.45,f:2,h:72,roof:'flat',wall:'#e5e7df',side:'#aec3bc',top:'#536d6b'},
+      {w:4.05,d:3.55,f:2,h:76,roof:'flat',wall:'#dceceb',side:'#99bdc1',top:'#3f7180',wing:1},
+      {w:4.18,d:3.70,f:3,h:60,roof:'flat',wall:'#e7e2d6',side:'#a8b9b7',top:'#415f76',wing:2},
+      {w:4.55,d:3.90,f:3,h:62,roof:'hip',wall:'#f0dfc2',side:'#c7b18e',top:'#5a7365',wing:3},
+      {w:4.72,d:4.05,f:3,h:66,roof:'hip',wall:'#f3f0e7',side:'#bdcfcc',top:'#315f71',wing:4}
+    ][level-1],front=cfg.wall,side=cfg.side,glass=night?'#ffd477':'#70bed1';
+    if(decor==='coral'){front='#eab79d';side='#b88972'}else if(decor==='blue'){front='#c7e2ea';side='#8eb4c3'}else if(decor==='sand'){front='#ead3a9';side='#bfa477'}
+    function P(x,z,y){return iso(x,z,y||0)}
+    function block(x,z,w,d,b,t,fc,sc,tc){var l=x-w/2,r=x+w/2,a=z-d/2,e=z+d/2;polygon(g,[P(l,e,t),P(r,e,t),P(r,e,b),P(l,e,b)],fc||front,'#776e6255',1);polygon(g,[P(r,a,t),P(r,e,t),P(r,e,b),P(r,a,b)],sc||side,'#5f625d55',1);polygon(g,[P(l,a,t),P(r,a,t),P(r,e,t),P(l,e,t)],tc||'#f0eadc','#ffffff55',1)}
+    function frontWin(x,z,b,w,h){polygon(g,[P(x-w/2,z,b+h),P(x+w/2,z,b+h),P(x+w/2,z,b),P(x-w/2,z,b)],glass,'#f6f1df',2);line(g,P(x,z+.01,b+2),P(x,z+.01,b+h-2),1.4,'#e9eee4')}
+    function sideWin(x,z,b,w,h){polygon(g,[P(x,z-w/2,b+h),P(x,z+w/2,b+h),P(x,z+w/2,b),P(x,z-w/2,b)],glass,'#e9eadf',2)}
+    function roof(x,z,w,d,y,kind,col){var l=x-w/2-.18,r=x+w/2+.18,a=z-d/2-.18,e=z+d/2+.18,c=col||cfg.top;if(kind==='flat'){polygon(g,[P(l,a,y),P(r,a,y),P(r,e,y),P(l,e,y)],c,'#3f5558',2);polygon(g,[P(l,e,y),P(r,e,y),P(r,e,y-9),P(l,e,y-9)],'#617b7d')}else if(kind==='shed'){polygon(g,[P(l,a,y+19),P(r,a,y+19),P(r,e,y),P(l,e,y)],c,'#4c5d60',2);for(var q=0;q<5;q++){var xx=l+.25+q*(r-l-.5)/4;line(g,P(xx,a,y+19),P(xx,e,y),1.2,'#b9c1bc')}}else{var L=P((l+r)/2,a,y+30),R=P((l+r)/2,e,y+30);polygon(g,[P(l,a,y),L,R,P(l,e,y)],kind==='hip'?'#789087':c,'#465852',2);polygon(g,[L,P(r,a,y),P(r,e,y),R],c,'#465852',2);polygon(g,[P(l,e,y),R,P(r,e,y)],front);line(g,L,R,2,'#eadcba')}}
+    var height=cfg.f*cfg.h,base=P(0,-.35);g.save();g.shadowColor='#17362c66';g.shadowBlur=24;g.shadowOffsetY=14;ellipse(g,base.x,base.y+24,135+level*8,48+level*3,'#17362d4d');g.restore();
+    block(0,-.45,cfg.w,cfg.d,0,height,front,side);
+    for(var fl=0;fl<cfg.f;fl++){var y=17+fl*cfg.h;frontWin(-cfg.w*.27,cfg.d/2-.44,y,.52,34);if(level>=3)frontWin(cfg.w*.27,cfg.d/2-.44,y,.52,34);sideWin(cfg.w/2+.01,-.75,y,.54,34);if(level>=5)sideWin(cfg.w/2+.01,.45,y,.54,34)}
+    var dz=cfg.d/2+.02;polygon(g,[P(-.33,dz,53),P(.33,dz,53),P(.33,dz,0),P(-.33,dz,0)],level>=7?'#315860':'#574735','#2f342f',1);tile(g,-.7,dz+.10,1.4,.55,level>=6?'#dce4df':'#dfcbaa');
+    roof(0,-.45,cfg.w,cfg.d,height+8,cfg.roof,cfg.top);
+    if(level===2){block(-.7,-1.1,.42,.46,height+3,height+42,'#c5ad92','#9d8069');roof(-.7,-1.1,.46,.50,height+45,'shed','#6e5040')}
+    if(level===3){var attic=P(0,dz+.02,height+19);polygon(g,[xy(attic.x-25,attic.y+9),xy(attic.x,attic.y-17),xy(attic.x+25,attic.y+9)],cfg.top);round(g,attic.x,attic.y+4,8,glass)}
+    if(level===4)for(var by=13;by<height-8;by+=14)line(g,P(-cfg.w/2,dz+.01,by),P(cfg.w/2,dz+.01,by),1,'#955b4b88');
+    if(level>=5){polygon(g,[P(-1.0,dz+.05,78),P(1.0,dz+.05,78),P(1.0,dz+.82,73),P(-1.0,dz+.82,73)],level>=7?'#507d82':'#c7a47a');for(var pc of [-.88,.88])line(g,P(pc,dz+.75,0),P(pc,dz+.75,73),4,'#eee6d3')}
+    if(level===6){block(.72,-.78,1.7,1.5,height+7,height+39,'#d2dfdb','#8faeaa');roof(.72,-.78,1.8,1.6,height+43,'flat','#536e6c')}
+    if(cfg.wing){var wingW=cfg.wing>=3?2.0:1.55,wingH=cfg.wing===1?84:cfg.wing===2?108:125;block(-cfg.w*.64,-.10,wingW,2.65,0,wingH,level>=9?'#eee8dc':'#d4e5e3',level>=9?'#baae99':'#91afb2');roof(-cfg.w*.64,-.10,wingW,2.65,wingH+9,cfg.wing>=3?'hip':'flat',cfg.top);if(cfg.wing>=2){block(cfg.w*.64,-.10,wingW,2.65,0,wingH,level>=9?'#eee8dc':'#d4e5e3',level>=9?'#baae99':'#91afb2');roof(cfg.w*.64,-.10,wingW,2.65,wingH+9,cfg.wing>=3?'hip':'flat',cfg.top)}}
+    if(level>=7){polygon(g,[P(-1.55,dz+.18,cfg.h+45),P(1.55,dz+.18,cfg.h+45),P(1.55,dz+.42,cfg.h+13),P(-1.55,dz+.42,cfg.h+13)],night?'#f0ce86aa':'#65b6c49c','#f4f1e7',2)}
+    if(level>=9)for(var col of [-1.65,-.58,.58,1.65])line(g,P(col,dz+.60,0),P(col,dz+.60,92),5,'#f1e8d4');
+    if(level===10){block(0,-.62,2.08,1.92,height+8,height+55,'#f5f3e9','#afc8c6');roof(0,-.62,2.25,2.10,height+63,'hip','#356579');var crown=P(0,-.62,height+104);round(g,crown.x,crown.y,5,'#edc968')}
   }
   function home(g, decor, night, level) {
     // Setiap tingkat memakai bentuk bangunan yang berbeda, bukan sekadar warna.
@@ -7982,7 +8134,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
       (citizen?.personalHouseLevel||(citizen?.home!=null?citizen.houseLevel||1:1))));
     var decor=scene.getAttribute("data-house-decor")||scene.querySelector(".rh-paint")?.style.backgroundColor;
     var vip=scene.getAttribute("data-house-celebrity")==="true";
-    if(vip)celebrityHome(g,night);else home(g,decor,night,level);
+    if(vip)celebrityHome(g,night);else catalogHome(g,decor,night,level);
     if(!vip){
       if(level>=3)shrub(g,-3.1,2.3,14,["#347c45","#4c9e57","#5dbd64"]);
       if(level>=5)shrub(g,3.4,3.5,13,["#35804a","#4ca360","#6ec476"]);
@@ -8112,7 +8264,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
   var house=window.NusaRumahku;
   if(!house || house.__walkingTahap2)return;
   var W=864,H=1120, originX=432,originY=610;
-  var actor={x:-.65,z:3.25,walk:false,phase:0,face:1,way:[]};
+  var actor={x:-.65,z:4.65,walk:false,phase:0,face:1,way:[]};
   var root=null,observer=null,raf=0,lastTime=0,lastDraw=0,groundCanvas=null;
   var step=.28,MIN=-15.52,MAX=6.92,XMIN=-6.82,XMAX=6.82,ZMIN=-15.52,ZMAX=6.92,gridN=Math.floor((MAX-MIN)/step)+1;
   var obstacles=[
@@ -8140,7 +8292,12 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     if(vip){
       if(x>=-4.78&&x<=4.78&&z>=-3.05&&z<=1.72)return true;
       if(x>=.22&&x<=5.18&&z>=2.15&&z<=5.78)return true;
-    }else if(x>=-2.56&&x<=2.38&&z>=-2.56&&z<=2.38)return true;
+    }else{
+      var level=Number(root?.querySelector('.rh-scene')?.getAttribute('data-house-level'))||1;
+      var half=level>=9?4.12:level>=7?3.48:level>=5?2.48:level>=3?2.08:1.72;
+      var back=level>=7?-2.72:-2.22,front=level>=5?2.18:1.78;
+      if(x>=-half&&x<=half&&z>=back&&z<=front)return true;
+    }
     for(var i=0;i<obstacles.length;i++){
       var o=obstacles[i];
       if(o.kind==="kotak"){
@@ -8311,9 +8468,16 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
     // Mencegah ketukan pada atap/dinding diterjemahkan menjadi
     // tujuan berjalan di tanah di balik bangunan (proyeksi isometrik).
     var vip=root?.querySelector('.rh-scene')?.getAttribute('data-house-celebrity')==='true';
+    var level=Number(root?.querySelector('.rh-scene')?.getAttribute('data-house-level'))||1;
     var points=vip?[
       {x:432,y:284},{x:690,y:430},{x:658,y:664},
       {x:432,y:746},{x:174,y:650},{x:188,y:418}
+    ]:level>=9?[
+      {x:432,y:300},{x:665,y:430},{x:648,y:650},
+      {x:432,y:742},{x:205,y:650},{x:211,y:418}
+    ]:level>=7?[
+      {x:432,y:337},{x:632,y:448},{x:618,y:638},
+      {x:432,y:718},{x:236,y:636},{x:242,y:440}
     ]:[
       {x:432,y:385},{x:600,y:472},{x:590,y:614},
       {x:434,y:696},{x:276,y:618},{x:266,y:472}
@@ -8395,7 +8559,7 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
   }
   var initialOpen=house.open;
   house.open=function(){
-    actor.x=-.65;actor.z=3.25;actor.walk=false;actor.way=[];
+    actor.x=-.65;actor.z=4.65;actor.walk=false;actor.way=[];
     actor.phase=0;
     var result=initialOpen.apply(this,arguments);
     attach();
@@ -8406,5 +8570,138 @@ window.NusaGarden262={openGarden:()=>open('garden'),openLand:()=>open('land')};i
   house.__walkingTahap2=true;
 })();
 </script>
-<script src="career5.js?v=20261026-1"></script>
+<script src="career5.js?v=20261026-2"></script>
+<script src="kebun-sawit-bridge.js?v=20261027-3"></script>
+
+<!-- Kurir Nusa · Tahap A — satu blok mandiri, hanya aktif ketika pekerjaan Kurir dibuka. -->
+<style id="nusa-kurir-job-style">
+#nusaKurirJob{position:fixed;z-index:2147483500;inset:0;overflow:hidden;background:#83cfc9;color:#fff;font-family:system-ui,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}#nusaKurirJob *{box-sizing:border-box}#nusaKurirJob canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}.nkj-hud{position:absolute;z-index:4;inset:max(7px,env(safe-area-inset-top)) 8px auto;display:flex;align-items:start;gap:6px;pointer-events:none}.nkj-brand,.nkj-time,.nkj-score{border:1px solid #ffffff4a;background:#123d4be8;box-shadow:0 5px 16px #082b3855;backdrop-filter:blur(8px);border-radius:15px}.nkj-brand{flex:1;min-width:0;padding:7px 10px}.nkj-brand small{display:block;color:#9ce0d9;font-size:7px;font-weight:900;letter-spacing:1.25px}.nkj-brand b{display:block;margin-top:1px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nkj-time{min-width:50px;padding:9px 6px;text-align:center;color:#173d47;background:#fff0bde9;font-size:18px;font-weight:1000}.nkj-score{min-width:58px;padding:10px 6px;text-align:center;font-size:14px;font-weight:950}.nkj-tools{position:absolute;z-index:6;right:9px;top:calc(max(7px,env(safe-area-inset-top)) + 81px);display:flex;gap:6px}.nkj-tools button{width:39px;height:39px;border:1px solid #ffffff4a;border-radius:13px;background:#123d4be8;color:#fff;font-size:17px;font-weight:900}.nkj-turbo{position:absolute;z-index:4;left:12px;right:12px;bottom:max(17px,calc(env(safe-area-inset-bottom) + 13px));height:15px;padding:3px;border-radius:20px;border:1px solid #ffffff66;background:#123844ca;pointer-events:none}.nkj-turbo i{display:block;width:100%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#54e0cf,#ffd45f);box-shadow:0 0 11px #6ff5df}.nkj-tip{position:absolute;z-index:4;left:50%;bottom:max(42px,calc(env(safe-area-inset-bottom) + 40px));transform:translateX(-50%);width:max-content;max-width:92vw;padding:8px 13px;border-radius:999px;background:#123d4bdf;color:#fff8df;font-size:10px;font-weight:850;pointer-events:none}.nkj-card-screen{position:absolute;z-index:8;inset:0;display:grid;place-items:center;padding:18px;background:#082b38a8;backdrop-filter:blur(6px)}.nkj-card-screen[hidden]{display:none}.nkj-card{width:min(390px,100%);max-height:90dvh;overflow:auto;border:2px solid #fff7d8;border-radius:28px;background:linear-gradient(160deg,#fffdf0,#e4f3e6);padding:22px 18px;color:#173e47;text-align:center;box-shadow:0 18px 60px #061d2990}.nkj-icon{width:89px;height:89px;margin:0 auto 10px;display:grid;place-items:center;border-radius:28px;background:linear-gradient(145deg,#ffc84d,#ee813a);box-shadow:0 8px 0 #b95b2b;font-size:47px}.nkj-card h2{margin:12px 0 6px;font:700 31px Georgia,serif}.nkj-card p{margin:8px auto 15px;max-width:320px;color:#58757a;font-size:13px;line-height:1.55}.nkj-rules{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:14px 0 19px}.nkj-rules span{padding:9px 4px;border-radius:13px;background:#dcecdf;font-size:10px;font-weight:850}.nkj-rules b{display:block;font-size:21px;margin-bottom:2px}.nkj-card button{width:100%;min-height:55px;border:0;border-radius:17px;background:linear-gradient(#ffbd43,#ea852e);box-shadow:0 6px 0 #b55d29;color:#213d43;font-size:16px;font-weight:1000}.nkj-card button:active{transform:translateY(3px);box-shadow:0 3px 0 #b55d29}.nkj-card button.nkj-secondary{margin-top:10px;background:#173f49;color:#fff5d6;box-shadow:none}.nkj-stars{color:#eab13b;font-size:34px;letter-spacing:4px}.nkj-note{font-size:10px!important;color:#789095!important}.nkj-flash{position:absolute;z-index:5;inset:0;background:#fff0ad55;pointer-events:none;animation:nkjflash .22s both}@keyframes nkjflash{to{opacity:0}}body.nusa-kurir-open{overflow:hidden!important}
+</style>
+<script id="nusa-kurir-job-script">
+(()=>{'use strict';if(window.NusaKurirJob)return;
+let root=null,cv=null,g=null,raf=0,last=0,running=false,paused=false,W=390,H=780,dpr=1,time=60,score=0,meters=0,lane=0,laneView=0,road=0,turbo=100,turboOn=false,pointer=null,holdTimer=0,spawn=.6,targetSpawn=1.2,playerName='Warga Nusa',oldOverflow='',packages=1,combo=0,bestCombo=0,delivered=0,shake=0,audio=null,musicAt=0,muted=false;
+const active=[],pool=[],targets=[],targetPool=[],shots=[],shotPool=[],motes=[],motePool=[],trafficColors=['#e9564e','#3c91c5','#f0a733','#7653ac'],houseColors=['#f4c275','#e99b88','#9fc9a3','#89b5cc'];for(let i=0;i<24;i++)pool.push({});for(let i=0;i<8;i++)targetPool.push({});for(let i=0;i<8;i++)shotPool.push({});for(let i=0;i<90;i++)motePool.push({});
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),smooth=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
+function el(s){return root&&root.querySelector(s)}
+function resize(){if(!cv)return;W=Math.max(300,innerWidth);H=Math.max(520,innerHeight);dpr=Math.min(2,devicePixelRatio||1);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv.style.width=W+'px';cv.style.height=H+'px';g.setTransform(dpr,0,0,dpr,0,0)}
+function take(){const o=pool.pop()||{};active.push(o);return o}function release(i){pool.push(active[i]);active.splice(i,1)}
+function audioStart(){try{if(!audio)audio=new (window.AudioContext||window.webkitAudioContext)();audio.resume?.()}catch{}}
+function beep(freq=320,dur=.055,type='triangle',gain=.035){if(!audio||muted)return;const o=audio.createOscillator(),v=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(90,freq*.72),t+dur);v.gain.setValueAtTime(gain,t);v.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(v).connect(audio.destination);o.start(t);o.stop(t+dur)}
+function buzz(v){try{navigator.vibrate?.(v)}catch{}}
+function callout(text){const e=el('.nkj-callout');if(!e)return;e.textContent=text;e.classList.remove('show');void e.offsetWidth;e.classList.add('show')}
+function spawnTraffic(){const o=take();o.type=(packages<3&&Math.random()<.27)?'pickup':'traffic';o.depth=-.08;o.lane=((Math.random()*3)|0)-1;o.color=trafficColors[(Math.random()*trafficColors.length)|0];o.kind=Math.random()<.18?'van':'car';o.hit=false;o.near=false;spawn=.78+Math.random()*.5}
+function spawnHouse(){const o=targetPool.pop()||{};o.depth=-.04;o.side=Math.random()<.5?-1:1;o.color=houseColors[(Math.random()*houseColors.length)|0];o.vip=Math.random()<.1;o.hit=false;targets.push(o);targetSpawn=1.45+Math.random()*1.15}
+function mote(x,y,color,kind){const p=motePool.pop();if(!p)return;p.x=x;p.y=y;p.vx=(Math.random()-.5)*130;p.vy=-45-Math.random()*105;p.life=.45+Math.random()*.35;p.color=color;p.kind=kind||'dot';motes.push(p)}
+function roadHalf(d){return W*(.115+.45*Math.pow(clamp(d,0,1.2),1.14))}function sy(d){return H*.18+Math.pow(clamp(d+.08,0,1.25),1.34)*H*.76}function lx(l,d){return W*.5+l*roadHalf(d)*.54}
+function rect(x,y,w,h,c){g.fillStyle=c;g.fillRect(x,y,w,h)}function circ(x,y,r,c){g.fillStyle=c;g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill()}function path(c){g.fillStyle=c;g.beginPath();for(let i=1;i<arguments.length;i+=2)i===1?g.moveTo(arguments[i],arguments[i+1]):g.lineTo(arguments[i],arguments[i+1]);g.closePath();g.fill()}function line(x1,y1,x2,y2,w,c){g.strokeStyle=c;g.lineWidth=w;g.lineCap='round';g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke()}
+function sky(){const dusk=clamp((meters-650)/850,0,.72),gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,dusk>.45?'#53658d':'#65cee1');gr.addColorStop(.58,dusk>.45?'#c18487':'#c8efdc');gr.addColorStop(1,'#73b97d');g.fillStyle=gr;g.fillRect(0,0,W,H);circ(W*.79,H*.09,W*.055,dusk>.45?'#ffe0a1':'#fff3ad');const h=H*.18;path(dusk>.45?'#536f70':'#6caf8e',0,h+42,W*.2,h-14,W*.42,h+30,W*.65,h-34,W,h+24,W,h+80,0,h+80);for(let i=0;i<9;i++){const bw=W*.082,bh=20+(i%4)*10,x=i*W*.12-W*.02;rect(x,h+35-bh,bw,bh,dusk>.45?'#58727a':'#8bb9a7');if(dusk>.45)rect(x+bw*.25,h+40-bh,bw*.18,3,'#ffd66f')}}
+function ground(){const h=H*.18;rect(0,h,W,H-h,'#72bb79');const off=(road*.25)%70;g.globalAlpha=.13;for(let y=h+off-70;y<H;y+=70)line(0,y,W,y+W*.25,1,'#214e43');for(let x=-W;x<W*2;x+=70)line(x,h,x-W*.3,H,1,'#214e43');g.globalAlpha=1}
+function roadDraw(){const hy=H*.18,bot=H+45,c=W*.5,a=roadHalf(0),b=roadHalf(1.2);path('#e7c995',c-a-13,hy,c+a+13,hy,c+b+26,bot,c-b-26,bot);path('#4f5f68',c-a,hy,c+a,hy,c+b,bot,c-b,bot);line(c-a,hy,c-b,bot,3,'#fff0b5');line(c+a,hy,c+b,bot,3,'#fff0b5');for(let s=-1;s<=1;s+=2)for(let i=0;i<9;i++){const d=(i/7+road*.0018)%1.18,y=sy(d),x=lx(s*.5,d);line(x,y,x+s*2*d,y+9+d*17,2+d*4,'#e9e5c9aa')}}
+function scenery(){for(let i=0;i<14;i++){const d=(i*.089+road*.00032)%1.15,y=sy(d),rh=roadHalf(d),side=i%2?-1:1,s=.20+d*.86,x=W*.5+side*(rh+27+d*46);if(i%4===0){const w=53*s,hh=56*s;g.save();g.globalAlpha=.22;g.scale(1,.35);circ(x,y/.35+5*s,w*.68,'#123e3b');g.restore();rect(x-w*.5,y-hh,w,hh,houseColors[i%houseColors.length]);path('#28556a',x-w*.62,y-hh,x,y-hh-25*s,x+w*.62,y-hh);rect(x-w*.33,y-hh*.72,w*.22,hh*.25,'#8dd5e0');rect(x+w*.1,y-hh*.72,w*.22,hh*.25,'#8dd5e0');rect(x-w*.1,y-hh*.39,w*.2,hh*.39,'#754d37');rect(x-w*.5,y-5*s,w,5*s,'#d48a55')}else if(i%4===1){rect(x-2*s,y-25*s,4*s,28*s,'#725d45');circ(x,y-32*s,15*s,'#267b50');circ(x-10*s,y-31*s,10*s,'#4aa164');circ(x+8*s,y-39*s,9*s,'#5aae6d')}else{rect(x-1.5*s,y-24*s,3*s,26*s,'#32545a');path('#ffe3a0',x-7*s,y-25*s,x,y-36*s,x+7*s,y-25*s);circ(x,y-28*s,4*s,'#fff1b6')}}}
+function drawPickup(o){const d=o.depth,x=lx(o.lane,d),y=sy(d),s=(.2+d*.9)*(W/390);g.save();g.globalAlpha=.2+.15*Math.sin(road*.04);circ(x,y-10*s,25*s,'#ffe169');g.globalAlpha=1;g.scale(1,.42);circ(x,y/.42+4*s,17*s,'#163f4050');g.scale(1,1/.42);rect(x-13*s,y-27*s,26*s,24*s,'#f2b73f');path('#ffd76a',x-13*s,y-27*s,x,y-35*s,x+13*s,y-27*s);rect(x-2*s,y-35*s,4*s,32*s,'#fff0b5');g.fillStyle='#173f48';g.font=`900 ${Math.max(8,11*s)}px system-ui`;g.textAlign='center';g.fillText('P',x,y-11*s)}
+function traffic(o){if(o.type==='pickup'){drawPickup(o);return}const d=o.depth;if(d<0||d>1.12)return;const x=lx(o.lane,d),y=sy(d),s=(.18+d*.95)*(W/390),w=(o.kind==='van'?57:48)*s,h=(o.kind==='van'?61:38)*s;g.save();g.scale(1,.36);circ(x,y/.36+5*s,w*.62,'#17363b55');g.scale(1,1/.36);circ(x-w*.34,y-2*s,8*s,'#1c2b32');circ(x+w*.34,y-2*s,8*s,'#1c2b32');circ(x-w*.34,y-2*s,4*s,'#b9d5d6');circ(x+w*.34,y-2*s,4*s,'#b9d5d6');path(o.color,x-w*.52,y-5*s,x-w*.45,y-h*.72,x-w*.25,y-h,x+w*.25,y-h,x+w*.47,y-h*.72,x+w*.52,y-5*s);path('#aee1e9',x-w*.30,y-h*.76,x-w*.20,y-h*.94,x+w*.20,y-h*.94,x+w*.32,y-h*.76);rect(x-w*.4,y-h*.65,w*.8,3*s,'#ffffff45');rect(x-w*.42,y-13*s,w*.84,7*s,'#e7ad38');circ(x-w*.29,y-11*s,3*s,'#fff1b5');circ(x+w*.29,y-11*s,3*s,'#fff1b5')}
+function targetHouse(o){const d=o.depth;if(d<0||d>1.12)return;const rh=roadHalf(d),s=(.2+d*.88)*(W/390),x=W*.5+o.side*Math.min(W*.42,rh+18+12*d),y=sy(d),w=(o.vip?72:58)*s,h=(o.vip?78:63)*s;g.save();g.scale(1,.34);circ(x,y/.34+8*s,w*.62,'#143c3850');g.scale(1,1/.34);rect(x-w*.5,y-h,w,h,o.vip?'#f3e7c2':o.color);path(o.vip?'#243e52':'#315d69',x-w*.62,y-h,x,y-h-28*s,x+w*.62,y-h);rect(x-w*.35,y-h*.7,w*.22,h*.23,'#85ccda');rect(x+w*.13,y-h*.7,w*.22,h*.23,'#85ccda');rect(x-w*.1,y-h*.38,w*.2,h*.38,'#73503d');if(!o.hit){const pulse=1+Math.sin(road*.045+o.depth*4)*.12;g.globalAlpha=.28;circ(x,y-h-37*s,24*s*pulse,o.vip?'#ffd85a':'#79f0d1');g.globalAlpha=1;circ(x,y-h-37*s,14*s,o.vip?'#ffd24a':'#fff1a8');g.fillStyle='#173f48';g.font=`900 ${Math.max(9,12*s)}px system-ui`;g.textAlign='center';g.fillText(o.vip?'VIP':'📦',x,y-h-33*s)}}
+function bike(){const d=.84,x=lx(laneView,d),y=sy(d),s=Math.min(1.28,W/380),bob=Math.sin(road*.06)*1.2;g.save();g.translate(x,y+bob);g.scale(1,.34);circ(0,23*s,38*s,'#102f3658');g.scale(1,1/.34);g.save();g.scale(1,.58);circ(0,10*s,15*s,'#172b32');circ(0,-35*s,11*s,'#1c3037');circ(0,10*s,8*s,'#a9d7d3');g.restore();path('#2787a8',-15*s,4*s,-19*s,-30*s,-10*s,-46*s,10*s,-46*s,20*s,-29*s,15*s,4*s);path('#e8b43d',-15*s,4*s,15*s,4*s,11*s,-11*s,-11*s,-11*s);rect(-14*s,-42*s,28*s,15*s,'#233f49');circ(-9*s,-2*s,3*s,'#ffda55');circ(9*s,-2*s,3*s,'#ffda55');rect(-28*s,-55*s,20*s,24*s,'#f0ad37');path('#ffe076',-28*s,-55*s,-18*s,-62*s,-8*s,-55*s);rect(-13*s,-76*s,26*s,30*s,'#ea6d3e');line(-13*s,-65*s,-28*s,-48*s,6*s,'#ad7353');line(13*s,-65*s,28*s,-48*s,6*s,'#ad7353');line(-27*s,-48*s,27*s,-48*s,4*s,'#263e46');circ(0,-91*s,17*s,'#b97958');path('#173e59',-18*s,-96*s,-11*s,-110*s,11*s,-110*s,20*s,-96*s,10*s,-86*s,-12*s,-86*s);rect(-14*s,-100*s,28*s,6*s,'#71c3d5');g.restore()}
+function drawEffects(){for(let i=0;i<shots.length;i++){const p=shots[i],a=shots[i].from,b=shots[i].to,t=p.t,x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t-Math.sin(t*Math.PI)*80;g.fillStyle='#f2b63f';g.fillRect(x-9,y-9,18,18);g.strokeStyle='#fff0b0';g.strokeRect(x-9,y-9,18,18)}for(let i=0;i<motes.length;i++){const p=motes[i];g.globalAlpha=clamp(p.life/.5,0,1);if(p.kind==='coin'){circ(p.x,p.y,5,p.color);rect(p.x-1,p.y-4,2,8,'#fff0a0')}else circ(p.x,p.y,3,p.color)}g.globalAlpha=1}
+function render(){g.setTransform(dpr,0,0,dpr,0,0);g.save();if(shake>0)g.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);sky();ground();roadDraw();scenery();for(let i=targets.length-1;i>=0;i--)targetHouse(targets[i]);for(let i=active.length-1;i>=0;i--)traffic(active[i]);bike();drawEffects();g.restore()}
+function throwPackage(){if(!running)return;audioStart();if(packages<=0){combo=0;callout('AMBIL PAKET DULU!');beep(135,.12,'square',.025);syncMini();return}let target=null,best=9;for(let i=0;i<targets.length;i++){const o=targets[i],gap=Math.abs(o.depth-.69);if(!o.hit&&o.depth>.32&&o.depth<.96&&gap<best){best=gap;target=o}}if(!target){combo=0;callout('BELUM ADA RUMAH!');beep(150,.1,'square',.025);syncMini();return}packages--;target.hit=true;const from={x:lx(laneView,.84),y:sy(.84)-58},to={x:W*.5+target.side*Math.min(W*.42,roadHalf(target.depth)+18+12*target.depth),y:sy(target.depth)-48};const sh=shotPool.pop()||{};sh.from=from;sh.to=to;sh.t=0;shots.push(sh);combo++;bestCombo=Math.max(bestCombo,combo);delivered++;const perfect=best<.105,mult=Math.min(6,1+Math.floor(combo/3)),gain=(perfect?150:90)*mult*(target.vip?2:1);score+=gain;callout((perfect?'PERFECT! ':'TERKIRIM! ')+(target.vip?'VIP · ':'')+'x'+mult);beep(520+combo*24,.09,'triangle',.05);buzz(perfect?[18,22,28]:18);shake=perfect?6:2;for(let i=0;i<(perfect?18:10);i++)mote(to.x,to.y,'#ffd04d',i%3===0?'coin':'dot');syncMini()}
+function syncMini(){const p=el('.nkj-packages'),c=el('.nkj-combo');if(p)p.textContent='📦 '+packages+' paket';if(c){c.textContent=combo?'COMBO x'+Math.min(6,1+Math.floor(combo/3)):'COMBO —';c.classList.remove('nkj-combo-pop');void c.offsetWidth;if(combo)c.classList.add('nkj-combo-pop')}}
+function update(dt){const boost=turboOn&&turbo>0?1.48:1,speed=(235+Math.min(135,(60-time)*2.25))*boost;road+=speed*dt;meters+=speed*dt*.052;score+=dt*(5+speed*.012);laneView=smooth(laneView,lane,15,dt);spawn-=dt;targetSpawn-=dt;if(spawn<=0)spawnTraffic();if(targetSpawn<=0)spawnHouse();for(let i=active.length-1;i>=0;i--){const o=active[i];o.depth+=dt*.255*boost;const depthGap=Math.abs(o.depth-.84),laneGap=Math.abs(o.lane-laneView);if(!o.hit&&depthGap<.055&&laneGap<.38){o.hit=true;if(o.type==='pickup'){packages=Math.min(5,packages+1);score+=35;callout('PAKET +1');beep(430,.06);buzz(12);for(let q=0;q<8;q++)mote(lx(o.lane,o.depth),sy(o.depth)-20,'#ffe067')}else{combo=0;score=Math.max(0,score-55);time=Math.max(0,time-2);shake=9;callout('ADUH! −2 DETIK');beep(105,.15,'sawtooth',.06);buzz([35,25,45])}syncMini()}else if(o.type==='traffic'&&!o.near&&!o.hit&&o.depth>.9&&o.depth<.96&&laneGap>=.38&&laneGap<.67){o.near=true;score+=30;callout('NYARIS! +30');beep(690,.055,'sine',.025)}if(o.depth>1.18)release(i)}for(let i=targets.length-1;i>=0;i--){const o=targets[i];o.depth+=dt*.255*boost;if(o.depth>1.15){if(!o.hit)combo=0;targetPool.push(o);targets.splice(i,1);syncMini()}}for(let i=shots.length-1;i>=0;i--){shots[i].t+=dt*3.5;if(shots[i].t>=1){shotPool.push(shots[i]);shots.splice(i,1)}}for(let i=motes.length-1;i>=0;i--){const p=motes[i];p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=210*dt;if(p.life<=0){motePool.push(p);motes.splice(i,1)}}if(turboOn){turbo=Math.max(0,turbo-dt*31);if(!turbo)turboOn=false}else turbo=Math.min(100,turbo+dt*12);time=Math.max(0,time-dt);shake=Math.max(0,shake-dt*28);if(audio&&audio.currentTime>musicAt){musicAt=audio.currentTime+.52;beep([164,196,220,196][Math.floor(road*.01)%4],.08,'sine',.007)}el('.nkj-time').textContent=Math.ceil(time);el('.nkj-score').textContent=Math.round(score);el('.nkj-turbo i').style.width=turbo+'%';if(time<=0)finish()}
+function loop(now){if(!root)return;const dt=last?Math.min(.04,(now-last)/1000):0;last=now;if(running&&!paused)update(dt);render();raf=requestAnimationFrame(loop)}
+function move(dir){lane=clamp(lane+dir,-1,1);el('.nkj-tip').textContent='Jalur '+(lane+2)+' / 3'}
+function down(e){if(!running||!e.isPrimary)return;pointer={id:e.pointerId,x:e.clientX,y:e.clientY,t:performance.now(),moved:false};holdTimer=setTimeout(()=>{if(pointer&&!pointer.moved){turboOn=true;el('.nkj-tip').textContent='TURBO! Tahan untuk melaju'}},330);cv.setPointerCapture?.(e.pointerId)}
+function motion(e){if(!pointer||e.pointerId!==pointer.id)return;const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.abs(dx)>36&&Math.abs(dx)>Math.abs(dy)){pointer.moved=true;clearTimeout(holdTimer);move(dx>0?1:-1);pointer.x=e.clientX}}
+function up(e){if(!pointer||e.pointerId!==pointer.id)return;clearTimeout(holdTimer);turboOn=false;const elapsed=performance.now()-pointer.t,moved=pointer.moved;pointer=null;if(!moved&&elapsed<300){if(e.clientX<W*.31)move(-1);else if(e.clientX>W*.69)move(1);else throwPackage()}}
+function reset(){while(active.length)pool.push(active.pop());while(targets.length)targetPool.push(targets.pop());while(shots.length)shotPool.push(shots.pop());while(motes.length)motePool.push(motes.pop());time=60;score=meters=road=0;lane=laneView=0;turbo=100;turboOn=false;spawn=.45;targetSpawn=.75;packages=1;combo=bestCombo=delivered=0;shake=0;running=true;paused=false;last=0;audioStart();musicAt=audio?audio.currentTime:0;el('.nkj-result').hidden=true;el('.nkj-intro').hidden=true;el('.nkj-tip').textContent='Geser/tekan sisi · ketuk tengah lempar · tahan turbo';syncMini()}
+function finish(){if(!running)return;running=false;const stars=score>1800?3:score>950?2:1;el('.nkj-stars').textContent='★'.repeat(stars)+'☆'.repeat(3-stars);el('.nkj-final').textContent=Math.round(score)+' poin · '+delivered+' terkirim · combo terbaik '+bestCombo;el('.nkj-result').hidden=false;beep(620,.16,'triangle',.05)}
+function fullscreen(){const e=root;if(!document.fullscreenElement)e.requestFullscreen?.().catch(()=>{});else document.exitFullscreen?.()}
+function close(){running=false;cancelAnimationFrame(raf);raf=0;clearTimeout(holdTimer);removeEventListener('resize',resize);document.removeEventListener('visibilitychange',visibility);audio?.suspend?.();root?.remove();root=null;cv=null;g=null;document.body.classList.remove('nusa-kurir-open');document.body.style.overflow=oldOverflow;if(document.fullscreenElement)document.exitFullscreen?.().catch(()=>{})}
+function visibility(){paused=document.hidden;last=0;if(paused){cancelAnimationFrame(raf);raf=0;audio?.suspend?.()}else if(root&&!raf){audio?.resume?.();raf=requestAnimationFrame(loop)}}
+function start(opts={}){close();playerName=opts.name||'Warga Nusa';oldOverflow=document.body.style.overflow;document.body.style.overflow='hidden';document.body.classList.add('nusa-kurir-open');root=document.createElement('section');root.id='nusaKurirJob';root.innerHTML='<canvas aria-label="Kurir bermotor mengantar paket di Kota Nusa"></canvas><header class="nkj-hud"><div class="nkj-brand"><small>PEKERJAAN · TAHAP B</small><b>Kurir Nusa · '+String(playerName).replace(/[<>]/g,'')+'</b></div><div class="nkj-time">60</div><div class="nkj-score">0</div></header><div class="nkj-subhud"><span class="nkj-packages">📦 1 paket</span><span class="nkj-combo">COMBO —</span></div><div class="nkj-tools"><button data-nkj="sound" aria-label="Matikan suara">🔊</button><button data-nkj="full" aria-label="Layar penuh">⛶</button><button data-nkj="close" aria-label="Keluar">×</button></div><div class="nkj-callout"></div><div class="nkj-tip">Geser/tekan sisi · ketuk tengah lempar · tahan turbo</div><div class="nkj-turbo"><i></i></div><div class="nkj-card-screen nkj-intro"><article class="nkj-card"><div class="nkj-icon">🏍️</div><h2>Kurir Nusa</h2><p>Kumpulkan paket di jalan, dekati rumah yang menyala, lalu ketuk tengah layar untuk melempar.</p><div class="nkj-rules"><span><b>↔</b>Pindah jalur</span><span><b>📦</b>Ketuk lempar</span><span><b>⚡</b>Tahan turbo</span></div><button data-nkj="play">Mulai Mengantar</button><p class="nkj-note">Tahap B · Uji paket, combo, efek, suara, dan grafis baru. Belum memberi koin.</p></article></div><div class="nkj-card-screen nkj-result" hidden><article class="nkj-card"><div class="nkj-stars">★★★</div><h2>Rute selesai</h2><p class="nkj-final"></p><button data-nkj="again">Main Lagi</button><button class="nkj-secondary" data-nkj="close">Kembali ke kota</button><p class="nkj-note">Hadiah koin dipasang pada Tahap D setelah validasi server.</p></article></div>';document.body.appendChild(root);cv=el('canvas');g=cv.getContext('2d',{alpha:false,desynchronized:true});resize();addEventListener('resize',resize,{passive:true});document.addEventListener('visibilitychange',visibility);cv.addEventListener('pointerdown',down,{passive:true});cv.addEventListener('pointermove',motion,{passive:true});cv.addEventListener('pointerup',up,{passive:true});cv.addEventListener('pointercancel',()=>{pointer=null;turboOn=false;clearTimeout(holdTimer)},{passive:true});root.addEventListener('click',e=>{const a=e.target.closest('[data-nkj]');if(!a)return;const v=a.dataset.nkj;if(v==='play'||v==='again')reset();else if(v==='close')close();else if(v==='full')fullscreen();else if(v==='sound'){muted=!muted;a.textContent=muted?'🔇':'🔊';a.setAttribute('aria-label',muted?'Hidupkan suara':'Matikan suara');if(!muted){audioStart();beep(460,.06)}}});raf=requestAnimationFrame(loop)}
+window.NusaKurirJob={start,close,version:'tahap-b'};
+})();
+</script>
+<style id="nusa-kurir-3d-style">
+#nusaKurir3D{position:fixed;inset:0;z-index:2147483000;background:#8dcbe0;color:#fff;font-family:Inter,system-ui,sans-serif;overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-user-select:none;user-select:none}
+#nusaKurir3D canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#nusaKurir3D .nk3-hud{position:absolute;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;display:grid;grid-template-columns:1fr auto;gap:8px;pointer-events:none;text-shadow:0 2px 8px #082d45aa}
+#nusaKurir3D .nk3-brand{align-self:start}.nk3-brand small{display:block;font-weight:850;letter-spacing:.13em;font-size:10px;color:#dff7ff}.nk3-brand b{font-size:20px}
+#nusaKurir3D .nk3-time{font-size:28px;font-weight:950;background:#103e55e8;border:2px solid #ffffff99;border-radius:18px;padding:6px 13px;min-width:70px;text-align:center}
+#nusaKurir3D .nk3-stats{grid-column:1/-1;display:flex;gap:7px;align-items:center}.nk3-stats span{background:#103e55d9;border:1px solid #ffffff77;border-radius:999px;padding:6px 10px;font-size:13px;font-weight:850}
+#nusaKurir3D .nk3-tools{position:absolute;right:12px;top:calc(82px + env(safe-area-inset-top));display:grid;gap:8px}.nk3-tools button{width:46px;height:46px;border:1px solid #fff9;border-radius:50%;background:#103e55e8;color:#fff;font-size:22px;font-weight:900;box-shadow:0 5px 15px #062b3b55}
+#nusaKurir3D .nk3-tip{position:absolute;left:50%;bottom:calc(37px + env(safe-area-inset-bottom));transform:translateX(-50%);white-space:nowrap;background:#092f43dd;border:1px solid #fff8;border-radius:999px;padding:8px 13px;font-size:12px;font-weight:750;pointer-events:none}
+#nusaKurir3D .nk3-throw{position:absolute;z-index:5;left:50%;bottom:calc(64px + env(safe-area-inset-bottom));transform:translateX(-50%);width:68px;height:68px;border:3px solid #ffffffcc;border-radius:50%;background:#536b73dd;color:#fff;font:900 10px/1.05 system-ui;box-shadow:0 7px 20px #001d2b88;opacity:.55;touch-action:manipulation}#nusaKurir3D .nk3-throw b{display:block;font-size:25px;line-height:29px}#nusaKurir3D .nk3-throw.ready{background:#ef7a27;opacity:1;box-shadow:0 0 0 7px #ffd34c55,0 8px 22px #001d2b99;animation:nk3-ready .65s ease-in-out infinite alternate}@keyframes nk3-ready{to{transform:translateX(-50%) scale(1.08)}}
+#nusaKurir3D .nk3-target-label{position:absolute;z-index:4;left:50%;top:40%;transform:translate(-50%,-100%);padding:7px 10px;border:2px solid white;border-radius:12px;background:#ef7a27;color:white;font-size:11px;font-weight:1000;white-space:nowrap;text-shadow:0 1px 2px #76330f;box-shadow:0 5px 16px #0028;pointer-events:none}.nk3-target-label[hidden]{display:none!important}.nk3-target-label:after{content:'';position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);border:8px solid transparent;border-top-color:#ef7a27;border-bottom:0}
+#nusaKurir3D .nk3-turbo{position:absolute;left:18px;right:18px;bottom:calc(16px + env(safe-area-inset-bottom));height:9px;border-radius:20px;background:#092e45aa;border:1px solid #ffffff99;overflow:hidden}.nk3-turbo i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ffd64a,#ff7b35);border-radius:inherit;box-shadow:0 0 12px #ffd74a}
+#nusaKurir3D .nk3-pop{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%) scale(.6);opacity:0;font-size:clamp(28px,9vw,48px);font-weight:1000;color:#fff2a6;text-shadow:0 3px 0 #d35a24,0 6px 18px #0008;pointer-events:none}.nk3-pop.on{animation:nk3-pop .65s cubic-bezier(.2,1.5,.4,1)}
+@keyframes nk3-pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.45)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.17)}75%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-65%) scale(.92)}}
+#nusaKurir3D .nk3-screen{position:absolute;inset:0;display:grid;place-items:center;padding:22px;background:linear-gradient(#123d5688,#062838dd);touch-action:auto}#nusaKurir3D .nk3-screen[hidden]{display:none!important}.nk3-card{width:min(430px,100%);background:#f7fbf5;color:#153d4c;border-radius:30px;padding:26px 22px;text-align:center;box-shadow:0 24px 70px #00192399;border:2px solid #ffffffaa}.nk3-card .bike{font-size:58px}.nk3-card h2{font-size:31px;margin:4px 0 9px}.nk3-card p{line-height:1.48;color:#54707a}.nk3-card .rules{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:18px 0}.nk3-card .rules span{background:#e4f0e9;border-radius:15px;padding:10px 5px;font-size:11px;font-weight:800}.nk3-card .rules b{display:block;font-size:23px}.nk3-card button{width:100%;min-height:55px;border:0;border-radius:17px;background:#eb7a32;color:white;font:900 18px inherit;box-shadow:0 6px 0 #ae4c20}.nk3-card button:active{transform:translateY(3px);box-shadow:0 3px 0 #ae4c20}.nk3-card button.secondary{margin-top:12px;background:#dfe9e5;color:#234755;box-shadow:none}.nk3-card .note{font-size:11px;margin-bottom:0}.nk3-stars{font-size:40px;color:#f2ad24;letter-spacing:4px}
+body.nusa-kurir-3d-open{overflow:hidden!important;touch-action:none!important}
+</style>
+<script id="nusa-kurir-3d-script">
+(()=>{'use strict';
+const previous=window.NusaKurirJob;let root,canvas,gl,raf=0,last=0,running=false,paused=false,oldOverflow='',player='Warga Nusa';
+let W=1,H=1,dpr=1,program,aPos,aNor,uP,uV,uM,uColor,cubeBuf,cubeNor,cubeCount=0;
+let lane=1,laneX=0,speed=13.5,time=100,score=0,combo=0,bestCombo=0,packages=1,delivered=0,turbo=100,turboOn=false,spawnT=0,houseT=0,roadOffset=0,shake=0,night=0,throwAnim=0,pointer=null,holdTimer=0,muted=false,audio=null,musicAt=0;
+const lanes=[-2.55,0,2.55],P=new Float32Array(16),V=new Float32Array(16),M=new Float32Array(16),eye=new Float32Array(3),target=new Float32Array(3),up=new Float32Array([0,1,0]);
+const traffic=Array.from({length:14},()=>({on:false,x:0,z:0,lane:0,color:0,near:false,kind:'car',vx:0,phase:0}));
+const pickups=Array.from({length:10},()=>({on:false,x:0,z:0,spin:0}));
+const houses=Array.from({length:18},()=>({on:false,x:0,z:0,side:1,target:false,hit:false,color:0}));
+const shots=Array.from({length:5},()=>({on:false,x:0,y:0,z:0,tx:0,tz:0,t:0}));
+const particles=Array.from({length:72},()=>({on:false,x:0,y:0,z:0,vx:0,vy:0,vz:0,t:0,color:0}));
+const colors={road:[.12,.19,.24,1],line:[.95,.84,.48,1],grass:[.23,.61,.31,1],grass2:[.17,.49,.27,1],walk:[.68,.72,.68,1],white:[.96,.96,.9,1],dark:[.04,.08,.1,1],blue:[.08,.45,.72,1],red:[.87,.22,.16,1],orange:[.95,.42,.12,1],yellow:[1,.72,.08,1],skin:[.66,.37,.2,1],green:[.1,.55,.27,1],pink:[.86,.34,.49,1],cyan:[.1,.8,.84,1],brown:[.35,.17,.08,1],glass:[.12,.32,.46,1],gold:[1,.72,.08,1]};
+function el(q){return root&&root.querySelector(q)}function clamp(v,a,b){return v<a?a:v>b?b:v}function pick(arr){return arr[(Math.random()*arr.length)|0]}
+function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s}
+function initGL(){gl=canvas.getContext('webgl',{alpha:false,antialias:true,powerPreference:'high-performance'});if(!gl)throw Error('WebGL tidak tersedia');const vs=shader(gl.VERTEX_SHADER,'attribute vec3 p;attribute vec3 n;uniform mat4 P,V,M;varying float l;void main(){vec3 nn=normalize(mat3(M)*n);l=.55+.45*max(dot(nn,normalize(vec3(.35,.8,.45))),0.);gl_Position=P*V*M*vec4(p,1.);}');const fs=shader(gl.FRAGMENT_SHADER,'precision mediump float;uniform vec4 c;varying float l;void main(){gl_FragColor=vec4(c.rgb*l,c.a);}');program=gl.createProgram();gl.attachShader(program,vs);gl.attachShader(program,fs);gl.linkProgram(program);gl.useProgram(program);aPos=gl.getAttribLocation(program,'p');aNor=gl.getAttribLocation(program,'n');uP=gl.getUniformLocation(program,'P');uV=gl.getUniformLocation(program,'V');uM=gl.getUniformLocation(program,'M');uColor=gl.getUniformLocation(program,'c');const pos=[],nor=[];function face(a,b,c,d,n){for(const v of [a,b,c,a,c,d]){pos.push(...v);nor.push(...n)}}const q=.5;face([-q,-q,q],[q,-q,q],[q,q,q],[-q,q,q],[0,0,1]);face([q,-q,-q],[-q,-q,-q],[-q,q,-q],[q,q,-q],[0,0,-1]);face([-q,q,q],[q,q,q],[q,q,-q],[-q,q,-q],[0,1,0]);face([-q,-q,-q],[q,-q,-q],[q,-q,q],[-q,-q,q],[0,-1,0]);face([q,-q,q],[q,-q,-q],[q,q,-q],[q,q,q],[1,0,0]);face([-q,-q,-q],[-q,-q,q],[-q,q,q],[-q,q,-q],[-1,0,0]);cubeCount=pos.length/3;cubeBuf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,cubeBuf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(pos),gl.STATIC_DRAW);gl.enableVertexAttribArray(aPos);gl.vertexAttribPointer(aPos,3,gl.FLOAT,false,0,0);cubeNor=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,cubeNor);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(nor),gl.STATIC_DRAW);gl.enableVertexAttribArray(aNor);gl.vertexAttribPointer(aNor,3,gl.FLOAT,false,0,0);gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK)}
+function perspective(o,fovy,aspect,near,far){const f=1/Math.tan(fovy/2),nf=1/(near-far);o.fill(0);o[0]=f/aspect;o[5]=f;o[10]=(far+near)*nf;o[11]=-1;o[14]=2*far*near*nf}
+function lookAt(o,e,c,u){let zx=e[0]-c[0],zy=e[1]-c[1],zz=e[2]-c[2],l=1/Math.hypot(zx,zy,zz);zx*=l;zy*=l;zz*=l;let xx=u[1]*zz-u[2]*zy,xy=u[2]*zx-u[0]*zz,xz=u[0]*zy-u[1]*zx;l=1/Math.hypot(xx,xy,xz);xx*=l;xy*=l;xz*=l;const yx=zy*xz-zz*xy,yy=zz*xx-zx*xz,yz=zx*xy-zy*xx;o[0]=xx;o[1]=yx;o[2]=zx;o[3]=0;o[4]=xy;o[5]=yy;o[6]=zy;o[7]=0;o[8]=xz;o[9]=yz;o[10]=zz;o[11]=0;o[12]=-(xx*e[0]+xy*e[1]+xz*e[2]);o[13]=-(yx*e[0]+yy*e[1]+yz*e[2]);o[14]=-(zx*e[0]+zy*e[1]+zz*e[2]);o[15]=1}
+function model(x,y,z,sx,sy,sz,ry=0){const c=Math.cos(ry),s=Math.sin(ry);M[0]=c*sx;M[1]=0;M[2]=-s*sx;M[3]=0;M[4]=0;M[5]=sy;M[6]=0;M[7]=0;M[8]=s*sz;M[9]=0;M[10]=c*sz;M[11]=0;M[12]=x;M[13]=y;M[14]=z;M[15]=1}
+function box(x,y,z,sx,sy,sz,color,ry=0){model(x,y,z,sx,sy,sz,ry);gl.uniformMatrix4fv(uM,false,M);gl.uniform4fv(uColor,color);gl.drawArrays(gl.TRIANGLES,0,cubeCount)}
+function resize(){if(!root)return;W=innerWidth;H=innerHeight;dpr=Math.min(2,devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);canvas.style.width=W+'px';canvas.style.height=H+'px';gl.viewport(0,0,canvas.width,canvas.height);perspective(P,Math.PI/3,W/H,.1,120);gl.uniformMatrix4fv(uP,false,P)}
+function drawRoad(){box(0,-.62,-18,30,.75,76,colors.brown);box(0,-.24,-15,19,.28,68,colors.grass);box(0,-.02,-15,7.5,.12,64,colors.road);box(-4.4,.05,-15,.9,.18,64,colors.walk);box(4.4,.05,-15,.9,.18,64,colors.walk);for(let z=-47+(roadOffset%6);z<18;z+=6){box(-1.28,.08,z,.11,.03,2.6,colors.line);box(1.28,.08,z,.11,.03,2.6,colors.line)}}
+function drawTree(x,z){box(x,.65,z,.32,1.3,.32,colors.brown);box(x,1.75,z,1.25,1.2,1.25,colors.green);box(x-.45,2.05,z+.1,.75,.75,.75,colors.grass2);box(x+.4,2.15,z-.1,.82,.8,.82,colors.grass2)}
+function drawHouse(h){const c=[colors.pink,colors.blue,colors.orange,colors.cyan][h.color];box(h.x,1.2,h.z,3.1,2.35,3.4,c);box(h.x,2.65,h.z,3.55,.45,3.8,colors.red);const front=h.x>0?h.x-1.58:h.x+1.58;box(front,1.1,h.z,.08,1.15,.75,colors.brown);box(front,1.65,h.z-1.05,.08,.58,.7,colors.glass);box(front,1.65,h.z+1.05,.08,.58,.7,colors.glass);if(h.target&&!h.hit){const pulse=1+Math.sin(performance.now()*.009)*.18;box(h.x>0?4.85:-4.85,1.3,h.z,pulse*.48,pulse*.48,pulse*.48,colors.gold);box(h.x>0?4.85:-4.85,.7,h.z,.12,1.1,.12,colors.yellow)}}
+function drawWalker(x,z,phase=0,kid=false){const step=Math.sin(phase)*.16,skin=kid?colors.skin:[colors.skin,[.82,.55,.35,1]][Math.abs((z*3)|0)%2];box(x-step,.38,z,.18,.7,.2,colors.dark);box(x+step,.38,z,.18,.7,.2,colors.dark);box(x,.98,z,.58,kid ? .68 : .9,.42,kid?colors.cyan:colors.pink);box(x,1.55,z,.44,.44,.44,skin);if(kid){box(x,1.82,z,.66,.16,.66,colors.red);box(x+.46,1.05,z,.14,.5,.14,skin);box(x+.5,.75,z,.18,.18,.18,colors.gold)}}
+function drawPigeon(x,z,flap){box(x,.18+Math.abs(Math.sin(flap))*.12,z,.28,.22,.4,[.48,.53,.56,1]);box(x-.22,.24,z,.28,.08,.28,[.64,.68,.7,1],-.45);box(x+.22,.24,z,.28,.08,.28,[.64,.68,.7,1],.45);box(x,.28,z-.25,.18,.18,.18,[.34,.39,.42,1])}
+function drawCar(o){if(o.kind==='hole'){box(o.x,.035,o.z,1.3,.035,1.55,colors.dark,.25);box(o.x-.58,.055,o.z,.18,.05,1.3,[.3,.25,.18,1],.25);return}if(o.kind==='child'){drawWalker(o.x,o.z,o.phase,true);return}const c=[colors.red,colors.blue,colors.orange,colors.pink][o.color];box(o.x,.48,o.z,1.35,.55,2.35,c);box(o.x,.92,o.z-.2,1.05,.48,1.15,colors.glass);box(o.x-.7,.25,o.z-.72,.18,.36,.48,colors.dark);box(o.x+.7,.25,o.z-.72,.18,.36,.48,colors.dark);box(o.x-.7,.25,o.z+.72,.18,.36,.48,colors.dark);box(o.x+.7,.25,o.z+.72,.18,.36,.48,colors.dark)}
+function drawBike(){const x=laneX,flash=shake>0&&((performance.now()/70)|0)%2===0;if(flash)return;/* roda, hub dan garpu */box(x,.34,5.95,.46,.7,.3,colors.dark);box(x,.34,4.18,.46,.7,.3,colors.dark);box(x,.34,5.95,.5,.22,.34,colors.white);box(x,.34,4.18,.5,.22,.34,colors.white);box(x,.72,5.55,.16,.85,.16,colors.dark);box(x,.72,4.55,.16,.68,.16,colors.dark);/* rangka, tangki, jok dan lampu */box(x,.65,5.08,.72,.4,1.55,colors.orange);box(x,.92,5.18,.86,.62,.78,colors.red);box(x,.92,4.55,.72,.24,.72,colors.dark);box(x,.78,6.0,.52,.4,.32,colors.yellow);box(x,.79,6.18,.25,.2,.12,colors.white);box(x-.64,.99,5.55,.16,.16,1.22,colors.dark);box(x+.64,.99,5.55,.16,.16,1.22,colors.dark);/* boks paket */box(x,.96,4.12,1.12,.92,.92,colors.gold);box(x,.98,4.1,1.16,.16,.96,colors.red);box(x,.98,4.1,.18,.96,.98,colors.red);/* pengendara: kaki, badan, kepala, helm dan visor */box(x-.3,.83,4.8,.24,.85,.26,colors.dark,-.15);box(x+.3,.83,4.8,.24,.85,.26,colors.dark,.15);box(x,1.42,5.05,.82,.92,.54,colors.blue);box(x,2.02,5.02,.58,.58,.58,colors.skin);box(x,2.31,5.04,.78,.34,.74,colors.yellow);box(x,2.17,4.72,.62,.22,.18,colors.glass);/* tangan kiri di setang, tangan kanan melempar */box(x-.48,1.48,5.32,.2,.2,1.02,colors.skin,.42);const reach=Math.sin(throwAnim*Math.PI);box(x+.46+reach*.62,1.5,5.18-reach*.5,.2,.2,1.05,colors.skin,-.42-reach*.82);box(x+.76+reach*.82,1.48,4.75-reach*.92,.24,.24,.24,colors.skin)}
+function drawPickup(o){const bob=.55+Math.sin(o.spin)*.18;box(o.x,bob,o.z,.65,.65,.65,colors.gold,o.spin*.3);box(o.x,bob+.05,o.z,.7,.1,.7,colors.red);box(o.x,bob+.05,o.z,.1,.7,.7,colors.red)}
+function drawShot(s){box(s.x,s.y,s.z,.52,.52,.52,colors.gold,s.t*5)}
+function drawParticle(p){box(p.x,p.y,p.z,.12,.12,.12,p.color?colors.gold:colors.white)}
+function nearestTarget(max=99){let best=null,dist=max;for(const h of houses)if(h.on&&h.target&&!h.hit){const d=Math.abs(h.z-3);if(d<dist){dist=d;best=h}}return best}
+function targetUI(){const h=nearestTarget(28),tag=el('.nk3-target-label'),btn=el('.nk3-throw'),ready=!!h&&Math.abs(h.z-3)<4.4&&packages>0;btn?.classList.toggle('ready',ready);btn?.setAttribute('aria-disabled',ready?'false':'true');if(!h){if(tag)tag.hidden=true;return}const x=h.x,y=3.65,z=h.z,vx=V[0]*x+V[4]*y+V[8]*z+V[12],vy=V[1]*x+V[5]*y+V[9]*z+V[13],vz=V[2]*x+V[6]*y+V[10]*z+V[14],cw=-vz;if(cw<=0){tag.hidden=true;return}const nx=P[0]*vx/cw,ny=P[5]*vy/cw,sx=(nx*.5+.5)*W,sy=(1-(ny*.5+.5))*H;if(sx<20||sx>W-20||sy<55||sy>H-90){tag.hidden=true;return}tag.hidden=false;tag.style.left=sx+'px';tag.style.top=sy+'px';tag.textContent=ready?'📦 LEMPAR PAKET':'📍 DEKATI RUMAH'}
+function render(){const sx=shake?((Math.random()-.5)*shake):0;eye[0]=laneX*.1+sx;eye[1]=7.25;eye[2]=13.2;target[0]=laneX*.07;target[1]=.9;target[2]=-5.5;lookAt(V,eye,target,up);gl.uniformMatrix4fv(uV,false,V);gl.clearColor(.48,.78,.91,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);drawRoad();for(let z=-42+(roadOffset%12);z<15;z+=12){drawTree(-6.6,z);drawTree(6.6,z+5)}for(let i=0;i<2;i++){const z=12-((roadOffset+i*39)%82);drawWalker(i?-4.42:4.42,z,0,false)}for(let i=0;i<2;i++){const z=9-((roadOffset+i*43)%88);drawPigeon(i?-4.85:4.85,z,0)}for(const h of houses)if(h.on)drawHouse(h);for(const o of pickups)if(o.on)drawPickup(o);for(const o of traffic)if(o.on)drawCar(o);for(const s of shots)if(s.on)drawShot(s);for(const p of particles)if(p.on)drawParticle(p);drawBike();targetUI()}
+function free(a){for(const o of a)if(!o.on)return o;return null}
+function spawnTraffic(){const o=free(traffic);if(!o)return;o.on=true;o.lane=(Math.random()*3)|0;o.x=lanes[o.lane];o.z=-48;o.color=(Math.random()*4)|0;o.near=false;o.kind=time<88?(Math.random()<.18?'hole':Math.random()<.12?'child':'car'):'car';o.phase=0;o.vx=0;if(o.kind==='child'){o.x=Math.random()<.5?-4.5:4.5;o.vx=o.x<0?.42:-.42}}
+function spawnPickup(){const o=free(pickups);if(!o)return;o.on=true;o.x=lanes[(Math.random()*3)|0];o.z=-44;o.spin=0}
+function spawnHouse(){const h=free(houses);if(!h)return;h.on=true;h.side=Math.random()<.5?-1:1;h.x=h.side*7;h.z=-48;h.target=Math.random()<.48;h.hit=false;h.color=(Math.random()*4)|0}
+function burst(x,y,z,gold=true){let made=0;for(const p of particles){if(p.on)continue;p.on=true;p.x=x;p.y=y;p.z=z;p.vx=(Math.random()-.5)*4;p.vy=2+Math.random()*3;p.vz=(Math.random()-.5)*4;p.t=.55+Math.random()*.45;p.color=gold?1:0;if(++made===12)break}}
+function pop(txt){const p=el('.nk3-pop');p.textContent=txt;p.classList.remove('on');void p.offsetWidth;p.classList.add('on')}
+function audioStart(){if(muted)return;if(!audio){audio=new (window.AudioContext||window.webkitAudioContext)()}if(audio.state==='suspended')audio.resume()}
+function beep(freq,dur=.08,type='sine',vol=.05){if(muted)return;audioStart();if(!audio)return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(55,freq*.72),t+dur);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g).connect(audio.destination);o.start(t);o.stop(t+dur)}
+function sync(){el('.nk3-time').textContent=Math.max(0,Math.ceil(time));el('.nk3-score').textContent='⭐ '+Math.round(score);el('.nk3-pack').textContent='📦 '+packages;el('.nk3-combo').textContent=combo>1?'COMBO x'+combo:'COMBO —';el('.nk3-turbo i').style.width=turbo+'%'}
+function move(dir){lane=clamp(lane+dir,0,2);beep(270,.035,'square',.02)}
+function throwPackage(){if(!running||packages<1)return;const best=nearestTarget(4.4);if(!best){pop('DEKATI RUMAH DULU');beep(125,.08,'square',.025);return}packages--;best.hit=true;throwAnim=1;const s=free(shots);if(s){s.on=true;s.x=laneX+.6;s.y=1.3;s.z=4.7;s.tx=best.side*5.7;s.tz=best.z;s.t=0}sfxPerfect(best);sync()}
+function sfxPerfect(h){combo++;bestCombo=Math.max(bestCombo,combo);delivered++;const gain=100+combo*25;score+=gain;pop(combo>1?'PERFECT! x'+combo:'PERFECT!');burst(h.side*5,1.3,h.z,true);beep(520+Math.min(combo,8)*55,.1,'triangle',.055);navigator.vibrate?.(18);if(combo===10){score+=500;pop('HUJAN KOIN!');for(let i=0;i<3;i++)burst((i-1)*2,3,-1-i*2,true)}}
+function collide(o){o.on=false;combo=0;time=Math.max(0,time-2);shake=.28;pop('ADUH! −2 DETIK');beep(85,.2,'sawtooth',.08);navigator.vibrate?.([45,30,45])}
+function update(dt){const boost=turboOn&&turbo>0?1.65:1,elapsed=100-time;speed=13.5+Math.max(0,elapsed-8)*.12+Math.min(score/2500,3);if(boost>1)turbo=Math.max(0,turbo-dt*24);else turbo=Math.min(100,turbo+dt*8);const dz=speed*boost*dt;roadOffset+=dz;laneX+=(lanes[lane]-laneX)*Math.min(1,dt*12);time-=dt;night=0;shake=Math.max(0,shake-dt*1.7);spawnT-=dt;houseT-=dt;if(spawnT<=0){Math.random()<.38?spawnPickup():spawnTraffic();spawnT=Math.max(.48,1.2-elapsed*.006)+Math.random()*.55}if(houseT<=0){spawnHouse();houseT=2.1+Math.random()*1.5}
+throwAnim=Math.max(0,throwAnim-dt*3.4);for(const o of traffic)if(o.on){o.z+=dz;o.phase+=dt*9;if(o.kind==='child'){o.x+=o.vx*dt;if(Math.abs(o.x)>4.8)o.vx*=-1}if(o.z>15)o.on=false;else{const dx=Math.abs(o.x-laneX),dd=Math.abs(o.z-5);if(dd<(o.kind==='hole' ? .9 : 1.25)&&dx<(o.kind==='child' ? .72 : 1.05))collide(o);else if(!o.near&&o.z>6.7&&dx<1.7){o.near=true;score+=25;pop('NYARIS! +25');beep(780,.07,'sine',.025)}}}
+for(const o of pickups)if(o.on){o.z+=dz;o.spin+=dt*5;if(o.z>14)o.on=false;else if(Math.abs(o.z-5)<1.2&&Math.abs(o.x-laneX)<1.05){o.on=false;packages=Math.min(5,packages+1);score+=30;burst(o.x,.7,o.z,true);beep(760,.08,'triangle',.04)}}
+for(const h of houses)if(h.on){h.z+=dz;if(h.z>18)h.on=false}
+for(const s of shots)if(s.on){s.t+=dt*2.25;const t=s.t;s.x+=(s.tx-s.x)*Math.min(1,dt*7);s.z+=(s.tz-s.z)*Math.min(1,dt*7);s.y=1+Math.sin(Math.min(1,t)*Math.PI)*3;if(t>=1)s.on=false}
+for(const p of particles)if(p.on){p.t-=dt;if(p.t<=0){p.on=false;continue}p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.vy-=7*dt}
+score+=dt*boost*2;sync();if(time<=0)finish()}
+function loop(now){raf=0;if(!root||paused)return;const dt=last?Math.min(.033,(now-last)/1000):0;last=now;if(running)update(dt);render();raf=requestAnimationFrame(loop)}
+function reset(){for(const a of [traffic,pickups,houses,shots,particles])for(const o of a)o.on=false;lane=1;laneX=0;speed=13.5;time=100;score=0;combo=bestCombo=delivered=0;packages=1;turbo=100;turboOn=false;spawnT=.7;houseT=.2;roadOffset=0;shake=night=throwAnim=0;running=true;last=0;el('.nk3-intro').hidden=true;el('.nk3-result').hidden=true;audioStart();sync()}
+function finish(){if(!running)return;running=false;const stars=score>=2200?3:score>=1000?2:1;el('.nk3-stars').textContent='★'.repeat(stars)+'☆'.repeat(3-stars);el('.nk3-final').textContent=Math.round(score)+' poin · '+delivered+' paket terkirim · combo terbaik '+bestCombo;el('.nk3-result').hidden=false;beep(640,.18,'triangle',.06)}
+function down(e){if(!running)return;audioStart();pointer={id:e.pointerId,x:e.clientX,y:e.clientY,t:performance.now(),moved:false};canvas.setPointerCapture?.(e.pointerId);holdTimer=setTimeout(()=>{if(pointer){turboOn=true;pop('TURBO!');beep(160,.16,'sawtooth',.04)}},430)}
+function motion(e){if(!pointer||e.pointerId!==pointer.id)return;const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.abs(dx)>38&&Math.abs(dx)>Math.abs(dy)){pointer.moved=true;clearTimeout(holdTimer);turboOn=false;move(dx>0?1:-1);pointer.x=e.clientX}}
+function upPointer(e){if(!pointer||e.pointerId!==pointer.id)return;clearTimeout(holdTimer);const held=turboOn,moved=pointer.moved,elapsed=performance.now()-pointer.t;turboOn=false;pointer=null;if(held)return;if(!moved&&elapsed<420){if(e.clientX<W*.3)move(-1);else if(e.clientX>W*.7)move(1);else throwPackage()}}
+function fullscreen(){if(!document.fullscreenElement)root.requestFullscreen?.().catch(()=>{});else document.exitFullscreen?.().catch(()=>{})}
+function visibility(){paused=document.hidden;last=0;if(paused){cancelAnimationFrame(raf);raf=0;audio?.suspend?.()}else if(root&&!raf){audio?.resume?.();raf=requestAnimationFrame(loop)}}
+function close(){running=false;cancelAnimationFrame(raf);raf=0;clearTimeout(holdTimer);removeEventListener('resize',resize);document.removeEventListener('visibilitychange',visibility);audio?.suspend?.();root?.remove();root=null;canvas=null;gl=null;document.body.classList.remove('nusa-kurir-3d-open');document.body.style.overflow=oldOverflow;if(document.fullscreenElement)document.exitFullscreen?.().catch(()=>{})}
+function start(opts={}){previous?.close?.();close();player=opts.name||'Warga Nusa';oldOverflow=document.body.style.overflow;document.body.style.overflow='hidden';document.body.classList.add('nusa-kurir-3d-open');root=document.createElement('section');root.id='nusaKurir3D';root.innerHTML='<canvas aria-label="Permainan Kurir Nusa tiga dimensi"></canvas><div class="nk3-hud"><div class="nk3-brand"><small>PEKERJAAN · WEBGL 3D</small><b>Kurir Nusa</b></div><div class="nk3-time">100</div><div class="nk3-stats"><span class="nk3-score">⭐ 0</span><span class="nk3-pack">📦 1</span><span class="nk3-combo">COMBO —</span></div></div><div class="nk3-tools"><button data-nk3="sound">🔊</button><button data-nk3="full">⛶</button><button data-nk3="close">×</button></div><div class="nk3-target-label" hidden>📦 LEMPAR PAKET</div><div class="nk3-pop"></div><button class="nk3-throw" data-nk3="throw" aria-label="Lempar paket"><b>📦</b>LEMPAR</button><div class="nk3-tip">Sisi layar: pindah · dekati rumah · tekan LEMPAR</div><div class="nk3-turbo"><i></i></div><div class="nk3-screen nk3-intro"><article class="nk3-card"><div class="bike">🏍️</div><h2>Kurir Nusa 3D</h2><p>Rute 100 detik. Ambil paket, dekati rumah bertanda, lalu tekan tombol LEMPAR. Jalan makin cepat secara bertahap.</p><div class="rules"><span><b>↔</b>3 jalur</span><span><b>📦</b>Dekati & lempar</span><span><b>⚡</b>Turbo</span></div><button data-nk3="play">Mulai Mengantar</button><p class="note">Versi WebGL 3D · hadiah koin belum diaktifkan.</p></article></div><div class="nk3-screen nk3-result" hidden><article class="nk3-card"><div class="nk3-stars">★★★</div><h2>Rute selesai</h2><p class="nk3-final"></p><button data-nk3="again">Main Lagi</button><button class="secondary" data-nk3="close">Kembali ke kota</button></article></div>';document.body.appendChild(root);canvas=el('canvas');try{initGL()}catch(err){close();alert('HP/browser ini belum bisa membuka WebGL: '+err.message);return}resize();addEventListener('resize',resize,{passive:true});document.addEventListener('visibilitychange',visibility);canvas.addEventListener('pointerdown',down,{passive:true});canvas.addEventListener('pointermove',motion,{passive:true});canvas.addEventListener('pointerup',upPointer,{passive:true});canvas.addEventListener('pointercancel',()=>{pointer=null;turboOn=false;clearTimeout(holdTimer)},{passive:true});root.addEventListener('click',e=>{const b=e.target.closest('[data-nk3]');if(!b)return;const v=b.dataset.nk3;if(v==='play'||v==='again')reset();else if(v==='close')close();else if(v==='full')fullscreen();else if(v==='throw')throwPackage();else if(v==='sound'){muted=!muted;b.textContent=muted?'🔇':'🔊';if(!muted){audioStart();beep(480)}}});raf=requestAnimationFrame(loop)}
+window.NusaKurirJob={start,close,version:'webgl-3d-b'};
+})();
+</script>
 </body></html>

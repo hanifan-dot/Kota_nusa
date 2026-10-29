@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bangun! Proyek Konstruksi</title>
+<style>
+:root{--bg:#14202f;--ink:#fff4d6;--yel:#ffc629;--blue:#1d4f86;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--ink);font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+#ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(12,20,32,.88);text-align:center;padding:24px}
+#ov h1{margin:0 0 6px;font-size:clamp(34px,9vw,60px);color:var(--yel);letter-spacing:1px;text-shadow:0 4px 0 #a36d00;transform:rotate(-2deg)}
+#ov p{max-width:340px;line-height:1.5;margin:8px 0;font-size:15px}
+#ov b{color:var(--yel)}
+button{margin-top:16px;font:inherit;font-weight:800;font-size:20px;padding:14px 38px;border:0;border-radius:10px;background:var(--yel);color:#2a1d00;box-shadow:0 6px 0 #a36d00;cursor:pointer}
+button:active{transform:translateY(4px);box-shadow:0 2px 0 #a36d00}
+#exit{position:fixed;z-index:8;top:calc(env(safe-area-inset-top,0px) + 10px);left:10px;margin:0;padding:0;width:48px;height:48px;border-radius:50%;background:#152538dc;color:#fff;box-shadow:0 4px 0 #09121d;font-size:28px}
+#ov .finish{background:#45a36b;color:#fff;box-shadow:0 6px 0 #21613d;font-size:16px;padding:13px 20px;min-width:285px}
+#ov .again{background:rgba(255,255,255,.14);color:#fff4d6;box-shadow:none;font-size:16px;padding:12px 22px}
+#income{min-height:20px;color:#ffe27a;font-weight:900}
+</style></head><body>
+<canvas id="c"></canvas>
+<button id="exit" type="button" aria-label="Akhiri pekerjaan">×</button>
+<div id="ov"></div>
+<script>
+const EMBED=new URLSearchParams(location.search).get('embed')==='1'||window.RENOVASI_EMBED===true;
+const N=9,TW=72,TH=36,LH=24;
+const MT=[{n:'Bata',c:'#e0674a'},{n:'Kayu',c:'#d6a45a'},{n:'Kaca',c:'#7fdcf0'}];
+const DEP=[{m:0,x:1,y:1},{m:1,x:7,y:1},{m:2,x:4,y:7}];
+const NAMES=['Warung Bu Sari','Pos Ronda','Kafe Senja','Toko Maju','Gudang Pak Budi','Rumah Singgah','Galeri Kota','Menara Mini'];
+const cv=document.getElementById('c'),g=cv.getContext('2d'),ov=document.getElementById('ov');
+let W,H,dpr,S,OY,ac=null;
+let st='menu',score=0,best=0,lv=0,t=0,tmax=1,combo=0,comboT=0,cap=1,cells=[],name='',pause=0,shake=0,ci=0,time=0,played=0,completed=0,resultId='',lastReward=0;
+let P={x:4.5,y:4.5,carry:[],tx:null,ty:null,mv:0},parts=[],floats=[],keys={},down=false;
+try{best=+localStorage.getItem('bangun_best')||0}catch(e){}
+function resize(){dpr=devicePixelRatio||1;W=innerWidth;H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;
+ S=Math.min(W/(N*TW+30),(H-230)/(N*TH+90));OY=110+(H-230-(N*TH+90)*S)/2+70*S}
+addEventListener('resize',resize);resize();
+function beep(f,d=.08,ty='square',v=.04){try{ac=ac||new AudioContext();const o=ac.createOscillator(),gn=ac.createGain();o.type=ty;o.frequency.value=f;gn.gain.value=v;gn.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.connect(gn);gn.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+function shade(h,f){const n=parseInt(h.slice(1),16);const r=Math.min(255,(n>>16)*f)|0,gg=Math.min(255,((n>>8)&255)*f)|0,b=Math.min(255,(n&255)*f)|0;return`rgb(${r},${gg},${b})`}
+function iso(x,y,z=0){return[(x-y)*TW/2,(x+y)*TH/2-z]}
+function poly(pts,fill,stroke){g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();if(fill){g.fillStyle=fill;g.fill()}if(stroke){g.strokeStyle=stroke;g.lineWidth=1.5;g.stroke()}}
+function cube(x,y,z,h,col,w=1){const z2=z+h;
+ poly([iso(x,y+w,z2),iso(x+w,y+w,z2),iso(x+w,y+w,z),iso(x,y+w,z)],shade(col,.75),'rgba(0,0,0,.25)');
+ poly([iso(x+w,y,z2),iso(x+w,y+w,z2),iso(x+w,y+w,z),iso(x+w,y,z)],shade(col,.55),'rgba(0,0,0,.25)');
+ poly([iso(x,y,z2),iso(x+w,y,z2),iso(x+w,y+w,z2),iso(x,y+w,z2)],col,'rgba(0,0,0,.25)')}
+function sfxPart(x,y,z,c,n=8){for(let i=0;i<n;i++)parts.push({x,y,z,vx:(Math.random()-.5)*2.5,vy:(Math.random()-.5)*2.5,vz:60+Math.random()*120,l:.7,c})}
+function say(x,y,txt,c='#fff'){floats.push({x,y,z:50,txt,l:1,c})}
+
+function newOrder(){
+ lv++;const L=lv<3?1:lv<6?2:3;const k=Math.min(2+Math.ceil(lv*.8),9);
+ cap=lv<3?1:lv<7?2:3;
+ const pos=[];for(let i=3;i<6;i++)for(let j=3;j<6;j++)pos.push([i,j]);
+ pos.sort(()=>Math.random()-.5);const nm=lv<2?2:3;
+ cells=pos.slice(0,k).map(p=>({x:p[0],y:p[1],built:0,drop:0,need:Array.from({length:L},()=>Math.floor(Math.random()*nm))}));
+ const total=k*L;const left=Math.max(0,t);
+ tmax=t=12+total*3.4*(cap>1?.8:1)+left*.4;
+ name=NAMES[(lv-1)%NAMES.length];pause=0;
+ if(lv>1&&lv===3||lv===7)say(P.x,P.y,'Kapasitas angkut +1!','#ffc629')}
+function start(){score=0;lv=0;combo=0;comboT=0;t=0;played=0;completed=0;resultId='';lastReward=0;P={x:4.5,y:4.5,carry:[],tx:null,ty:null,mv:0};parts=[];floats=[];newOrder();st='play';ov.style.display='none';beep(520,.1)}
+function over(){st='over';try{if(score>best){best=score;localStorage.setItem('bangun_best',best)}}catch(e){}
+ beep(180,.4,'sawtooth');sendResult();showResult()}
+function showMenu(){st='menu';ov.style.display='flex';ov.innerHTML=`<h1>BANGUN!</h1><p>Kamu mandor proyek. Ambil <b>Bata</b>, <b>Kayu</b>, <b>Kaca</b> dari tumpukan di tepi, lalu antar ke kotak <b>cetak biru</b> di tengah sesuai warnanya.<br>Tap / geser jari untuk jalan.<br><b>Upah dihitung dari waktu bertahan + quest proyek selesai.</b></p><button id="go">MULAI KERJA</button>${EMBED?'<button class="finish" id="finishJob">AKHIRI PEKERJAAN & AMBIL KOIN</button>':''}`;document.getElementById('go').onclick=start;const f=document.getElementById('finishJob');if(f)f.onclick=closeGame}
+function showResult(){const sec=Math.max(1,Math.floor(played));ov.style.display='flex';ov.innerHTML=`<h1>WAKTU HABIS!</h1><p>Quest selesai: <b>${completed}</b><br>Bertahan: <b>${sec} detik</b> · Skor: <b>${score}</b><br>Rekor: <b>${best}</b></p><p id="income">${EMBED?'Menghitung upah Kota Nusa…':'Mode latihan'}</p><button id="go">MAIN LAGI</button>${EMBED?'<button class="finish" id="finishJob">AKHIRI PEKERJAAN & AMBIL KOIN</button>':''}`;document.getElementById('go').onclick=start;const f=document.getElementById('finishJob');if(f)f.onclick=closeGame}
+function sendResult(){if(resultId)return;resultId=Date.now().toString(36)+Math.random().toString(36).slice(2,8);const sec=Math.max(1,Math.min(300,Math.floor(played))),nilai=Math.max(20,Math.min(100,35+completed*12+Math.floor(sec/10))),detail={id:resultId,skor:score,nilai,questsCompleted:completed,survivalSeconds:sec};try{window.dispatchEvent(new CustomEvent('renovasinusa:selesai',{detail}))}catch(e){}if(EMBED)try{parent.postMessage({type:'renovasinusa:selesai',detail},location.origin)}catch(e){}}
+function closeGame(){if(st==='play'){if(!confirm('Akhiri pekerjaan sekarang? Proyek yang sudah selesai dan waktu bermain tetap dihitung.'))return;st='over';if(played>=10||completed>0)sendResult()}else st='menu';if(EMBED)try{parent.postMessage({type:'renovasinusa:keluar'},location.origin)}catch(e){}else showMenu()}
+showMenu();
+
+function toGrid(cx,cy){const wx=(cx-W/2)/S,wy=(cy-OY)/S;return[(wx+2*wy)/(2*TH),(2*wy-wx)/(2*TH)]}
+cv.addEventListener('pointerdown',e=>{down=true;const p=toGrid(e.clientX,e.clientY);P.tx=p[0];P.ty=p[1]});
+cv.addEventListener('pointermove',e=>{if(down){const p=toGrid(e.clientX,e.clientY);P.tx=p[0];P.ty=p[1]}});
+addEventListener('pointerup',()=>{down=false});
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(st!=='play'&&(e.key==='Enter'||e.key===' ')&&document.getElementById('go'))start()});
+addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=0});
+
+function update(dt){
+ time+=dt;
+ parts.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.vz-=400*dt;p.l-=dt});parts=parts.filter(p=>p.l>0);
+ floats.forEach(f=>{f.z+=40*dt;f.l-=dt});floats=floats.filter(f=>f.l>0);
+ shake=Math.max(0,shake-dt);
+ if(st!=='play')return;
+ played+=dt;
+ cells.forEach(c=>c.drop=Math.max(0,c.drop-dt*5));
+ if(pause>0){pause-=dt;if(pause<=0)newOrder();return}
+ t-=dt;if(t<=0){t=0;over();return}
+ comboT-=dt;if(comboT<=0)combo=0;ci-=dt;
+ let sx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),sy=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
+ let dx=0,dy=0;
+ if(sx||sy){dx=(sx+2*sy)/2;dy=(2*sy-sx)/2;P.tx=null}
+ else if(P.tx!==null){const ex=P.tx-P.x,ey=P.ty-P.y;if(Math.hypot(ex,ey)>.1){dx=ex;dy=ey}else if(!down){P.tx=null}}
+ const l=Math.hypot(dx,dy);P.mv=l>0?P.mv+dt*12:0;
+ if(l>0){P.x=Math.max(.3,Math.min(N-.3,P.x+dx/l*5*dt));P.y=Math.max(.3,Math.min(N-.3,P.y+dy/l*5*dt))}
+ const i=Math.floor(P.x),j=Math.floor(P.y);
+ if(ci<=0){
+  const d=DEP.find(d=>d.x===i&&d.y===j);
+  if(d&&P.carry.length<cap){P.carry.push(d.m);ci=.2;beep(500+d.m*90,.06);say(P.x,P.y,'+'+MT[d.m].n,MT[d.m].c)}
+  const c=cells.find(c=>c.x===i&&c.y===j&&c.built<c.need.length);
+  if(c){const idx=P.carry.indexOf(c.need[c.built]);
+   if(idx>=0){P.carry.splice(idx,1);c.built++;c.drop=1;ci=.18;
+    combo=comboT>0?combo+1:1;comboT=3.5;const mult=1+Math.floor(combo/5);const pts=10*mult;score+=pts;
+    beep(300+combo*40,.1,'triangle',.07);sfxPart(c.x+.5,c.y+.5,20,MT[c.need[c.built-1]].c);
+    say(c.x+.5,c.y+.5,'+'+pts+(combo>1?'  x'+combo:''),'#ffe27a');
+    if(cells.every(c=>c.built>=c.need.length)){const b=100+Math.ceil(t)*5;score+=b;completed++;pause=1.4;shake=.35;beep(700,.3,'triangle',.08);setTimeout(()=>beep(950,.3,'triangle',.08),150);
+     for(let k=0;k<4;k++)sfxPart(4.5,4.5,50,['#ffc629','#e0674a','#7fdcf0','#fff'][k],14);say(4.5,4.5,'SELESAI! +'+b,'#ffc629')}}}
+ }
+}
+function draw(){
+ g.setTransform(dpr,0,0,dpr,0,0);
+ const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#1c2d44');gr.addColorStop(1,'#0f1824');g.fillStyle=gr;g.fillRect(0,0,W,H);
+ const sh=shake>0?(Math.random()-.5)*8*shake*3:0;
+ g.setTransform(dpr*S,0,0,dpr*S,(W/2+sh)*dpr,OY*dpr);
+ for(let x=0;x<N;x++)for(let y=0;y<N;y++){const site=x>=3&&x<6&&y>=3&&y<6;
+  poly([iso(x,y),iso(x+1,y),iso(x+1,y+1),iso(x,y+1)],site?((x+y)%2?'#25598f':'#2a63a0'):((x+y)%2?'#6b7a52':'#74845a'),site?'rgba(160,210,255,.5)':'rgba(0,0,0,.12)')}
+ cells.forEach(c=>{if(c.built>=c.need.length)return;const col=MT[c.need[c.built]].c;g.globalAlpha=.35+.25*Math.sin(time*5);
+  poly([iso(c.x+.08,c.y+.08),iso(c.x+.92,c.y+.08),iso(c.x+.92,c.y+.92),iso(c.x+.08,c.y+.92)],col,'#fff');g.globalAlpha=1;
+  const p=iso(c.x+.5,c.y+.5);g.fillStyle='#fff';g.font='bold 16px sans-serif';g.textAlign='center';g.fillText('×'+(c.need.length-c.built),p[0],p[1]+5)});
+ const items=[];
+ DEP.forEach(d=>items.push({d:d.x+d.y+1,f:()=>{const c=MT[d.m].c;cube(d.x+.05,d.y+.05,0,6,'#4a3a28',.9);
+  cube(d.x+.1,d.y+.1,6,10,c,.4);cube(d.x+.5,d.y+.1,6,10,c,.4);cube(d.x+.1,d.y+.5,6,10,c,.4);cube(d.x+.5,d.y+.5,6,10,c,.4);cube(d.x+.3,d.y+.3,16,10,c,.4);
+  const p=iso(d.x+.5,d.y+.5,44);g.fillStyle='#ffc629';g.font='bold 15px sans-serif';g.textAlign='center';g.fillText(MT[d.m].n,p[0],p[1])}}));
+ cells.forEach(c=>items.push({d:c.x+c.y+1,f:()=>{for(let l=0;l<c.built;l++){const dz=l===c.built-1?c.drop*50:0;cube(c.x+.08,c.y+.08,l*LH+dz,LH-1,MT[c.need[l]].c,.84)}}}));
+ items.push({d:P.x+P.y+.3,f:()=>{const[x,y]=iso(P.x,P.y);const b=Math.abs(Math.sin(P.mv))*4;
+  g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(x,y,14,7,0,0,7);g.fill();
+  cube(P.x-.18,P.y-.18,b,24,'#ff8a1f',.36);
+  const hz=iso(P.x,P.y,24+b+8);g.fillStyle='#f0c29a';g.beginPath();g.arc(hz[0],hz[1],8,0,7);g.fill();
+  g.fillStyle='#ffd21f';g.beginPath();g.arc(hz[0],hz[1]-3,9,Math.PI,0);g.fill();g.fillRect(hz[0]-11,hz[1]-3,22,3);
+  P.carry.forEach((m,i)=>cube(P.x-.12,P.y-.12,24+b+20+i*11,10,MT[m].c,.24))}});
+ items.sort((a,b)=>a.d-b.d).forEach(i=>i.f());
+ parts.forEach(p=>{const q=iso(p.x,p.y,p.z);g.fillStyle=p.c;g.fillRect(q[0]-3,q[1]-3,6,6)});
+ floats.forEach(f=>{const q=iso(f.x,f.y,f.z);g.globalAlpha=Math.min(1,f.l*2);g.fillStyle=f.c;g.strokeStyle='#000';g.lineWidth=3;g.font='bold 17px sans-serif';g.textAlign='center';g.strokeText(f.txt,q[0],q[1]);g.fillText(f.txt,q[0],q[1]);g.globalAlpha=1});
+ // HUD
+ g.setTransform(dpr,0,0,dpr,0,0);g.textAlign='left';
+ g.fillStyle='#ffc629';g.font='bold 20px "Trebuchet MS",sans-serif';g.fillText('Skor '+score,70,30);
+ g.textAlign='right';g.fillStyle='#fff4d6';g.font='14px sans-serif';g.fillText('Rekor '+best,W-16,28);
+ g.textAlign='center';g.fillStyle='#fff4d6';g.font='bold 15px sans-serif';g.fillText('Pesanan '+lv+': '+name,W/2,28);
+ const bw=W-32,r=Math.max(0,t/tmax);g.fillStyle='rgba(255,255,255,.15)';g.fillRect(16,40,bw,12);g.fillStyle=r<.25?'#ff5a4a':'#ffc629';g.fillRect(16,40,bw*r,12);
+ g.fillStyle='#fff';g.font='bold 12px sans-serif';g.textAlign='right';g.fillText(Math.ceil(t)+' dtk',W-20,64);
+ const estimate=(played>=10?2+Math.floor(played/30)*4:0)+Math.min(36,completed*6);g.textAlign='center';g.fillStyle='#ffe27a';g.fillText('Quest '+completed+' · '+Math.floor(played)+' dtk · ±'+Math.min(76,estimate)+' koin',W/2,66);
+ if(combo>1){g.textAlign='left';g.fillStyle='#ff9b3d';g.font='bold 22px sans-serif';g.fillText('COMBO x'+combo,16,68)}
+ const by=H-90;g.fillStyle='rgba(0,0,0,.35)';g.fillRect(0,by-12,W,102);
+ g.fillStyle='#fff4d6';g.font='bold 11px sans-serif';g.textAlign='left';g.fillText('CETAK BIRU',16,by+2);
+ for(let i=0;i<3;i++)for(let j=0;j<3;j++){const x=16+i*22,y=by+8+j*22;g.fillStyle='#1d4f86';g.fillRect(x,y,20,20);
+  const c=cells.find(c=>c.x===3+i&&c.y===3+j);if(c){const L=c.need.length,h=20/L;c.need.forEach((m,l)=>{g.globalAlpha=l<c.built?1:.5;g.fillStyle=MT[m].c;g.fillRect(x,y+20-h*(l+1),20,h-1)});g.globalAlpha=1}}
+ const rem=[0,0,0];cells.forEach(c=>c.need.slice(c.built).forEach(m=>rem[m]++));
+ g.font='bold 15px sans-serif';g.textAlign='left';
+ rem.forEach((n,m)=>{const x=100+m*62;g.fillStyle=MT[m].c;g.fillRect(x,by+14,18,18);g.fillStyle='#fff';g.fillText('×'+n,x+22,by+28)});
+ g.fillStyle='#fff4d6';g.font='11px sans-serif';g.fillText('Perlu dikirim',100,by+2);
+ g.textAlign='right';g.fillText('Bawaan '+P.carry.length+'/'+cap,W-16,by+2);
+ for(let i=0;i<cap;i++){const x=W-16-(i+1)*38+4;g.strokeStyle='#fff4d6';g.lineWidth=2;g.strokeRect(x,by+10,32,32);if(P.carry[i]!==undefined){g.fillStyle=MT[P.carry[i]].c;g.fillRect(x+3,by+13,26,26)}}
+ g.textAlign='center';g.fillStyle='rgba(255,244,214,.6)';g.font='12px sans-serif';g.fillText('Tap / geser untuk jalan • WASD / panah',W/2,H-10);
+ if(pause>0){g.fillStyle='#ffc629';g.font='bold 30px "Trebuchet MS",sans-serif';g.fillText('PESANAN SELESAI!',W/2,H/2-S*100)}
+}
+let last=performance.now();
+(function loop(n){const dt=Math.min(.05,(n-last)/1000);last=n;update(dt);draw();requestAnimationFrame(loop)})(last);
+document.getElementById('exit').onclick=closeGame;
+window.addEventListener('message',e=>{if(!EMBED||e.origin!==location.origin||!e.data||e.data.type!=='renovasinusa:reward')return;lastReward=Math.max(0,Math.round(Number(e.data.added)||0));const el=document.getElementById('income');if(el)el.textContent='+'+lastReward+' koin · total upah '+Math.max(0,Math.round(Number(e.data.payout)||0))+' koin'});
+window.RenovasiNusa={buka(){showMenu()},tutup(){st='menu'}};
+</script></body></html>

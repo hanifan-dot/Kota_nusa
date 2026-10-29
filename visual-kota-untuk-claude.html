@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Visual Kota Nusa — Sandbox untuk Claude</title>
+<!--
+  FILE KHUSUS ROMBAK VISUAL KOTA NUSA
+  ====================================
+  Ini hanya sandbox visual. Tidak ada Firebase, akun, koin, QRIS, chat, atau data warga.
+  Silakan rombak warna, bentuk pulau, bangunan, jalan, pepohonan, laut, dan animasi.
+  Pertahankan API window.KotaVisual di bagian paling bawah agar hasil mudah digabungkan.
+  Jangan menambahkan library, gambar, font, atau file model dari luar.
+-->
+<style>
+:root{--ink:#183e46;--paper:#fffdf3;--gold:#dfbd79;--sea1:#59a9c1;--sea2:#8fd1d2}
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;font-family:Inter,system-ui,sans-serif;background:var(--sea1);color:var(--ink);touch-action:none;user-select:none}
+#app,#city{position:fixed;inset:0;width:100%;height:100%;display:block}
+.hud{position:fixed;z-index:5;inset:0;pointer-events:none}.top{position:absolute;top:calc(18px + env(safe-area-inset-top));left:22px;right:22px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.avatar{width:68px;height:68px;display:grid;place-items:center;border:4px solid #fff7d9;border-radius:50%;background:#194c61;color:white;font:bold 31px Georgia;box-shadow:0 8px 24px #173d4250}.wallet{padding:13px 20px;border-radius:30px;background:#fffdf2ea;border:2px solid #fff;box-shadow:0 8px 24px #173d4235;text-align:right}.wallet b{display:block;font-size:20px}.wallet small{color:#698184;font-weight:700}
+.status{position:absolute;top:calc(112px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);padding:11px 18px;border:2px solid #fff8;border-radius:30px;background:#17485be8;color:#fff;font-weight:850;box-shadow:0 8px 24px #173d4235}.status i{display:inline-block;width:11px;height:11px;margin-right:7px;border-radius:50%;background:#35cd7b;box-shadow:0 0 0 6px #35cd7b25}
+.tools{position:absolute;right:16px;top:43%;display:grid;gap:8px;pointer-events:auto}.tools button{width:49px;height:49px;border:2px solid #fff;border-radius:16px;background:#fffdf2e8;color:#17485b;font-size:20px;font-weight:1000;box-shadow:0 7px 20px #173d4240}.tools button:active{transform:scale(.94)}
+.hint{position:absolute;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%);padding:9px 15px;border-radius:99px;background:#173e46da;color:#fff;font-size:11px;font-weight:800;white-space:nowrap}.nav{position:absolute;left:18px;right:18px;bottom:calc(15px + env(safe-area-inset-bottom));height:68px;display:flex;justify-content:space-around;align-items:center;border-radius:25px;background:#173e46f2;color:#fff;box-shadow:0 12px 35px #173d4255}.nav span{display:grid;place-items:center;gap:3px;font-size:10px;font-weight:800}.nav b{font-size:22px}
+.badge{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);padding:8px 15px;border-radius:99px;background:#fffbe8e8;border:2px solid #fff;color:#34565b;font-weight:800;font-size:12px;box-shadow:0 6px 20px #173d4235;pointer-events:none}
+@media(min-width:700px){.top{left:40px;right:40px}.tools{right:35px}.nav{left:50%;right:auto;width:520px;transform:translateX(-50%)}}
+</style>
+</head>
+<body>
+<main id="app">
+  <canvas id="city" aria-label="Preview visual Kota Nusa"></canvas>
+  <div class="hud">
+    <div class="top"><div class="avatar">U</div><div class="wallet"><b>🪙 1.000.000.000</b><small>Koin tersedia</small></div></div>
+    <div class="status"><i></i>1 pemain aktif</div>
+    <div class="tools"><button id="theme" title="Ganti waktu">☀</button><button id="zoomIn" title="Perbesar">＋</button><button id="zoomOut" title="Perkecil">－</button></div>
+    <div class="badge">● Balai Nusa</div>
+    <div class="hint">Geser kota · cubit untuk zoom</div>
+    <nav class="nav"><span><b>🗺</b>Peta</span><span><b>💼</b>Kerja</span><span><b>⌂</b>Rumahku</span><span><b>▣</b>Chat</span><span><b>♙</b>KTP</span></nav>
+  </div>
+</main>
+<script>
+(()=>{'use strict';
+const canvas=document.getElementById('city'),ctx=canvas.getContext('2d');
+let W=1,H=1,dpr=1,zoom=1,panX=0,panY=0,night=false,drag=null,pinch=0,time=0,raf=0;
+const buildings=[
+ ['Balai Nusa',0,-2,15,12,13,'#e9dfc8','#4f8294'],['Stadion',-18,-22,22,15,5,'#e9e6d5','#d56f55'],
+ ['Pasar',-19,3,12,9,7,'#e2c59f','#c96650'],['Klinik',19,-6,12,9,8,'#eef0df','#cf7065'],
+ ['Bursa Karya',17,8,13,9,8,'#d9c59d','#997355'],['Restoran',-16,-8,11,9,7,'#f0d1a8','#df8c56'],
+ ['Rumahku',-5,17,10,8,8,'#e5cf9d','#4d7c8b'],['Apartemen',15,18,10,9,15,'#d8ded7','#4b7181']
+];
+const houses=[];for(let r=0;r<4;r++)for(let c=0;c<8;c++)houses.push([-33+c*8,-2+r*8]);
+const farms=[];for(let r=0;r<5;r++)for(let c=0;c<7;c++)farms.push([-38+c*8,-36+r*6]);
+function resize(){dpr=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight;canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);canvas.style.width=W+'px';canvas.style.height=H+'px';draw()}
+function iso(x,z,y=0){const s=Math.min(W/105,H/92)*zoom;return{x:W*.49+panX+(x-z)*s,y:H*.53+panY+(x+z)*s*.48-y*s}}
+function poly(points,fill,stroke){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke()}}
+function tile(x,z,w,d,c,y=0){poly([iso(x-w/2,z-d/2,y),iso(x+w/2,z-d/2,y),iso(x+w/2,z+d/2,y),iso(x-w/2,z+d/2,y)],c)}
+function box(x,z,w,d,h,c,roof){const a=iso(x-w/2,z-d/2,h),b=iso(x+w/2,z-d/2,h),cc=iso(x+w/2,z+d/2,h),dd=iso(x-w/2,z+d/2,h),A=iso(x-w/2,z-d/2),B=iso(x+w/2,z-d/2),C=iso(x+w/2,z+d/2),D=iso(x-w/2,z+d/2);poly([dd,cc,C,D],shade(c,-22));poly([b,cc,C,B],shade(c,-42));poly([a,b,cc,dd],c);if(roof)tile(x,z,w+1,d+1,roof,h+.35)}
+function shade(hex,n){const v=parseInt(hex.slice(1),16);return'#'+[v>>16,v>>8&255,v&255].map(x=>Math.max(0,Math.min(255,x+n)).toString(16).padStart(2,'0')).join('')}
+function ellipse(x,z,y,rx,ry,c){const p=iso(x,z,y),s=Math.min(W/105,H/92)*zoom;ctx.beginPath();ctx.ellipse(p.x,p.y,rx*s,ry*s,0,0,Math.PI*2);ctx.fillStyle=c;ctx.fill()}
+function palm(x,z,s=.8){box(x,z,.6,.6,4*s,'#9a744e');const p=iso(x,z,5*s);for(let i=0;i<7;i++){const a=i/7*Math.PI*2;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.quadraticCurveTo(p.x+Math.cos(a)*8*s,p.y-5*s,p.x+Math.cos(a)*15*s,p.y+Math.sin(a)*7*s);ctx.strokeStyle=i%2?'#3e8d58':'#62aa65';ctx.lineWidth=3*s*zoom;ctx.stroke()}}
+function tree(x,z,s=.75){box(x,z,.5,.5,3*s,'#8b6748');ellipse(x,z,4*s,3.4*s,2.6*s,'#4f9c58');ellipse(x-.6,z-.2,4.4*s,2.5*s,2.1*s,'#72b968')}
+function road(x,z,w,d){tile(x,z,w,d,night?'#536167':'#708185');tile(x,z,w*.07,d,'#e5d08b')}
+function building(b){const[n,x,z,w,d,h,c,r]=b;tile(x,z,w+2,d+2,night?'#7b846f':'#dcd8b9');box(x,z,w,d,h,c,r);const p=iso(x,z,h+1);ctx.textAlign='center';ctx.font=`${Math.max(8,10*zoom)}px system-ui`;ctx.fillStyle=night?'#fff2bb':'#244c50';ctx.fillText(n,p.x,p.y)}
+function sea(){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,night?'#102b44':'#58a8c0');g.addColorStop(1,night?'#1d5368':'#91d2d1');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);for(let i=0;i<18;i++){const y=(i*73+time*7)%H;ctx.fillStyle=night?'#72a9b51d':'#ffffff1d';ctx.fillRect((i*97)%W,y,45,2)}}
+function island(){tile(0,0,92,82,night?'#a79b72':'#eadcad');tile(0,0,88,78,night?'#657f5f':'#8bc777');for(let x=-36;x<=36;x+=12){road(x,4,2.5,66);road(1,x,75,2.5)}for(const [x,z]of farms){tile(x,z,6.8,4.8,(x+z)%3?'#aac77e':'#94b96f');for(let k=0;k<3;k++)ellipse(x-2+k*2,z,0,1.1,.45,'#4d8751')}for(const [x,z]of houses){box(x,z,5.2,4.2,3.7,(x+z)%3?'#ead6ae':'#f2e2c0',(x-z)%3?'#bc6550':'#527e8a')}buildings.forEach(building);for(let x=-42;x<=42;x+=9){palm(x,-39);palm(x,39)}for(let z=-34;z<=34;z+=9){palm(-45,z);palm(45,z)}for(let i=0;i<25;i++)tree(-4+(i%5)*5,25+Math.floor(i/5)*3,.45);lighthouse(39,-35)}
+function lighthouse(x,z){box(x,z,3,3,10,'#f4eee0');box(x,z,3.1,3.1,2,'#d84f48',3);box(x,z,3.1,3.1,2,'#d84f48',7);tile(x,z,4.2,4.2,'#3d5361',10.3);const p=iso(x,z,12);ctx.fillStyle='#ffe99a';ctx.beginPath();ctx.arc(p.x,p.y,4*zoom,0,7);ctx.fill()}
+function draw(){cancelAnimationFrame(raf);ctx.setTransform(dpr,0,0,dpr,0,0);sea();ctx.save();ctx.translate(0,Math.sin(time*.7)*1.2);island();ctx.restore();time+=.016;raf=requestAnimationFrame(draw)}
+function setZoom(v){zoom=Math.max(.58,Math.min(2.15,v))}
+canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,y:e.clientY,px:panX,py:panY}});
+canvas.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;panX=drag.px+e.clientX-drag.x;panY=drag.py+e.clientY-drag.y});
+canvas.addEventListener('pointerup',()=>drag=null);canvas.addEventListener('pointercancel',()=>drag=null);
+canvas.addEventListener('wheel',e=>{e.preventDefault();setZoom(zoom*(e.deltaY>0?.9:1.1))},{passive:false});
+document.getElementById('zoomIn').onclick=()=>setZoom(zoom*1.16);document.getElementById('zoomOut').onclick=()=>setZoom(zoom/1.16);document.getElementById('theme').onclick=e=>{night=!night;e.currentTarget.textContent=night?'☾':'☀'};
+addEventListener('resize',resize,{passive:true});
+window.KotaVisual={redraw:draw,setZoom,setTheme(value){night=value==='night'},reset(){zoom=1;panX=panY=0}};
+resize();
+})();
+</script>
+</body>
+</html>
