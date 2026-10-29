@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#315f4e">
+<title>Koran Kota Nusa — Koran Kota</title>
+<style>
+:root{--ink:#000000;--deep:#000000;--muted:#000000;--paper:#faf7ee;--cream:#f0eadb;--green:#315f4e;--gold:#dfbd79;--border:#e3dfd0;--red:#b5471d}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:680px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+h1{margin:0;font-size:28px;line-height:1.1}h1 small{display:block;font-size:13px;color:var(--muted);font-weight:600}
+.pill{font-size:12px;font-weight:700;padding:6px 12px;border-radius:99px;background:var(--cream);border:1px solid var(--border)}
+.pill.ok{background:#e2f2e4}.pill.warn{background:#fdf0d5}
+.card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:14px;margin-top:14px;box-shadow:0 2px 8px rgba(24,61,56,.06)}
+.card h2{margin:0 0 8px;font-size:17px}.card p{margin:6px 0;line-height:1.55}
+.card small{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+.stat{background:var(--cream);border:1px solid var(--border);border-radius:12px;padding:12px}
+.stat b{display:block;font-size:24px}.stat span{font-size:12px;color:var(--muted)}
+ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+ul li{border-top:1px dashed var(--border);padding-top:10px}
+ul li:first-child{border-top:0;padding-top:0}
+ul li b{display:block}ul li small{color:var(--muted)}
+ul li p{margin:4px 0 0;white-space:pre-wrap;word-break:break-word}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+button{appearance:none;border:0;border-radius:12px;background:var(--green);color:#fff;font:inherit;font-weight:800;padding:10px 18px;cursor:pointer}
+button.secondary{background:var(--cream);color:var(--ink);border:1px solid var(--border)}
+nav a{color:var(--green);font-weight:700;text-decoration:none}
+nav a:hover{text-decoration:underline}
+footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
+.seed{border-left:6px solid var(--gold);background:#fffdf3}
+.msg{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>🗞️ Koran Kota Nusa<small id="edisi">Linimasa aktivitas harian warga</small></h1>
+    <span class="pill" id="status">Menghubungkan…</span>
+  </header>
+
+  <nav class="row">
+    <a href="index.html">← Kembali ke Kota Nusa</a>
+    <a href="papan-warga.html">📋 Buka Papan Pesan Warga →</a>
+    <button id="muat" class="secondary" type="button">Muat ulang</button>
+  </nav>
+
+  <section class="card" aria-label="Angka kota">
+    <h2>📊 Angka Kota</h2>
+    <div class="grid">
+      <div class="stat"><b id="angkaPesan">—</b><span>Pesan warga terbaru dimuat</span></div>
+      <div class="stat"><b id="angkaDatang">—</b><span>Kedatangan tercatat di bandara</span></div>
+      <div class="stat"><b id="angkaOnline">—</b><span>Sesi warga tercatat</span></div>
+      <div class="stat"><b id="angkaBerita">—</b><span>Berita resmi diterbitkan</span></div>
+    </div>
+    <p class="msg">Angka dihitung dari data publik Kota Nusa yang berhasil dibaca. Tanda “—” berarti data itu tidak tersedia saat ini (mis. belum masuk / belum diizinkan server).</p>
+  </section>
+
+  <section class="card" aria-label="Berita resmi">
+    <h2>🏛️ Berita Resmi</h2>
+    <p class="msg" id="beritaInfo">Memuat…</p>
+    <ul id="berita"></ul>
+  </section>
+
+  <section class="card" aria-label="Kabar warga">
+    <h2>💬 Kabar Warga</h2>
+    <p class="msg">Sapaan terbaru dari Papan Pesan Warga.</p>
+    <ul id="kabar"></ul>
+    <p class="msg" id="kabarInfo"></p>
+  </section>
+
+  <section class="card" aria-label="Jadwal kedatangan">
+    <h2>✈️ Jadwal Kedatangan</h2>
+    <p class="msg">Catatan kedatangan dari bandara kota (jalur publik yang sudah ada).</p>
+    <ul id="datang"></ul>
+    <p class="msg" id="datangInfo"></p>
+  </section>
+
+  <section class="card seed" aria-label="Edisi pembuka">
+    <h2>🗞️ Edisi Pembuka — Redaksi Kota Nusa</h2>
+    <article>
+      <h3 style="margin:10px 0 4px">Kota Nusa Kini Punya Koran dan Papan Pesan</h3>
+      <p>Mulai hari ini, kabar kota dirangkum di Koran Kota Nusa, dan warga bisa saling menyapa lewat Papan Pesan Warga. Tujuannya satu: kota ini terasa hidup, bukan sepi. Kalau kamu warga baru, tulis sapaan pertamamu di papan pesan!</p>
+    </article>
+    <article>
+      <h3 style="margin:10px 0 4px">Warga Baru Selalu Disambut</h3>
+      <p>Siapa pun yang mengikuti akun Instagram resmi kota menjadi warga Kota Nusa. Kedatangan mereka dicatat di bandara kota dan dirangkum di koran ini.</p>
+    </article>
+    <article>
+      <h3 style="margin:10px 0 4px">Apa yang Bisa Dilakukan Hari Ini?</h3>
+      <p>Pasar, kurir kota, kebun sawit, masak, sepak bola, dan rumah warga — semuanya sudah ada di Kota Nusa. Mainkan satu aktivitas, lalu ceritakan di papan pesan supaya warga lain ikut ramai.</p>
+    </article>
+    <p><small>Edisi pembuka ini adalah tulisan redaksi (bukan kabar warga) dan selalu tampil supaya koran tidak pernah terlihat kosong.</small></p>
+  </section>
+
+  <footer>
+    Koran ini hanya membaca data publik Kota Nusa yang sudah ada (berita resmi, papan pesan, jadwal bandara, sesi warga) dan tidak mengubah data apa pun. Jika koneksi Firebase tidak tersedia, koran menampilkan Edisi Pembuka di atas.
+  </footer>
+</main>
+<script type="module">
+(function () {
+  'use strict';
+  var FIREBASE_CONFIG = {
+ apiKey:'AIzaSyDFWMOCTkEzMemUrG_0uz74540VNcIGDMI',
+ authDomain:'kotanusa-6ed9c.firebaseapp.com',
+ databaseURL:'https://kotanusa-6ed9c-default-rtdb.asia-southeast1.firebasedatabase.app',
+ projectId:'kotanusa-6ed9c',
+ appId:'1:231262289343:web:486166f2e4fc6fb196350a'
+};
+  var APP_NAME = 'nusa-ktp-cloud';
+  var P_CHAT = 'chat/global';
+  var P_NEWS = 'nusaOfficialNewsV1';
+  var P_AIRPORT = 'airport/passengers';
+  var P_PRESENCE = 'nusaPresenceV1';
+
+  var statusEl = document.getElementById('status');
+  var edisiEl = document.getElementById('edisi');
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function fmtWaktu(t) {
+    try {
+      var d = new Date(Number(t));
+      if (isNaN(d.getTime())) return '';
+      return new Intl.DateTimeFormat('id-ID', {
+        timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short',
+        hour: '2-digit', minute: '2-digit'
+      }).format(d);
+    } catch (e) { return ''; }
+  }
+  function fmtEta(v) {
+    var n = Number(v);
+    if (isFinite(n) && n > 100000000000) return fmtWaktu(n);
+    if (isFinite(n) && n > 0) return 'ETA ' + n;
+    return '';
+  }
+  function setStatus(text, ok) {
+    statusEl.textContent = text;
+    statusEl.className = 'pill' + (ok ? ' ok' : ' warn');
+  }
+  function renderList(el, items, emptyText) {
+    if (!items.length) {
+      el.innerHTML = '<li><p>' + esc(emptyText) + '</p></li>';
+      return;
+    }
+    el.innerHTML = items.map(function (it) {
+      return '<li><b>' + esc(it.title) + '</b>' +
+        (it.meta ? '<small> · ' + esc(it.meta) + '</small>' : '') +
+        '<p>' + esc(it.body) + '</p></li>';
+    }).join('');
+  }
+
+  function setEdisi() {
+    try {
+      edisiEl.textContent = 'Edisi ' + new Intl.DateTimeFormat('id-ID', {
+        timeZone: 'Asia/Jakarta', weekday: 'long', day: 'numeric',
+        month: 'long', year: 'numeric'
+      }).format(new Date()) + ' · linimasa aktivitas harian warga';
+    } catch (e) {}
+  }
+
+  var dbMod = null, db = null, authed = false;
+
+  async function initFirebase() {
+    try {
+      var parts = await Promise.all([
+        import('https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js'),
+        import('https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js'),
+        import('https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js')
+      ]);
+      var appMod = parts[0], authMod = parts[1];
+      dbMod = parts[2];
+      var app = appMod.getApps().find(function (x) { return x.name === APP_NAME; }) ||
+        appMod.initializeApp(FIREBASE_CONFIG, APP_NAME);
+      var auth = authMod.getAuth(app);
+      try { await authMod.setPersistence(auth, authMod.browserLocalPersistence); } catch (e) {}
+      try {
+        if (typeof auth.authStateReady === 'function') await auth.authStateReady();
+        if (!auth.currentUser) await authMod.signInAnonymously(auth);
+      } catch (e) { /* lanjut: jalur publik tetap bisa dibaca */ }
+      authed = !!auth.currentUser;
+      db = dbMod.getDatabase(app);
+      setStatus(authed ? 'Terhubung: Firebase' : 'Terhubung: jalur publik', true);
+      return true;
+    } catch (e) {
+      setStatus('Mode lokal (pratinjau)', false);
+      return false;
+    }
+  }
+
+  async function muat() {
+    setEdisi();
+    var ok = await initFirebase();
+    if (!ok || !db) {
+      renderList(document.getElementById('berita'), [], 'Berita resmi belum bisa dimuat — lihat Edisi Pembuka di bawah.');
+      document.getElementById('beritaInfo').textContent = 'Koneksi Firebase tidak tersedia.';
+      renderList(document.getElementById('kabar'), [], 'Kabar warga belum bisa dimuat.');
+      renderList(document.getElementById('datang'), [], 'Jadwal kedatangan belum bisa dimuat.');
+      return;
+    }
+    // Berita resmi (butuh login; anonim sudah cukup menurut aturan)
+    try {
+      var sNews = await dbMod.get(dbMod.query(
+        dbMod.ref(db, P_NEWS), dbMod.orderByChild('time'), dbMod.limitToLast(10)));
+      var news = sNews.val() || {};
+      var newsList = Object.keys(news).map(function (k) { return news[k]; })
+        .filter(function (v) { return v && typeof v.title === 'string'; })
+        .sort(function (a, b) { return (Number(b.time) || 0) - (Number(a.time) || 0); });
+      document.getElementById('angkaBerita').textContent = String(newsList.length);
+      document.getElementById('beritaInfo').textContent = newsList.length ?
+        'Dari pengumuman resmi kota.' : 'Belum ada berita resmi yang diterbitkan.';
+      renderList(document.getElementById('berita'), newsList.map(function (v) {
+        return { title: v.title, meta: (v.author || 'Redaksi') + ' · ' + fmtWaktu(v.time), body: v.text };
+      }), 'Belum ada berita resmi yang diterbitkan.');
+    } catch (e) {
+      document.getElementById('beritaInfo').textContent = 'Berita resmi tidak bisa dibaca saat ini.';
+      renderList(document.getElementById('berita'), [], 'Berita resmi tidak bisa dibaca saat ini.');
+    }
+    // Kabar warga dari papan pesan
+    try {
+      var sChat = await dbMod.get(dbMod.query(
+        dbMod.ref(db, P_CHAT), dbMod.orderByChild('t'), dbMod.limitToLast(50)));
+      var chats = sChat.val() || {};
+      var chatList = Object.keys(chats).map(function (k) { return chats[k]; })
+        .filter(function (v) { return v && typeof v.m === 'string'; })
+        .sort(function (a, b) { return (Number(b.t) || 0) - (Number(a.t) || 0); });
+      document.getElementById('angkaPesan').textContent = String(chatList.length);
+      document.getElementById('kabarInfo').textContent = chatList.length ?
+        'Menampilkan sapaan terbaru.' : 'Belum ada sapaan warga.';
+      renderList(document.getElementById('kabar'), chatList.slice(0, 10).map(function (v) {
+        return { title: v.n || 'Warga', meta: fmtWaktu(v.t), body: v.m };
+      }), 'Belum ada sapaan warga.');
+    } catch (e) {
+      document.getElementById('kabarInfo').textContent = 'Kabar warga tidak bisa dibaca saat ini.';
+      renderList(document.getElementById('kabar'), [], 'Kabar warga tidak bisa dibaca saat ini.');
+    }
+    // Jadwal kedatangan (jalur publik)
+    try {
+      var sAir = await dbMod.get(dbMod.query(
+        dbMod.ref(db, P_AIRPORT), dbMod.orderByChild('t'), dbMod.limitToLast(20)));
+      var airs = sAir.val() || {};
+      var airList = Object.keys(airs).map(function (k) { return airs[k]; })
+        .filter(function (v) { return v && typeof v.ig === 'string'; })
+        .sort(function (a, b) { return (Number(b.t) || 0) - (Number(a.t) || 0); });
+      document.getElementById('angkaDatang').textContent = String(airList.length);
+      document.getElementById('datangInfo').textContent = airList.length ?
+        'Menampilkan catatan kedatangan terbaru.' : 'Belum ada catatan kedatangan.';
+      renderList(document.getElementById('datang'), airList.slice(0, 10).map(function (v) {
+        var eta = fmtEta(v.eta);
+        return {
+          title: '@' + v.ig,
+          meta: (v.flight ? 'Penerbangan ' + v.flight : '') + (eta ? ' · ' + eta : ''),
+          body: 'Tercatat di bandara kota.'
+        };
+      }), 'Belum ada catatan kedatangan.');
+    } catch (e) {
+      document.getElementById('datangInfo').textContent = 'Jadwal kedatangan tidak bisa dibaca saat ini.';
+      renderList(document.getElementById('datang'), [], 'Jadwal kedatangan tidak bisa dibaca saat ini.');
+    }
+    // Sesi warga (butuh login; hitung kunci sesi, dibatasi tampilannya)
+    try {
+      if (!authed) throw new Error('perlu login');
+      var sPres = await dbMod.get(dbMod.ref(db, P_PRESENCE));
+      var pres = sPres.val() || {};
+      var total = 0;
+      Object.keys(pres).forEach(function (uid) {
+        var sessions = pres[uid];
+        if (sessions && typeof sessions === 'object') total += Object.keys(sessions).length;
+        else if (sessions) total += 1;
+      });
+      document.getElementById('angkaOnline').textContent = total > 2000 ? '2000+' : String(total);
+    } catch (e) {
+      document.getElementById('angkaOnline').textContent = '—';
+    }
+  }
+
+  document.getElementById('muat').addEventListener('click', muat);
+  muat();
+})();
+</script>
+</body>
+</html>

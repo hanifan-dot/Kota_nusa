@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#315f4e">
+<title>Papan Pesan Warga — Kota Nusa</title>
+<style>
+:root{--ink:#000000;--deep:#000000;--muted:#000000;--paper:#faf7ee;--cream:#f0eadb;--green:#315f4e;--gold:#dfbd79;--border:#e3dfd0;--red:#b5471d}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+h1{margin:0;font-size:26px;line-height:1.1}h1 small{display:block;font-size:13px;color:var(--muted);font-weight:600}
+.pill{font-size:12px;font-weight:700;padding:6px 12px;border-radius:99px;background:var(--cream);border:1px solid var(--border)}
+.pill.ok{background:#e2f2e4}.pill.warn{background:#fdf0d5}
+.card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:14px;margin-top:14px;box-shadow:0 2px 8px rgba(24,61,56,.06)}
+.card h2{margin:0 0 6px;font-size:16px}.card p{margin:6px 0;line-height:1.55}
+.announce{border-left:6px solid var(--gold);background:#fffdf3}
+label{display:block;font-size:13px;font-weight:700;margin-top:10px}
+input,textarea{width:100%;margin-top:4px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font:inherit;background:#fff}
+textarea{min-height:84px;resize:vertical}
+button{appearance:none;border:0;border-radius:12px;background:var(--green);color:#fff;font:inherit;font-weight:800;padding:12px 20px;cursor:pointer}
+button:disabled{opacity:.55;cursor:default}
+button.secondary{background:var(--cream);color:var(--ink);border:1px solid var(--border)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.msg{font-size:13px;color:var(--muted);min-height:18px}
+.msg.err{color:var(--red)}
+ul#daftar{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+ul#daftar li{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px}
+ul#daftar li b{display:block}ul#daftar li small{color:var(--muted)}
+ul#daftar li p{margin:6px 0 0;white-space:pre-wrap;word-break:break-word;line-height:1.5}
+nav a{color:var(--green);font-weight:700;text-decoration:none}
+nav a:hover{text-decoration:underline}
+footer{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.5}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>📋 Papan Pesan Warga<small>Kota Nusa · pesan publik yang bisa dibaca semua warga</small></h1>
+    <span class="pill" id="status">Menghubungkan…</span>
+  </header>
+
+  <nav class="row">
+    <a href="index.html">← Kembali ke Kota Nusa</a>
+    <a href="koran-nusa.html">🗞️ Baca Koran Kota →</a>
+  </nav>
+
+  <section class="card announce" aria-label="Pengumuman">
+    <h2>📣 Pengumuman dari Tim Kota Nusa</h2>
+    <p>Selamat datang di Papan Pesan Warga! Tulis sapaan, kabar, atau ajakan main di sini — semua warga bisa membacanya. Jaga sopan santun: pesan yang kasar atau berisi iklan bisa dihapus tim kota.</p>
+  </section>
+
+  <section class="card" aria-label="Tulis pesan">
+    <h2>✏️ Tulis pesan</h2>
+    <label for="nama">Nama warga (maks. 24 huruf)
+      <input id="nama" maxlength="24" placeholder="mis. Warga Nusa" autocomplete="off">
+    </label>
+    <label for="pesan">Pesan (maks. 220 huruf)
+      <textarea id="pesan" maxlength="220" placeholder="Halo warga Kota Nusa!"></textarea>
+    </label>
+    <div class="row">
+      <button id="kirim" type="button">Kirim pesan</button>
+      <button id="muat" class="secondary" type="button">Muat ulang</button>
+      <span class="msg" id="info"></span>
+    </div>
+    <p class="msg">Jeda anti-spam: 3 menit per perangkat. Pesan tersimpan di papan publik Kota Nusa (jalur chat publik yang sudah ada), jadi bisa dibaca dari game utama juga.</p>
+  </section>
+
+  <section aria-label="Daftar pesan">
+    <ul id="daftar"></ul>
+    <p class="msg" id="kosong" hidden>Belum ada pesan warga — jadilah yang pertama menulis!</p>
+  </section>
+
+  <footer>
+    Papan ini memakai jalur chat publik Kota Nusa yang sudah ada di Firebase, sehingga tidak perlu perubahan aturan database. Jika koneksi Firebase tidak tersedia, halaman berjalan dalam mode pratinjau lokal dan pesan hanya tersimpan di perangkat ini.
+  </footer>
+</main>
+<script type="module">
+(function () {
+  'use strict';
+  var FIREBASE_CONFIG = {
+ apiKey:'AIzaSyDFWMOCTkEzMemUrG_0uz74540VNcIGDMI',
+ authDomain:'kotanusa-6ed9c.firebaseapp.com',
+ databaseURL:'https://kotanusa-6ed9c-default-rtdb.asia-southeast1.firebasedatabase.app',
+ projectId:'kotanusa-6ed9c',
+ appId:'1:231262289343:web:486166f2e4fc6fb196350a'
+};
+  var APP_NAME = 'nusa-ktp-cloud';
+  var CHAT_PATH = 'chat/global';
+  var COOLDOWN_MS = 180000;
+  var LS_LAST = 'nusaPapanWarga:lastPost:v1';
+  var LS_LOCAL = 'nusaPapanWarga:local:v1';
+  var LS_UID = 'nusaPapanWarga:uid:v1';
+
+  var statusEl = document.getElementById('status');
+  var daftarEl = document.getElementById('daftar');
+  var kosongEl = document.getElementById('kosong');
+  var infoEl = document.getElementById('info');
+  var namaEl = document.getElementById('nama');
+  var pesanEl = document.getElementById('pesan');
+  var kirimBtn = document.getElementById('kirim');
+  var muatBtn = document.getElementById('muat');
+
+  var mode = 'lokal';
+  var db = null, dbMod = null, authUid = null;
+  var seenKeys = {};
+  var messages = [];
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function fmtWaktu(t) {
+    try {
+      var d = new Date(Number(t));
+      if (isNaN(d.getTime())) return '';
+      return new Intl.DateTimeFormat('id-ID', {
+        timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short',
+        hour: '2-digit', minute: '2-digit'
+      }).format(d);
+    } catch (e) { return ''; }
+  }
+  function setStatus(text, ok) {
+    statusEl.textContent = text;
+    statusEl.className = 'pill' + (ok ? ' ok' : ' warn');
+  }
+  function setInfo(text, isErr) {
+    infoEl.textContent = text || '';
+    infoEl.className = 'msg' + (isErr ? ' err' : '');
+  }
+  function getUid() {
+    try {
+      var id = localStorage.getItem(LS_UID);
+      if (!id) {
+        id = 'pengunjung-' + Math.random().toString(36).slice(2, 14);
+        localStorage.setItem(LS_UID, id);
+      }
+      return String(id).slice(0, 64);
+    } catch (e) { return 'pengunjung'; }
+  }
+  function readLocal() {
+    try {
+      var arr = JSON.parse(localStorage.getItem(LS_LOCAL) || '[]');
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+  function writeLocal(arr) {
+    try { localStorage.setItem(LS_LOCAL, JSON.stringify(arr.slice(-100))); } catch (e) {}
+  }
+  function render() {
+    var sorted = messages.slice().sort(function (a, b) { return (b.t || 0) - (a.t || 0); });
+    kosongEl.hidden = sorted.length > 0;
+    daftarEl.innerHTML = sorted.map(function (m) {
+      return '<li><b>' + esc(m.n || 'Warga') + '</b><small> · ' + esc(fmtWaktu(m.t)) +
+        (m.lokal ? ' · tersimpan lokal' : '') + '</small><p>' + esc(m.m || '') + '</p></li>';
+    }).join('');
+  }
+  function upsert(m) {
+    if (m.key) {
+      if (seenKeys[m.key]) return;
+      seenKeys[m.key] = true;
+    }
+    messages.push(m);
+    messages = messages.slice(-100);
+    render();
+  }
+  function refreshCooldown() {
+    try {
+      var last = Number(localStorage.getItem(LS_LAST) || 0);
+      var sisa = COOLDOWN_MS - (Date.now() - last);
+      if (sisa > 0) {
+        kirimBtn.disabled = true;
+        kirimBtn.textContent = 'Tunggu ' + Math.ceil(sisa / 1000) + ' dtk';
+        window.setTimeout(refreshCooldown, 1000);
+      } else {
+        kirimBtn.disabled = false;
+        kirimBtn.textContent = 'Kirim pesan';
+      }
+    } catch (e) { kirimBtn.disabled = false; }
+  }
+
+  async function muatFirebase() {
+    if (!db) return;
+    try {
+      var snap = await dbMod.get(dbMod.query(
+        dbMod.ref(db, CHAT_PATH),
+        dbMod.orderByChild('t'),
+        dbMod.limitToLast(50)
+      ));
+      var val = snap.val() || {};
+      Object.keys(val).forEach(function (k) {
+        var v = val[k];
+        if (v && typeof v.m === 'string') upsert({ key: k, n: v.n, m: v.m, t: Number(v.t) || 0 });
+      });
+      setStatus('Terhubung: Firebase', true);
+    } catch (e) {
+      setStatus('Mode lokal (pratinjau)', false);
+      setInfo('Papan publik tidak bisa dimuat dari server, menampilkan pesan lokal.');
+    }
+  }
+  function muatLokal() {
+    messages = readLocal().map(function (m) {
+      return { n: m.n, m: m.m, t: m.t, lokal: true };
+    });
+    render();
+  }
+
+  async function init() {
+    refreshCooldown();
+    try {
+      var parts = await Promise.all([
+        import('https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js'),
+        import('https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js'),
+        import('https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js')
+      ]);
+      var appMod = parts[0], authMod = parts[1];
+      dbMod = parts[2];
+      var app = appMod.getApps().find(function (x) { return x.name === APP_NAME; }) ||
+        appMod.initializeApp(FIREBASE_CONFIG, APP_NAME);
+      var auth = authMod.getAuth(app);
+      try { await authMod.setPersistence(auth, authMod.browserLocalPersistence); } catch (e) {}
+      try {
+        if (typeof auth.authStateReady === 'function') await auth.authStateReady();
+        if (!auth.currentUser) await authMod.signInAnonymously(auth);
+      } catch (e) { /* lanjut tanpa login: jalur publik tetap bisa dibaca/ditulis */ }
+      authUid = auth.currentUser ? auth.currentUser.uid : null;
+      db = dbMod.getDatabase(app);
+      mode = 'firebase';
+      setStatus('Terhubung: Firebase', true);
+      try {
+        var q = dbMod.query(
+          dbMod.ref(db, CHAT_PATH),
+          dbMod.orderByChild('t'),
+          dbMod.limitToLast(50)
+        );
+        dbMod.onChildAdded(q, function (snap) {
+          var v = snap.val();
+          if (v && typeof v.m === 'string') upsert({ key: snap.key, n: v.n, m: v.m, t: Number(v.t) || 0 });
+        });
+      } catch (e) {}
+      await muatFirebase();
+    } catch (e) {
+      mode = 'lokal';
+      setStatus('Mode lokal (pratinjau)', false);
+      muatLokal();
+    }
+  }
+
+  kirimBtn.addEventListener('click', async function () {
+    var nama = (namaEl.value || '').trim().slice(0, 24) || 'Warga Nusa';
+    var teks = (pesanEl.value || '').trim();
+    if (!teks) { setInfo('Tulis dulu pesannya.', true); pesanEl.focus(); return; }
+    if (teks.length > 220) { setInfo('Pesan maksimal 220 huruf.', true); return; }
+    var last = 0;
+    try { last = Number(localStorage.getItem(LS_LAST) || 0); } catch (e) {}
+    if (Date.now() - last < COOLDOWN_MS) {
+      setInfo('Jeda anti-spam: tunggu sebentar sebelum mengirim lagi.', true);
+      refreshCooldown();
+      return;
+    }
+    kirimBtn.disabled = true;
+    var data = { n: nama, u: (authUid || getUid()).slice(0, 64), m: teks };
+    if (mode === 'firebase' && db) {
+      try {
+        var baru = dbMod.push(dbMod.ref(db, CHAT_PATH));
+        var isi = { n: data.n, u: data.u, m: data.m, t: dbMod.serverTimestamp() };
+        await dbMod.set(baru, isi);
+        try { localStorage.setItem(LS_LAST, String(Date.now())); } catch (e) {}
+        pesanEl.value = '';
+        setInfo('Pesan terkirim. Terima kasih, warga!');
+        refreshCooldown();
+        return;
+      } catch (e) {
+        setInfo('Server menolak pesan itu, pesan disimpan lokal saja. Coba lagi nanti.', true);
+      }
+    }
+    var lokal = readLocal();
+    lokal.push({ n: data.n, m: data.m, t: Date.now() });
+    writeLocal(lokal);
+    try { localStorage.setItem(LS_LAST, String(Date.now())); } catch (e) {}
+    upsert({ n: data.n, m: data.m, t: Date.now(), lokal: true });
+    pesanEl.value = '';
+    setInfo(mode === 'lokal' ? 'Pesan tersimpan lokal (mode pratinjau).' : 'Pesan tersimpan lokal.');
+    refreshCooldown();
+  });
+
+  muatBtn.addEventListener('click', function () {
+    if (mode === 'firebase') { messages = []; seenKeys = {}; muatFirebase(); }
+    else muatLokal();
+    setInfo('Daftar pesan dimuat ulang.');
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>
